@@ -4,11 +4,7 @@ import com.ravingarinc.api.module.Module
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.Extensions.timeTypes
-import com.ravingarinc.expeditions.play.item.ItemType
-import com.ravingarinc.expeditions.play.item.MMOItemType
-import com.ravingarinc.expeditions.play.item.VanillaItemType
-import com.ravingarinc.expeditions.play.item.LootItem
-import com.ravingarinc.expeditions.play.item.LootTable
+import com.ravingarinc.expeditions.play.item.*
 import com.ravingarinc.expeditions.play.mob.MobType
 import com.ravingarinc.expeditions.play.mob.MythicMobType
 import com.ravingarinc.expeditions.play.mob.VanillaMobType
@@ -24,12 +20,10 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.Damageable
 import org.bukkit.util.BlockVector
-import org.bukkit.util.Vector
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.*
-import javax.swing.text.html.HTML.Tag.P
 import kotlin.random.Random
 
 
@@ -114,10 +108,10 @@ fun ConfigurationSection.getDropTable(path: String): LootTable {
     return LootTable(range) {
         getMapList("$path.loot").forEach { map ->
             val id = map["id"].toString()
-            val range = parseRange(map["quantity"].toString())
+            val r = parseRange(map["quantity"].toString())
             val chance = parsePercentage(map["weight"].toString())
             parseItem(id)?.let {
-                this@LootTable.add(LootItem(it, range, chance))
+                this@LootTable.add(LootItem(it, r, chance))
             }
         }
     }

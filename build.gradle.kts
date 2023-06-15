@@ -70,10 +70,10 @@ dependencies {
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
 
 
+    /*
     compileOnly("com.sk89q.worldedit:worldedit-core:7.2.7") {
         isTransitive = false
     }
-
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.7") {
         isTransitive = false
     }
@@ -82,7 +82,7 @@ dependencies {
     }
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.8") {
         isTransitive = false
-    }
+    }*/
 
     compileOnly("com.onarandombox.multiversecore:multiverse-core:4.3.2") {
         isTransitive = false

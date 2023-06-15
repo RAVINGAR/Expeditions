@@ -1,12 +1,10 @@
 package com.ravingarinc.expeditions.play.instance
 
-import com.destroystokyo.paper.event.player.PlayerHandshakeEvent
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.play.PlayHandler
-import com.sk89q.worldedit.math.BlockVector3
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.bukkit.*
@@ -18,9 +16,9 @@ import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.MapMeta
 import org.bukkit.map.MapView
+import org.bukkit.util.BlockVector
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ThreadLocalRandom
 import java.util.logging.Level
 import kotlin.random.Random
 
@@ -45,7 +43,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
         mapView = view
     }
-    val brokenBlocks: MutableMap<BlockVector3, Pair<Block, Material>> = Hashtable()
+    val brokenBlocks: MutableMap<BlockVector, Pair<Block, Material>> = Hashtable()
 
     private val joinedPlayers: MutableMap<UUID, CachedPlayer> = HashMap()
     private val quitPlayers: MutableMap<UUID, CachedPlayer> = HashMap()
@@ -138,7 +136,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     }
 
     fun breakBlock(block: Block, material: Material) {
-        brokenBlocks[BlockVector3.at(block.x, block.y, block.z)] = Pair(block, material)
+        brokenBlocks[BlockVector(block.x, block.y, block.z)] = Pair(block, material)
     }
 
     /**
@@ -257,6 +255,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         val uuid = player.uniqueId
         joinedPlayers.remove(uuid)?.let {
             quitPlayers[uuid] = it
+            sneakingPlayers.remove(player)
         }
     }
 
@@ -273,6 +272,13 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             sneakingPlayers[player] = System.currentTimeMillis()
         } else {
             sneakingPlayers.remove(player)
+        }
+    }
+
+    fun onMoveEvent(player: Player) {
+        if(sneakingPlayers.containsKey(player)) {
+            sneakingPlayers[player] = System.currentTimeMillis()
+            player.sendMessage("${ChatColor.RED}You must remain still whilst waiting for extraction!")
         }
     }
 

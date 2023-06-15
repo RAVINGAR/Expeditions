@@ -6,7 +6,6 @@ import com.ravingarinc.api.module.SuspendingModule
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.*
 import com.ravingarinc.expeditions.integration.MultiverseHandler
-import com.ravingarinc.expeditions.integration.WorldGuardHandler
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.locale.type.PointOfInterest
@@ -14,10 +13,10 @@ import com.ravingarinc.expeditions.persistent.ConfigManager
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.EmptyMobType
 import com.ravingarinc.expeditions.play.mob.MobType
-import java.util.Hashtable
+import java.util.*
 import java.util.logging.Level
 
-class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManager::class.java, plugin, ConfigManager::class.java, MultiverseHandler::class.java, WorldGuardHandler::class.java) {
+class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManager::class.java, plugin, ConfigManager::class.java, MultiverseHandler::class.java) {
     private val maps: MutableList<Expedition> = ArrayList()
 
     private val lootTables: MutableMap<String, LootTable> = Hashtable()
