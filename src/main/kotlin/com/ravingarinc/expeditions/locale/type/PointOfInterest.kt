@@ -27,4 +27,8 @@ class PointOfInterest(displayName: String,
     override fun initialise(plugin: RavinPlugin, world: World) {
 
     }
+
+    override fun dispose(plugin: RavinPlugin, world: World) {
+
+    }
 }

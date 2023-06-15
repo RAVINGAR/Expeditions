@@ -17,13 +17,13 @@ class Expeditions : RavinPluginKotlin() {
         addModule(ConfigManager::class.java)
 
         addModule(MultiverseHandler::class.java)
-        addModule(WorldGuardHandler::class.java)
+        //addModule(WorldGuardHandler::class.java)
 
         addModule(ExpeditionManager::class.java)
         addModule(MythicListener::class.java)
-        addModule(MapListener::class.java)
 
         addModule(PlayHandler::class.java)
+        addModule(MapListener::class.java)
     }
 
     override fun loadCommands() {
