@@ -1,0 +1,63 @@
+map:
+  name: 'Expedition' # Display name of the map
+  world-name: ExpeditionMap # The actual name of the world.
+  centre: 0,0 # Centre of the map
+  # Radius from the centre of the map to where the world border is placed
+  radius: 125
+  max-players: 8
+  # This is the amount of mobs that are attempted to be spawned FOR EACH
+  # POI or Extraction Zone when this map is ticked.
+  mob-spawn-amount: 5
+  # The duration of the calm-phase of the event
+  calm-duration: 30m
+  # The duration of the storm phase. After this phase is over any remaining players will be killed
+  storm-duration: 15m
+  # During an event, the interval of how regularly a POI is 'ticked' (see map_example.yml)
+  mob-spawn-interval: 5min
+  # When a map has entered the final storm stage, the mob-spawn-interval is divided by this number.
+  # A value of 2 would effectively double the chance of a mob spawning
+  mob-spawn-modifier: 2
+  # How regularly a map is ticked for loot to respawn. For each area, the loot-chance is rolled
+  # for each loot location.
+  loot-respawn-interval: 5min
+  # When a map enters the final storm stage, the loot-respawn-interval is divided by this number.
+  # A value of 2 would effectively double the chance of a loot chest spawning
+  loot-respawn-modifier: 2
+points-of-interest:
+  - name: 'Ancient Ruins' # Unique Display name of the POI
+    start-location: 25,40,70 # The x,y,z coordinate of one corner of this area
+    end-location: 80,90,-40 # The x,y,z coordinate of the second corner. These two values form a bounding box for this area
+    # Every POI tick, the percentage of chests can exist at any given time. This is a number ranging from 0 to 1
+    # Decrease this value if you wish for all possible chest locations to be filled.
+    # A value of 1 would mean that once spawned, all chests must be destroyed before more chests can spawn
+    loot-chest-limit: 0.5
+    loot-chance: 25% # Chance for each loot location as to whether a loot chest will be placed there
+    loot-types:
+    - common_crate,5.0 # The identifier of the loot table to use, followed by the weight
+    loot-locations: # Possible locations to spawn the loot (these coordinates can actually be outside the boundary)
+    - 27,62,40
+    - 30,64,-20
+    # When this POI is ticked, for each amount of mobs, this is the chance that a mob is spawned
+    mob-spawn-chance: 25%
+    # The maximum amount of mobs that can exist at one time for this given area
+    max-mobs: 8
+    mobs: # The list of mobs that can spawn
+    - 'mythic:ancient_skeleton,1.0,3' # Mythic Format; mythic:<identifier>,<weight>,<level-range>
+    - 'vanilla:skeleton,5' # Vanilla Format; vanilla:<identifier>,<weight>
+    mob-locations: # Possible locations to spawn the mobs (these coordinates can actually be outside the boundary)
+    - 28,62,39
+    - 17,62,25
+    boss: 'mythic:ancient_king' # The identifier for the boss
+    boss-level: 10 # If boss is a mythic mob, set it's level.
+    boss-spawn-chance: 5% # Every time this area is ticked, this chance is rolled for the boss spawn. Only 1 boss will be spawned at a time
+    boss-spawn-location: 60,70,45 # Location for where the boss should be spawned
+    boss-cooldown: 120s # After a boss is defeated, how long is the cooldown between spawns in seconds.
+ # Extraction zones can share the same features as a POI :)
+ # Players can only use the command /extract if they are in an extraction zone. Im recommending a
+ # command, simply because that allows you freedom to do whatever. (AKA could rig a button to make the player execute that command)
+extraction-zones:
+  - name: 'Extraction Zone #1' # Display name for the zone
+    start-location: 25,40,70 # The x,y,z coordinate of one corner of this area
+    end-location: 50,90,-40 # The x,y,z coordinate of the second corner. These two values form a bounding box for this area
+    chance: 100% # Chance for this extraction zone to be placed
+    beacon-loc: 26,60,80 # Coordinates for where the beacon is placed if this zone is chosen
