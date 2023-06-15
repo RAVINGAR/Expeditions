@@ -3,28 +3,25 @@ package com.ravingarinc.expeditions.integration
 import com.onarandombox.MultiverseCore.MultiverseCore
 import com.onarandombox.MultiverseCore.enums.AllowedPortalType
 import com.onarandombox.MultiverseCore.event.MVWorldDeleteEvent
+import com.ravingarinc.api.I
 import com.ravingarinc.api.module.ModuleLoadException
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModuleListener
 import com.ravingarinc.api.module.warn
-import com.ravingarinc.expeditions.persistent.ConfigManager
 import org.bukkit.Difficulty
 import org.bukkit.World
 import org.bukkit.event.EventHandler
-import org.checkerframework.checker.units.qual.m
-import java.util.Hashtable
+import java.util.logging.Level
 
 class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(MultiverseHandler::class.java, plugin) {
     private lateinit var multiverse: MultiverseCore
-    private var maxInstances: Int = 4
-    private val clonedWorldNames: MutableMap<String, Int> = Hashtable()
+    private val clonedWorldNames: MutableSet<String> = HashSet()
     private val deletedBySelf: MutableSet<String> = HashSet()
 
     override suspend fun suspendLoad() {
         val core = plugin.server.pluginManager.getPlugin("Multiverse-Core")
             ?: throw ModuleLoadException(this, ModuleLoadException.Reason.EXCEPTION, IllegalStateException("Could not find Multiverse-Core!"))
         multiverse = core as MultiverseCore
-        maxInstances = plugin.getModule(ConfigManager::class.java).config.config.getInt("max-instances", 4)
 
         super.suspendLoad()
     }
@@ -33,22 +30,23 @@ class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(Multiver
 
     /**
      * Attempt to clone a world, giving it the same name with an appended number. Returns a world if successfully cloned,
-     * or returns null if an error occurs or max instances have been reached.
+     * or returns null if an error occurs
      */
     fun cloneWorld(world: World) : World? {
         val name = world.name
-        val integer = (clonedWorldNames[name] ?: 0) + 1
-        if(integer > maxInstances) {
+        val newName = getFreeName(name)
+        if(newName == null) {
+            warn("Could not find free world name for new instance!")
             return null
         }
-        val newName = "${name}_$integer"
-        if(plugin.server.getWorld(newName) != null) {
+        val existingWorld = plugin.server.getWorld(newName)
+        if(existingWorld != null && !deleteWorld(existingWorld)) {
             warn("Could not clone world '${name}' as a world with the name '${newName}' already exists! " +
                     "This should not have occurred. Please stop the server, delete that world then try again!")
             return null
         }
         if(multiverse.mvWorldManager.cloneWorld(name, newName)) {
-            clonedWorldNames[name] = integer
+            clonedWorldNames.add(newName)
             val mvWorld = multiverse.mvWorldManager.getMVWorld(newName)
             if(mvWorld == null) {
                 warn("Something went wrong cloning world '$name' via Multiverse!")
@@ -64,6 +62,14 @@ class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(Multiver
             warn("Could not clone world '${name}' for unknown reason!")
             return null
         }
+    }
+
+    private fun getFreeName(world: String) : String? {
+        for(i in 0..16) {
+            val freeName = "${world}_$i"
+            if(!clonedWorldNames.contains(freeName)) return freeName
+        }
+        return null
     }
 
     fun deleteWorld(world: World) : Boolean {
@@ -86,6 +92,9 @@ class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(Multiver
         if(deletedBySelf.contains(world.name)) {
             return // If we are deleting the world then do nothing
         }
-        // TODO Check basically if this is an instance world and handle appropriately
+        if(clonedWorldNames.contains(world.name)) {
+            I.log(Level.SEVERE, "Instanced world was almost deleted manually! Please do not delete Expedition worlds!")
+            event.isCancelled = true
+        }
     }
 }

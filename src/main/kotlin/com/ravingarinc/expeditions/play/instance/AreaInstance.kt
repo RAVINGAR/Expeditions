@@ -5,7 +5,6 @@ import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.type.Area
 import com.ravingarinc.expeditions.locale.type.Expedition
-import com.sk89q.worldedit.math.BlockVector3
 import kotlinx.coroutines.delay
 import org.bukkit.World
 import org.bukkit.block.Block
@@ -62,7 +61,7 @@ class AreaInstance(private val expedition: Expedition, val area: Area) {
                 bossCooldown -= 20L
             } else if(area.bossSpawnChance != 0.0 && random.nextDouble() < area.bossSpawnChance) {
                 area.bossSpawnLocation?.let {
-                    if(!world.isChunkLoaded(it.blockX, it.blockZ)) return@let
+                    if(!world.isChunkLoaded(it.blockX / 16, it.blockZ / 16)) return@let
                     boss = area.bossType.spawn(area.bossLevel, it, world)
                 }
             }
@@ -72,9 +71,9 @@ class AreaInstance(private val expedition: Expedition, val area: Area) {
         if(chance == 0.0) return
         if(area.mobCollection.isEmpty()) return
 
-        for(i in 0..expedition.mobSpawnAmount) {
+        for(i in 0 until expedition.mobSpawnAmount) {
             val loc = area.mobLocations.randomOrNull(random) ?: break
-            if(!world.isChunkLoaded(loc.blockX, loc.blockZ)) break
+            if(!world.isChunkLoaded(loc.blockX / 16, loc.blockZ / 16)) break
             if(spawnedMobs.size >= area.maxMobs) break
             if(chance != 1.0 && random.nextDouble() > chance) continue
 

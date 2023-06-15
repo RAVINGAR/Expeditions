@@ -1,6 +1,8 @@
 general:
   # How many initial instances for each map is generated. Additional instances may be created if cap is reached
   initial-instances: 1
+  # Maximum amount of instances
+  max-instances: 4
   breakable-blocks:
     - coal_ore
     - copper_ore
@@ -8,7 +10,7 @@ general:
     - gold_ore
     - redstone_ore
     - emerald_ore
-    - lapis_lazuli_ore
+    - lapis_ore
     - diamond_ore
     - deepslate_coal_ore
     - deepslate_copper_ore
@@ -16,7 +18,7 @@ general:
     - deepslate_gold_ore
     - deepslate_redstone_ore
     - deepslate_emerald_ore
-    - deepslate_lapis_lazuli_ore
+    - deepslate_lapis_ore
     - deepslate_diamond_ore
   overhanging-blocks: ["oak_leaves", "spruce_leaves", "acacia_leaves", "birch_leaves", "jungle_leaves", "dark_oak_leaves"]
   # Commands executed for each player joining the event. Use the @player tag to replace it

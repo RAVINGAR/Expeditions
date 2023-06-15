@@ -4,6 +4,7 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.type.Expedition
+import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -25,7 +26,7 @@ import kotlin.random.Random
 class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, val world: World, val extractionTime: Long) {
     private var phase: Phase = IdlePhase(expedition)
     val bossBar = plugin.server.createBossBar(
-        NamespacedKey.fromString("${world.name}_bossbar", plugin)!!,
+        NamespacedKey(plugin, "${world.name}_bossbar"),
         "${expedition.displayName} Expedition",
         BarColor.BLUE, BarStyle.SEGMENTED_12)
 
@@ -61,6 +62,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
      * Players should be teleported to their previous location.
      */
     fun end() {
+
+        bossBar.removeAll()
         Hashtable(joinedPlayers).forEach {
             it.value.player.player.let { player ->
                 if(player == null) {
@@ -269,10 +272,24 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     fun onSneakEvent(player: Player, isSneaking: Boolean) {
         if(isSneaking) {
-            sneakingPlayers[player] = System.currentTimeMillis()
+            val loc = player.location
+            getAreaFromLocation(loc.blockX, loc.blockY, loc.blockZ)?.let {
+                if(it.area is ExtractionZone) {
+                    sneakingPlayers[player] = System.currentTimeMillis()
+                }
+            }
         } else {
             sneakingPlayers.remove(player)
         }
+    }
+
+    fun getAreaFromLocation(x: Int, y: Int, z: Int) : AreaInstance? {
+        for(area in areaInstances) {
+            if(area.area.isInArea(x, y, z)) {
+                return area
+            }
+        }
+        return null
     }
 
     fun onMoveEvent(player: Player) {

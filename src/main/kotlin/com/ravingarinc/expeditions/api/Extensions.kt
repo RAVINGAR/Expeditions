@@ -220,8 +220,8 @@ fun ConfigurationSection.getMob(path: String) : Triple<MobType, Double, IntRange
 }
 
 fun parseMob(string: String) : Triple<MobType, Double, IntRange>? {
-    val split = string.lowercase().split(":".toRegex(), limit = 2)
-    if(split[0] == "mythic" || split[0] == "mythicmobs" || split[0] == "mm") {
+    val split = string.split(":".toRegex(), limit = 2)
+    if(split[0].equals("mythic", true) || split[0].equals("mythicmobs", true) || split[0].equals("mm", true)) {
         val subSplit = split[1].split(",".toRegex(), limit = 3)
         val id = subSplit[0]
         val weight = subSplit[1].toDoubleOrNull()
@@ -231,7 +231,7 @@ fun parseMob(string: String) : Triple<MobType, Double, IntRange>? {
             return null
         }
         return Triple(MythicMobType(id), weight, range)
-    } else if (split[0] == "vanilla" || split[0] == "v") {
+    } else if (split[0].equals("vanilla", true) || split[0].equals("v", true)) {
         val subSplit = split[1].split(",".toRegex(), limit = 2)
         val id = subSplit[0]
         val weight = subSplit[1].toDoubleOrNull()

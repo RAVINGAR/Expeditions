@@ -65,10 +65,10 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 it.getInt("map.radius", 125),
                 it.getInt("map.mob-spawn-amount", 0),
                 calmDuration, stormDuration,
-                it.getDuration("mob-spawn-interval") ?: -1L,
-                it.getDouble("mob-spawn-modifier", 1.0),
-                it.getDuration("loot-respawn-interval") ?: -1L,
-                it.getDouble("loot-respawn-modifier", 1.0)
+                it.getDuration("map.mob-spawn-interval") ?: -1L,
+                it.getDouble("map.mob-spawn-modifier", 1.0),
+                it.getDuration("map.loot-respawn-interval") ?: -1L,
+                it.getDouble("map.loot-respawn-modifier", 1.0)
             )
             for(poi in it.getMapList("points-of-interest")) {
                 loadPointOfInterest(it.name, poi)?.let { map.addArea(it) }

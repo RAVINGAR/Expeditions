@@ -35,11 +35,6 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
             return@addOption true
         }
 
-        addOption("extract", null, "- Extract from your current expedition if you're in one", 1) { sender, args ->
-
-            return@addOption true
-        }
-
         addHelpOption(ChatColor.AQUA, ChatColor.DARK_AQUA)
     }
 }

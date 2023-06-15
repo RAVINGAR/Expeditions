@@ -27,6 +27,7 @@ class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::c
         config.config.config.getMaterialList("general.breakable-blocks").forEach {
             breakableBlocks.add(it)
         }
+        super.suspendLoad()
     }
 
     override suspend fun suspendCancel() {

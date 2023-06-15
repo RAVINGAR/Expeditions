@@ -17,8 +17,6 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
 
 class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.java, plugin, ExpeditionManager::class.java) {
     private lateinit var expeditions: ExpeditionManager
@@ -26,6 +24,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     private lateinit var manager: ConfigManager
 
     private var initialInstances = 1
+    private var maxInstances: Int = 4
     private val joinCommands: MutableList<String> = ArrayList()
     private var extractionTime: Long = 0L
 
@@ -40,6 +39,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         manager = plugin.getModule(ConfigManager::class.java)
         manager.config.consume("general") {
             initialInstances = it.getInt("initial-instances", 1)
+            maxInstances = it.getInt("max-instances", 4)
             it.getStringList("on-join-expedition-commands").forEach { str ->
                 joinCommands.add(str)
             }
@@ -64,7 +64,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
             for(type in expeditions.getMaps()) {
                 val list = LinkedList<ExpeditionInstance>()
                 instances[type.identifier] = list
-                for(i in 0..initialInstances) {
+                for(i in 1..initialInstances) {
                     createInstance(type)?.let { list.add(it) }
                 }
             }

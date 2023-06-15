@@ -8,11 +8,9 @@ import com.ravingarinc.expeditions.play.PlayHandler
 import kotlinx.coroutines.delay
 import org.bukkit.ChatColor
 import org.bukkit.Location
-import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarFlag
-import org.bukkit.entity.EntityType
 import org.bukkit.map.MapCursor
 import org.bukkit.map.MapCursorCollection
 import java.util.concurrent.atomic.AtomicBoolean
@@ -127,6 +125,7 @@ class PlayPhase(expedition: Expedition) :
     override fun onTick(random: Random, instance: ExpeditionInstance) {
         super.onTick(random, instance)
         instance.bossBar.progress = 1.0 - (ticks / totalTime.toDouble())
+        tickExtractions(instance)
     }
 
     override fun onEnd(instance: ExpeditionInstance) {
@@ -167,7 +166,8 @@ class StormPhase(expedition: Expedition) :
 
     override fun onTick(random: Random, instance: ExpeditionInstance) {
         super.onTick(random, instance)
-        instance.bossBar.progress = 1.0 - (ticks / totalTime.toDouble())
+        instance.bossBar.progress = 1.0 - ((instance.expedition.calmPhaseDuration + ticks) / totalTime.toDouble())
+        tickExtractions(instance)
     }
 
     override fun onEnd(instance: ExpeditionInstance) {
@@ -175,11 +175,6 @@ class StormPhase(expedition: Expedition) :
         // Players which have left the expedition, but haven't rejoined yet should have their player data cached in a file.
         // And then their join responsibility is now up to the PlayHandler class!
         val handler = instance.plugin.getModule(PlayHandler::class.java)
-
-        instance.bossBar.removeAll()
-        instance.bossBar.removeFlag(BarFlag.CREATE_FOG)
-        instance.bossBar.removeFlag(BarFlag.DARKEN_SKY)
-        instance.bossBar.color = BarColor.BLUE
         // Done before getQuitPlayers, since this method may add to quit players
         instance.getRemainingPlayers().forEach {
             it.playSound(it, Sound.ENTITY_WITHER_SPAWN, 0.7F, 0.2F)
@@ -191,6 +186,10 @@ class StormPhase(expedition: Expedition) :
             handler.addAbandon(it)
         }
         instance.clearPlayers()
+        instance.bossBar.removeAll()
+        instance.bossBar.removeFlag(BarFlag.CREATE_FOG)
+        instance.bossBar.removeFlag(BarFlag.DARKEN_SKY)
+        instance.bossBar.color = BarColor.BLUE
     }
 }
 

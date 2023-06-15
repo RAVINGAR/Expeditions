@@ -3,7 +3,6 @@ package com.ravingarinc.expeditions.command
 import com.ravingarinc.api.gui.BaseGui
 import com.ravingarinc.api.gui.builder.GuiBuilder
 import com.ravingarinc.api.gui.builder.GuiProvider
-import com.ravingarinc.api.gui.component.action.MenuAction
 import com.ravingarinc.api.gui.component.action.RunnableAction
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.ExpeditionManager
@@ -19,12 +18,12 @@ object ExpeditionGui {
 
     fun openGui(plugin: RavinPlugin, player: Player) {
         val gui = guis.computeIfAbsent(player) {
-            return@computeIfAbsent build(plugin)
+            return@computeIfAbsent build(plugin, it)
         }
         player.openInventory(gui.inventory)
     }
 
-    fun build(plugin: RavinPlugin) : BaseGui {
+    fun build(plugin: RavinPlugin, player: Player) : BaseGui {
         /**
          * 00 01 02 03 04 05 06 07 08
          * 09 10 11 12 13 14 15 16 17
@@ -63,7 +62,7 @@ object ExpeditionGui {
             } }
 
         builder.runOnDestroy {
-            guis.remove(it.player)
+            guis.remove(player)
         }
 
         return builder.build()
