@@ -13,6 +13,7 @@ import com.ravingarinc.expeditions.persistent.ConfigManager
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.EmptyMobType
 import com.ravingarinc.expeditions.play.mob.MobType
+import org.bukkit.Material
 import java.util.*
 import java.util.logging.Level
 
@@ -22,11 +23,23 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
     private val lootTables: MutableMap<String, LootTable> = Hashtable()
     private val mobTypes: MutableMap<String, MobType> = Hashtable()
 
+    private var extractionTime: Long = 0L
+    private var lootBlock: Material = Material.BARREL
+
     override suspend fun suspendLoad() {
         val manager = plugin.getModule(ConfigManager::class.java)
 
+        manager.config.consume("general") {
+            lootBlock = it.getMaterial("loot-chest-block") ?: Material.BARREL
+            extractionTime = it.getDuration("extraction-time") ?: 0L
+        }
+
         loadLootTables(manager)
         loadExpeditions(manager)
+    }
+
+    fun getLootBlock() : Material {
+        return lootBlock
     }
 
     private fun loadLootTables(manager: ConfigManager) {
@@ -40,14 +53,16 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
     }
 
     private fun loadExpeditions(manager: ConfigManager) {
-        for(it in manager.getMapConfigs()) {
+        for(entry in manager.getMapConfigs()) {
+            val name = entry.key
+            val it = entry.value
             val world = it.getWorld("map.world-name") ?: continue
             val pair = it.getIntPair("map.centre") ?: Pair(0, 0)
             val calmDuration = it.getDuration("map.calm-duration") ?: continue
             val stormDuration = it.getDuration("map.storm-duration") ?: continue
 
-            if(getMapByIdentifier(it.name) != null) {
-                warn("Could not load expedition with duplicate id of '${it.name}'!")
+            if(getMapByIdentifier(name) != null) {
+                warn("Could not load expedition with duplicate id of '${name}'!")
                 continue
             }
             if(getMapByWorld(world.name) != null) {
@@ -56,8 +71,9 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             }
 
             val map = Expedition(
-                it.name,
-                it.getString("map.name") ?: it.name,
+                name,
+                it.getString("map.description") ?: "",
+                it.getString("map.name") ?: name,
                 world,
                 it.getInt("map.max-players", 1),
                 pair.first,
@@ -68,17 +84,19 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 it.getDuration("map.mob-spawn-interval") ?: -1L,
                 it.getDouble("map.mob-spawn-modifier", 1.0),
                 it.getDuration("map.loot-respawn-interval") ?: -1L,
-                it.getDouble("map.loot-respawn-modifier", 1.0)
+                it.getDouble("map.loot-respawn-modifier", 1.0),
+                lootBlock, extractionTime, it.getDouble("map.loot-chest-range", 8.0)
             )
             for(poi in it.getMapList("points-of-interest")) {
-                loadPointOfInterest(it.name, poi)?.let { map.addArea(it) }
+                loadPointOfInterest(name, poi)?.let { map.addArea(it) }
             }
-            for(zone in it.getMapList("extraction-zone")) {
-                loadExtractionZone(it.name, zone)?.let { map.addArea(it) }
+            for(zone in it.getMapList("extraction-zones")) {
+                loadExtractionZone(name, zone)?.let { map.addArea(it) }
             }
 
-            I.log(Level.INFO, "Loaded expedition map '${it.name}'")
+            I.log(Level.INFO, "Loaded expedition map '${name}'")
             maps.add(map)
+            map.render(plugin)
         }
     }
 

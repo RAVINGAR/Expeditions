@@ -1,22 +1,20 @@
 package com.ravingarinc.expeditions.persistent
 
+import com.github.shynixn.mccoroutine.bukkit.launch
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
 import com.ravingarinc.expeditions.api.copyResource
-import com.ravingarinc.expeditions.api.getMaterial
-import org.bukkit.Material
-import org.bukkit.block.Biome
+import kotlinx.coroutines.Dispatchers
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
 import java.util.*
-import kotlin.collections.ArrayList
 
 class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class.java, plugin) {
     val config: ConfigFile = ConfigFile(plugin, "config.yml")
     val data: ConfigFile = ConfigFile(plugin, "data.yml")
 
-    private val mapConfigurations: MutableList<ConfigurationSection> = ArrayList()
+    private val mapConfigurations: MutableMap<String, ConfigurationSection> = Hashtable()
 
 
     override suspend fun suspendLoad() {
@@ -27,7 +25,7 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
         }
         for (f in maps.listFiles()!!) {
             if (f.isFile && f.name.endsWith(".yml")) {
-                mapConfigurations.add(YamlConfiguration.loadConfiguration(f))
+                mapConfigurations[f.nameWithoutExtension] = (YamlConfiguration.loadConfiguration(f))
             }
         }
         data.reload()
@@ -35,7 +33,10 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
 
     fun addAbandonedPlayer(uuid: UUID) {
         val list = data.config.getStringList("abandoned-players")
-        list.add(uuid.toString())
+        val str = uuid.toString()
+        if(!list.contains(str)) {
+            list.add(str)
+        }
         data.config.set("abandoned-players", list)
     }
 
@@ -45,7 +46,13 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
         data.config.set("abandoned-players", list)
     }
 
-    fun getMapConfigs(): List<ConfigurationSection> {
+    fun saveAbandons() {
+        plugin.launch(Dispatchers.IO) {
+            data.save()
+        }
+    }
+
+    fun getMapConfigs(): Map<String, ConfigurationSection> {
         return mapConfigurations
     }
 

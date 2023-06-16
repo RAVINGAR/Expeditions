@@ -39,7 +39,7 @@ object ExpeditionGui {
         builder.setBackIconIndex(22)
 
         builder.createMenu("MAIN", null)
-            .addStaticIcon("title", "${ChatColor.DARK_AQUA}Expeditions", "", Material.COMPASS, 4)
+            .addStaticIcon("title", "${ChatColor.DARK_AQUA}Expeditions", "${ChatColor.GRAY}Select and join a\n${ChatColor.GRAY}random expedition!", Material.COMPASS, 4)
             .finalise()
             .addPage("expedition_type_page", 10, 11, 12, 13, 14, 15, 16)
             .addNextPageIcon(17).finalise()
@@ -47,15 +47,15 @@ object ExpeditionGui {
             .addPageFiller("type_filler") { manager.getMaps() }
             .setIdentifierProvider { it -> "type_${it.identifier}" }
             .setDisplayNameProvider { it -> "${ChatColor.AQUA}${it.displayName}" }
-            .setLoreProvider { it -> "${ChatColor.GRAY}Click here to join\na random '${it.displayName}'\nexpedition." }
+            .setLoreProvider { it -> it.getFormattedDescription() }
             .setMaterialProvider { _ -> Material.FILLED_MAP }
             .addActionProvider { it -> RunnableAction { gui, player ->
                 if(handler.joinExpedition(it.identifier, player)) {
                     player.closeInventory()
-                    player.sendMessage("${ChatColor.GREEN}You are now joining the '${it.displayName}' expedition!")
+                    player.sendMessage("${ChatColor.GREEN}You have joined the '${it.displayName}' expedition!")
                     player.playSound(player, Sound.BLOCK_NOTE_BLOCK_CHIME, 0.8F, 0.8F)
                 } else {
-                    player.sendMessage("${ChatColor.RED}Could not join expedition at this time! Please try again later!")
+                    player.sendMessage("${ChatColor.RED}Could not join that expedition at this time! Please try again later!")
                     player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
                 }
                 return@RunnableAction

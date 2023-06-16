@@ -61,6 +61,9 @@ fun ConfigurationSection.getPercentage(path: String): Double {
 }
 
 fun parsePercentage(string: String): Double {
+    if(string == "null") {
+        return 0.0
+    }
     var double = string.replace("%", "").toDoubleOrNull()
     if (double == null) {
         warn("Could not parse $string as a percentage! Format must be 0.4 or 40%!")
@@ -155,6 +158,7 @@ fun ConfigurationSection.getBlockVector(path: String) : BlockVector? {
 }
 
 fun parseBlockVector(string: String) : BlockVector? {
+    if(string == "null") return null
     val split = string.replace(" ", "").split(",", ";", "-", limit = 3)
     val x = split[0].toDoubleOrNull()
     val y = split[1].toDoubleOrNull()
@@ -220,7 +224,12 @@ fun ConfigurationSection.getMob(path: String) : Triple<MobType, Double, IntRange
 }
 
 fun parseMob(string: String) : Triple<MobType, Double, IntRange>? {
+    if(string == "null") return null
     val split = string.split(":".toRegex(), limit = 2)
+    if(split.size < 2) {
+        warn("Incorrect syntax for mob type '$string'. Please use the format <type>:<identifier>!")
+        return null
+    }
     if(split[0].equals("mythic", true) || split[0].equals("mythicmobs", true) || split[0].equals("mm", true)) {
         val subSplit = split[1].split(",".toRegex(), limit = 3)
         val id = subSplit[0]

@@ -2,6 +2,7 @@ package com.ravingarinc.expeditions.play.instance
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
+import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.type.Area
 import com.ravingarinc.expeditions.locale.type.Expedition
@@ -12,18 +13,21 @@ import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.util.BlockVector
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Level
 import kotlin.random.Random
 
 /**
  * This class is disposed of after each cycle. If a server is shutdown. Then dispose() should
  * never be called. As loading chunks during a shutdown is prohibited.
  */
-class AreaInstance(private val expedition: Expedition, val area: Area) {
+class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area: Area) {
     private val spawnedMobs: MutableSet<Entity> = ConcurrentHashMap.newKeySet()
     private val spawnedChests: MutableMap<BlockVector, LootableChest> = ConcurrentHashMap()
     private val limit: Int = (area.lootLimit * area.lootLocations.size).toInt()
     private var bossCooldown: Long = 0
     private var boss: Entity? = null
+
+    val inArea: MutableSet<Player> = HashSet()
 
     private val availableLootLocations: MutableSet<BlockVector> = ConcurrentHashMap.newKeySet()
     init {
@@ -53,6 +57,7 @@ class AreaInstance(private val expedition: Expedition, val area: Area) {
             it.value.destroy()
         }
         spawnedChests.clear()
+        inArea.clear()
     }
 
     fun tickMobs(random: Random, world: World) {
@@ -100,7 +105,9 @@ class AreaInstance(private val expedition: Expedition, val area: Area) {
             usingList.forEach {
                 availableLootLocations.remove(it.first)
                 world.getChunkAt(it.first.blockX, it.first.blockZ) // Load chunk
-                spawnedChests[it.first] = LootableChest(it.second, it.first, world)
+                val loot = LootableChest(it.second, this, it.first, world)
+                spawnedChests[it.first] = loot
+                inArea.forEach { player -> loot.show(player) }
             }
         }
     }
@@ -116,7 +123,30 @@ class AreaInstance(private val expedition: Expedition, val area: Area) {
         return true
     }
 
+    fun onMove(player: Player) : Boolean {
+        val loc = player.location.toVector()
+        return if(area.isInArea(loc.blockX, loc.blockY, loc.blockZ)) {
+            inArea.add(player)
+            val radSquared = expedition.lootRange * expedition.lootRange
+            I.log(Level.WARNING, " Debug -> is in area!")
+            spawnedChests.forEach {
+                if(it.key.distanceSquared(loc) < radSquared) {
+                    it.value.show(player)
+                } else {
+                    it.value.hide(player)
+                }
+            }
+            true
+        } else {
+            inArea.remove(player)
+            false
+        }
+    }
+
     fun onDeath(entity: Entity) : Boolean {
+        if(entity is Player) {
+            return inArea.remove(entity)
+        }
         if(boss != null) {
             if(boss == entity) {
                 boss = null

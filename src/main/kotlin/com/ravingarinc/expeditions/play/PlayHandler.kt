@@ -4,7 +4,6 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
-import com.ravingarinc.expeditions.api.getDuration
 import com.ravingarinc.expeditions.api.getMaterialList
 import com.ravingarinc.expeditions.command.ExpeditionGui
 import com.ravingarinc.expeditions.integration.MultiverseHandler
@@ -26,7 +25,6 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     private var initialInstances = 1
     private var maxInstances: Int = 4
     private val joinCommands: MutableList<String> = ArrayList()
-    private var extractionTime: Long = 0L
 
     private val instances: MutableMap<String, MutableList<ExpeditionInstance>> = ConcurrentHashMap()
     private lateinit var ticker: PlayTicker
@@ -46,14 +44,11 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
             it.getMaterialList("overhanging-blocks").forEach { mat ->
                 overhangingBlocks.add(mat)
             }
-            extractionTime = it.getDuration("extraction-time") ?: 0L
         }
         manager.data.config.getStringList("abandoned-players").forEach {
             val uuid = UUID.fromString(it)
             abandonedPlayers.add(uuid)
         }
-
-
         expeditions = plugin.getModule(ExpeditionManager::class.java)
         multiverse = plugin.getModule(MultiverseHandler::class.java)
 
@@ -111,6 +106,10 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         manager.removeAbandonedPlayer(player.uniqueId)
     }
 
+    fun saveAbandons() {
+        manager.saveAbandons()
+    }
+
     fun joinExpedition(identifier: String, player: Player) : Boolean {
         val list = instances[identifier] ?: return false
         val randomList = ArrayList(list)
@@ -158,7 +157,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
 
     fun createInstance(expedition: Expedition): ExpeditionInstance? {
         val instanceWorld = multiverse.cloneWorld(expedition.world) ?: return null
-        val instance = ExpeditionInstance(plugin, expedition, instanceWorld, extractionTime)
+        val instance = ExpeditionInstance(plugin, expedition, instanceWorld)
         plugin.launch {
             instance.start()
         }

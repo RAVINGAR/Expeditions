@@ -61,7 +61,7 @@ dependencies {
     implementation("com.ravingarinc.api:gui:1.3.1")
     implementation("org.jetbrains:annotations:23.1.0")
 
-    //compileOnly("org.spigotmc:spigot:1.19.4-R0.1-SNAPSHOT:remapped-mojang")
+    compileOnly("org.spigotmc:spigot:1.19.4-R0.1-SNAPSHOT:remapped-mojang")
     //compileOnly("org.spigotmc:spigot-api:1.18.2-R0.1-SNAPSHOT")
 
     compileOnly("io.papermc.paper:paper-api:1.18.2-R0.1-SNAPSHOT")

@@ -14,6 +14,7 @@ import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
 import org.bukkit.entity.Player
 import org.bukkit.event.entity.EntityDeathEvent
+import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.MapMeta
 import org.bukkit.map.MapView
@@ -23,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 import kotlin.random.Random
 
-class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, val world: World, val extractionTime: Long) {
+class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, val world: World) {
     private var phase: Phase = IdlePhase(expedition)
     val bossBar = plugin.server.createBossBar(
         NamespacedKey(plugin, "${world.name}_bossbar"),
@@ -33,6 +34,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     val sneakingPlayers: MutableMap<Player, Long> = ConcurrentHashMap()
 
     val mapView: MapView
+
+    val renderer: ExpeditionRenderer = ExpeditionRenderer(expedition.colourCache)
     init {
         val view = Bukkit.createMap(world)
         view.centerX = expedition.centreX
@@ -41,6 +44,11 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         view.isTrackingPosition = true
         view.isUnlimitedTracking = true
         view.isLocked = true
+
+        ArrayList(view.renderers).forEach {
+            view.removeRenderer(it)
+        }
+        view.addRenderer(renderer)
 
         mapView = view
     }
@@ -62,7 +70,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
      * Players should be teleported to their previous location.
      */
     fun end() {
-
         bossBar.removeAll()
         Hashtable(joinedPlayers).forEach {
             it.value.player.player.let { player ->
@@ -88,13 +95,10 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun getRemainingPlayers() : Collection<Player> {
         val list = ArrayList<Player>()
         joinedPlayers.values.forEach {
-            it.player.player.let { player ->
-                if(player == null) {
-                    quitPlayers[it.player.uniqueId] = it
-                } else {
-                    list.add(player)
-                }
-
+            if(it.player.isOnline) {
+                list.add(it.player.player!!)
+            } else {
+                quitPlayers[it.player.uniqueId] = it
             }
         }
         return list
@@ -161,6 +165,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     fun join(player: Player) {
         // Todo, teleport to the event randomly, also check if they are in a party?
+        joinedPlayers[player.uniqueId] = CachedPlayer(player, player.location)
         val handler = plugin.getModule(PlayHandler::class.java)
         plugin.launch {
             val loc = findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
@@ -168,6 +173,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             giveMap(player)
         }
         bossBar.addPlayer(player)
+
     }
 
     fun extract(player: Player) : Boolean {
@@ -177,6 +183,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             player.teleport(it.previousLocale)
         }
         bossBar.removePlayer(player)
+        areaInstances.forEach {
+            it.inArea.remove(player)
+        }
         plugin.getModule(PlayHandler::class.java).removeJoinedExpedition(player)
         return true
     }
@@ -244,8 +253,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun onJoinEvent(player: Player) : Boolean {
         val uuid = player.uniqueId
         quitPlayers.remove(uuid)?.let {
-            joinedPlayers[uuid] = CachedPlayer(player, it.previousLocale)
+            joinedPlayers[uuid] = CachedPlayer(player, player.location)
+            player.teleport(it.previousLocale)
             bossBar.addPlayer(player)
+            areaInstances.forEach { area ->
+                if(area.onMove(player)) return@forEach
+            }
             return true
         }
         return false
@@ -257,8 +270,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun onQuitEvent(player: Player) {
         val uuid = player.uniqueId
         joinedPlayers.remove(uuid)?.let {
-            quitPlayers[uuid] = it
+            quitPlayers[uuid] = CachedPlayer(player, player.location)
+            player.teleport(it.previousLocale)
             sneakingPlayers.remove(player)
+            areaInstances.forEach {
+                it.inArea.remove(player)
+            }
         }
     }
 
@@ -272,10 +289,11 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     fun onSneakEvent(player: Player, isSneaking: Boolean) {
         if(isSneaking) {
-            val loc = player.location
-            getAreaFromLocation(loc.blockX, loc.blockY, loc.blockZ)?.let {
-                if(it.area is ExtractionZone) {
+            areaInstances.forEach {
+                if(it.inArea.contains(player) && it.area is ExtractionZone) {
                     sneakingPlayers[player] = System.currentTimeMillis()
+                } else {
+                    sneakingPlayers.remove(player)
                 }
             }
         } else {
@@ -283,25 +301,25 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
-    fun getAreaFromLocation(x: Int, y: Int, z: Int) : AreaInstance? {
-        for(area in areaInstances) {
-            if(area.area.isInArea(x, y, z)) {
-                return area
-            }
-        }
-        return null
-    }
-
     fun onMoveEvent(player: Player) {
         if(sneakingPlayers.containsKey(player)) {
             sneakingPlayers[player] = System.currentTimeMillis()
             player.sendMessage("${ChatColor.RED}You must remain still whilst waiting for extraction!")
+        }
+        areaInstances.forEach {
+            if(it.onMove(player)) return@forEach
         }
     }
 
     fun giveMap(player: Player) {
         val mapItem = ItemStack(Material.FILLED_MAP)
         val meta = (mapItem.itemMeta as MapMeta)
+        meta.setDisplayName("${ChatColor.GOLD}${expedition.displayName} Map")
+        meta.lore = buildList {
+            this.add("${ChatColor.YELLOW}View information about")
+            this.add("${ChatColor.YELLOW}your current expedition.")
+        }
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
         meta.setCustomModelData(4)
         meta.mapView = mapView
         mapItem.setItemMeta(meta)
@@ -340,7 +358,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     fun onDeathEvent(event: EntityDeathEvent) : Boolean {
         val entity = event.entity
-        if(entity is Player) return false
         for(it in areaInstances) {
             if(it.onDeath(entity)) return true
         }

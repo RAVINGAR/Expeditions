@@ -1,6 +1,7 @@
 map:
-  name: 'Expedition' # Display name of the map
-  world-name: ExpeditionMap # The actual name of the world.
+  name: 'Battlegrounds' # Display name of the map
+  world-name: Battlegrounds # The actual name of the world.
+  description: 'Fight your way through\na war-torn\nbattlegrounds'
   centre: 0,0 # Centre of the map
   # Radius from the centre of the map to where the world border is placed
   radius: 125
@@ -23,6 +24,8 @@ map:
   # When a map enters the final storm stage, the loot-respawn-interval is divided by this number.
   # A value of 2 would effectively double the chance of a loot chest spawning
   loot-respawn-modifier: 2
+  # How far the glowing effect works for loot chests
+  loot-chest-range: 8
 points-of-interest:
   - name: 'Ancient Ruins' # Unique Display name of the POI
     start-location: 25,40,70 # The x,y,z coordinate of one corner of this area

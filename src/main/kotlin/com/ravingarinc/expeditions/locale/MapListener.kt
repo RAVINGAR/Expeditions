@@ -1,11 +1,17 @@
 package com.ravingarinc.expeditions.locale
 
+import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.ticks
+import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModuleListener
 import com.ravingarinc.expeditions.api.getMaterialList
 import com.ravingarinc.expeditions.persistent.ConfigManager
 import com.ravingarinc.expeditions.play.PlayHandler
+import kotlinx.coroutines.delay
+import org.bukkit.ChatColor
 import org.bukkit.Material
+import org.bukkit.entity.MagmaCube
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
@@ -14,15 +20,19 @@ import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.EntitySpawnEvent
 import org.bukkit.event.player.*
+import org.bukkit.inventory.EquipmentSlot
 import java.util.*
+import java.util.logging.Level
 
 class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::class.java, plugin, PlayHandler::class.java) {
     private lateinit var handler: PlayHandler
+    private lateinit var manager: ExpeditionManager
     private val breakableBlocks: MutableSet<Material> = EnumSet.noneOf(Material::class.java)
 
     private val movementCooldown: MutableMap<UUID, Long> = HashMap()
     override suspend fun suspendLoad() {
         handler = plugin.getModule(PlayHandler::class.java)
+        manager = plugin.getModule(ExpeditionManager::class.java)
         val config = plugin.getModule(ConfigManager::class.java)
         config.config.config.getMaterialList("general.breakable-blocks").forEach {
             breakableBlocks.add(it)
@@ -37,15 +47,21 @@ class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::c
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
+        movementCooldown[player.uniqueId] = System.currentTimeMillis()
         handler.getInstances().values.forEach { list -> list.forEach {
             if(it.onJoinEvent(player)) return
         }}
         // If player was not previously joined in any event. Check if they abandoned!
-        if(handler.didAbandon(player)) {
-            handler.removeAbandon(player)
-            player.inventory.clear()
-            player.health = 0.0
+        plugin.launch {
+            delay(5.ticks)
+            if(handler.didAbandon(player)) {
+                handler.removeAbandon(player)
+                player.sendMessage("${ChatColor.RED}You previously abandoned an expedition! You were devoured by the storm and lost all your items!")
+                player.inventory.clear()
+                player.health = 0.0
+            }
         }
+
     }
 
     @EventHandler
@@ -77,9 +93,23 @@ class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::c
     }
 
     @EventHandler
+    fun onPlayerInteractEntity(event: PlayerInteractEntityEvent) {
+        if(event.hand != EquipmentSlot.HAND) return
+        val entity = event.rightClicked
+        if(entity is MagmaCube) {
+            handler.getJoinedExpedition(event.player)?.let {
+                I.log(Level.WARNING, "Debug -> Player Interact Entity!")
+                it.onBlockInteract(event.player.world.getBlockAt(entity.location), event.player)
+            }
+        }
+
+    }
+
+    @EventHandler
     fun onPlayerInteract(event: PlayerInteractEvent) {
         val block = event.clickedBlock ?: return
-        if(block.type != Material.CHEST) return
+        if(block.type != manager.getLootBlock()) return
+        I.log(Level.WARNING, "Debug -> Player Interact here!")
         handler.getJoinedExpedition(event.player)?.let {
             it.onBlockInteract(block, event.player)
             event.setUseInteractedBlock(Event.Result.DENY)
@@ -123,7 +153,7 @@ class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::c
         val lastTime = movementCooldown[player.uniqueId] ?: time
         if(time - lastTime > 500L) {
             movementCooldown[player.uniqueId] = time
-            handler.getJoinedExpedition(event.player)?.onMoveEvent(player)
+            handler.getJoinedExpedition(player)?.onMoveEvent(player)
         }
     }
 }

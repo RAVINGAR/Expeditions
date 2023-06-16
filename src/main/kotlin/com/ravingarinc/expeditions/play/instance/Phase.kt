@@ -1,22 +1,19 @@
 package com.ravingarinc.expeditions.play.instance
 
 import com.github.shynixn.mccoroutine.bukkit.launch
-import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
-import kotlinx.coroutines.delay
 import org.bukkit.ChatColor
 import org.bukkit.Location
 import org.bukkit.Sound
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarFlag
 import org.bukkit.map.MapCursor
-import org.bukkit.map.MapCursorCollection
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 
-sealed class Phase(val name: String, private val mobInterval: Long, private val lootInterval: Long, private val durationTicks: Long, private val nextPhase: () -> Phase) {
+sealed class Phase(val name: String, private val mobInterval: Long, private val lootInterval: Long, val durationTicks: Long, private val nextPhase: () -> Phase) {
     protected var ticks = 0L
     protected var isActive: AtomicBoolean = AtomicBoolean(false)
 
@@ -35,7 +32,7 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
     }
 
     /**
-     * Tick method for every second (AKA 20 ticks)
+     * Tick method for every second (AKA 20 ticks) or rather
      */
     fun tick(random: Random, instance: ExpeditionInstance) {
         if(!isActive()) {
@@ -75,13 +72,12 @@ class IdlePhase(expedition: Expedition) :
         instance.expedition.getAreas().forEach {
             if(it is ExtractionZone) {
                 if(Random.nextDouble() < it.chance) {
-                    instance.areaInstances.add(AreaInstance(instance.expedition, it))
+                    instance.areaInstances.add(AreaInstance(instance.plugin, instance.expedition, it))
                 }
             } else {
-                instance.areaInstances.add(AreaInstance(instance.expedition, it))
+                instance.areaInstances.add(AreaInstance(instance.plugin, instance.expedition, it))
             }
         }
-        val collection = MapCursorCollection()
         instance.areaInstances.forEach {
             it.initialise(instance.plugin, instance.world)
             val center = it.area.centre()
@@ -90,10 +86,7 @@ class IdlePhase(expedition: Expedition) :
             val byteZ = (((center.second - instance.expedition.centreZ) / radius.toFloat()) * 128).toInt().toByte()
             val type = if(it.area is ExtractionZone) MapCursor.Type.GREEN_POINTER else MapCursor.Type.RED_POINTER
             val cursor = MapCursor(byteX, byteZ, 0, type, true, it.area.displayName)
-            collection.addCursor(cursor)
-        }
-        instance.mapView.renderers.forEach {
-            // todo idk!
+            instance.renderer.addCursor(cursor)
         }
         val border = instance.world.worldBorder
         border.size = (instance.expedition.radius * 2).toDouble()
@@ -146,20 +139,9 @@ class StormPhase(expedition: Expedition) :
         instance.bossBar.addFlag(BarFlag.DARKEN_SKY)
         instance.bossBar.color = BarColor.RED
 
-        val centreX = instance.expedition.centreX
-        val centreZ = instance.expedition.centreZ
-        val radius = instance.expedition.radius
-        instance.plugin.launch {
-            for(i in 0..4) {
-                val x = Random.nextInt(centreX - radius, centreX + radius)
-                val z = Random.nextInt(centreZ - radius, centreZ + radius)
-                instance.world.strikeLightning(Location(instance.world,x.toDouble(), 255.0, z.toDouble()))
-                delay(Random.nextInt(5, 10).ticks)
-            }
-        }
-
         instance.getRemainingPlayers().forEach {
-            it.sendTitle("", "${ChatColor.RED}The storm is approaching!")
+            instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
+            it.sendTitle("", "${ChatColor.RED}The storm is approaching!", 20, 70, 15)
             it.sendMessage("${ChatColor.YELLOW}Make your way to the nearest extraction point")
         }
     }
@@ -168,6 +150,27 @@ class StormPhase(expedition: Expedition) :
         super.onTick(random, instance)
         instance.bossBar.progress = 1.0 - ((instance.expedition.calmPhaseDuration + ticks) / totalTime.toDouble())
         tickExtractions(instance)
+        when ((durationTicks - ticks) / 20) {
+            60L -> {
+                instance.getRemainingPlayers().forEach {
+                    instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
+                    it.sendMessage("${ChatColor.YELLOW}There are 60 seconds remaining. Make your way to the nearest extraction point before it's too late!")
+                }
+            }
+            30L -> {
+                instance.getRemainingPlayers().forEach {
+                    it.playSound(it, Sound.ENTITY_ENDERMAN_SCREAM, 0.7F, 0.1F)
+                    instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
+                    it.sendMessage("${ChatColor.YELLOW}There are 30 seconds remaining. Make your way to the nearest extraction point before it's too late!")
+                }
+            }
+            10L -> {
+                instance.getRemainingPlayers().forEach {
+                    instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
+                    it.sendMessage("${ChatColor.YELLOW}There are 10 seconds remaining. Make your way to the nearest extraction point before it's too late!")
+                }
+            }
+        }
     }
 
     override fun onEnd(instance: ExpeditionInstance) {
@@ -177,7 +180,8 @@ class StormPhase(expedition: Expedition) :
         val handler = instance.plugin.getModule(PlayHandler::class.java)
         // Done before getQuitPlayers, since this method may add to quit players
         instance.getRemainingPlayers().forEach {
-            it.playSound(it, Sound.ENTITY_WITHER_SPAWN, 0.7F, 0.2F)
+            it.playSound(it, Sound.ENTITY_ENDERMAN_DEATH, 0.7F, 0.4F)
+            it.playSound(it, Sound.ENTITY_WITHER_SPAWN, 0.9F, 0.2F)
             it.inventory.clear()
             instance.world.strikeLightningEffect(it.location)
             it.health = 0.0
@@ -185,6 +189,7 @@ class StormPhase(expedition: Expedition) :
         instance.getQuitPlayers().forEach {
             handler.addAbandon(it)
         }
+        handler.saveAbandons()
         instance.clearPlayers()
         instance.bossBar.removeAll()
         instance.bossBar.removeFlag(BarFlag.CREATE_FOG)
@@ -228,7 +233,7 @@ fun tickExtractions(instance: ExpeditionInstance) {
             player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 0.8F)
         }
 
-        if(diff > instance.extractionTime) {
+        if(diff > instance.expedition.extractionTime) {
             instance.plugin.launch {
                 player.playSound(player, Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8F, 0.8F)
                 player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)

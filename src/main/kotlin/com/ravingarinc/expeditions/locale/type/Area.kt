@@ -56,8 +56,8 @@ abstract class Area(val displayName: String,
         BlockVector(max(startLoc.x, endLoc.x), max(startLoc.y, endLoc.y), max(startLoc.z, endLoc.z))
 
     fun isInArea(x: Int, y: Int, z: Int) : Boolean {
-        return (x > lowestLoc.x && x < highestLoc.x)
-                && (y > lowestLoc.y && y < highestLoc.y)
-                && (z > lowestLoc.z && z < lowestLoc.z)
+        return (x >= lowestLoc.x && x <= highestLoc.x)
+                && (y >= lowestLoc.y && y <= highestLoc.y)
+                && (z >= lowestLoc.z && z <= lowestLoc.z)
     }
 }
