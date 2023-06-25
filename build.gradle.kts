@@ -61,28 +61,13 @@ dependencies {
     implementation("com.ravingarinc.api:gui:1.3.1")
     implementation("org.jetbrains:annotations:23.1.0")
 
-    compileOnly("org.spigotmc:spigot:1.19.4-R0.1-SNAPSHOT:remapped-mojang")
+    //compileOnly("org.spigotmc:spigot:1.19.4-R0.1-SNAPSHOT:remapped-mojang")
     //compileOnly("org.spigotmc:spigot-api:1.18.2-R0.1-SNAPSHOT")
 
     compileOnly("io.papermc.paper:paper-api:1.18.2-R0.1-SNAPSHOT")
     compileOnly("io.lumine:Mythic-Dist:5.1.0-SNAPSHOT")
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
-
-
-    /*
-    compileOnly("com.sk89q.worldedit:worldedit-core:7.2.7") {
-        isTransitive = false
-    }
-    compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.7") {
-        isTransitive = false
-    }
-    compileOnly("com.sk89q.worldguard:worldguard-core:7.0.8") {
-        isTransitive = false
-    }
-    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.8") {
-        isTransitive = false
-    }*/
 
     compileOnly("com.onarandombox.multiversecore:multiverse-core:4.3.2") {
         isTransitive = false
@@ -156,7 +141,7 @@ bukkit {
 
     // Other possible properties from plugin.yml (optional)
     author = "RAVINGAR"
-    depend = listOf("WorldEdit", "WorldGuard", "Multiverse-Core")
+    depend = listOf("Multiverse-Core", "ProtocolLib")
     softDepend = listOf("MMOItems", "MythicMobs")
 
     commands {

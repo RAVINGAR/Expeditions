@@ -4,6 +4,8 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.ChatColor
 import org.bukkit.Location
 import org.bukkit.Sound
@@ -84,8 +86,8 @@ class IdlePhase(expedition: Expedition) :
             val radius = instance.expedition.radius
             val byteX = (((center.first - instance.expedition.centreX) / radius.toFloat()) * 128).toInt().toByte()
             val byteZ = (((center.second - instance.expedition.centreZ) / radius.toFloat()) * 128).toInt().toByte()
-            val type = if(it.area is ExtractionZone) MapCursor.Type.GREEN_POINTER else MapCursor.Type.RED_POINTER
-            val cursor = MapCursor(byteX, byteZ, 0, type, true, it.area.displayName)
+            val type = if(it.area is ExtractionZone) MapCursor.Type.GREEN_POINTER else MapCursor.Type.MANSION
+            val cursor = MapCursor(byteX, byteZ, 8, type, true, it.area.displayName)
             instance.renderer.addCursor(cursor)
         }
         val border = instance.world.worldBorder
@@ -185,6 +187,7 @@ class StormPhase(expedition: Expedition) :
             it.inventory.clear()
             instance.world.strikeLightningEffect(it.location)
             it.health = 0.0
+            handler.removeJoinedExpedition(it)
         }
         instance.getQuitPlayers().forEach {
             handler.addAbandon(it)
@@ -226,19 +229,42 @@ class RestorationPhase(expedition: Expedition) :
 }
 
 fun tickExtractions(instance: ExpeditionInstance) {
-    instance.sneakingPlayers.forEach { player, time ->
-        val diff = System.currentTimeMillis() - time
-        if((750L..1250L).contains(diff)) {
-            player.sendMessage("${ChatColor.YELLOW}Prepare for extraction!")
-            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 0.8F)
-        }
+    HashMap(instance.sneakingPlayers).forEach { (player, pair) ->
+        val time = System.currentTimeMillis()
+        val location = player.location.toVector()
+        if(location == pair.second) {
+            val diff = time - pair.first
+            if((0..1000L).contains(diff)) {
+                player.sendMessage("${ChatColor.YELLOW}Prepare for extraction!")
 
-        if(diff > instance.expedition.extractionTime) {
-            instance.plugin.launch {
-                player.playSound(player, Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8F, 0.8F)
-                player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)
-                instance.extract(player)
             }
+            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 0.8F)
+            val progress = diff / (instance.expedition.extractionTime * 50.0)
+            val builder = Component.text()
+                .content("Extraction Time")
+                .color(NamedTextColor.GOLD)
+                .append(Component.text(" | ").color(NamedTextColor.GRAY))
+                .append(Component.text("[").color(NamedTextColor.GRAY));
+            for(i in 1..16) {
+                builder.append(Component
+                    .text("|")
+                    .color(if(progress > (i / 16.0)) NamedTextColor.YELLOW else NamedTextColor.GRAY))
+            }
+            player.sendActionBar(builder.build())
+            
+            if(progress >= 1.0) {
+                instance.sneakingPlayers.remove(player)
+                instance.plugin.launch {
+                    player.sendMessage("${ChatColor.YELLOW}You successfully extracted!")
+                    player.playSound(player, Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8F, 0.8F)
+                    player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)
+                    instance.extract(player)
+                }
+            }
+        } else {
+            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_HAT, 0.8F, 0.4F)
+            instance.sneakingPlayers[player] = Pair(time, location)
+            player.sendMessage("${ChatColor.RED}You must remain still whilst extracting!")
         }
     }
 }

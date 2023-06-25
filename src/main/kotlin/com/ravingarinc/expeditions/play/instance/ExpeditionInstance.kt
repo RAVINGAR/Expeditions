@@ -1,11 +1,13 @@
 package com.ravingarinc.expeditions.play.instance
 
 import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.bukkit.*
@@ -19,6 +21,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.MapMeta
 import org.bukkit.map.MapView
 import org.bukkit.util.BlockVector
+import org.bukkit.util.Vector
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
@@ -31,7 +34,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         "${expedition.displayName} Expedition",
         BarColor.BLUE, BarStyle.SEGMENTED_12)
 
-    val sneakingPlayers: MutableMap<Player, Long> = ConcurrentHashMap()
+    val sneakingPlayers: MutableMap<Player, Pair<Long, Vector>> = ConcurrentHashMap()
 
     val mapView: MapView
 
@@ -163,17 +166,25 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         return true
     }
 
-    fun join(player: Player) {
-        // Todo, teleport to the event randomly, also check if they are in a party?
+    private fun join(player: Player) {
+        // Todo, also check if they are in a party?
         joinedPlayers[player.uniqueId] = CachedPlayer(player, player.location)
         val handler = plugin.getModule(PlayHandler::class.java)
         plugin.launch {
-            val loc = findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
-            player.teleport(loc)
-            giveMap(player)
+            teleport(player, handler.getOverhangingBlocks())
         }
-        bossBar.addPlayer(player)
+    }
 
+    private suspend fun teleport(player: Player, overhanging: Set<Material>) {
+        val loc = findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, overhanging)
+        if(player.teleport(loc)) {
+            giveMap(player)
+            bossBar.addPlayer(player)
+        } else {
+            I.log(Level.WARNING, "Could not teleport '${player.name}' for unknown reason! Something is cancelling this teleportation!")
+            delay(5.ticks)
+            teleport(player, overhanging)
+        }
     }
 
     fun extract(player: Player) : Boolean {
@@ -232,7 +243,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                 }
             }
             if (isValid) {
-                return location
+                return Location(world, location.x, location.y, location.z)
             }
         }
         val randomX = Random.nextInt(-radius, radius)
@@ -291,21 +302,23 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         if(isSneaking) {
             areaInstances.forEach {
                 if(it.inArea.contains(player) && it.area is ExtractionZone) {
-                    sneakingPlayers[player] = System.currentTimeMillis()
+                    sneakingPlayers[player] = Pair(System.currentTimeMillis(), player.location.toVector())
                 } else {
-                    sneakingPlayers.remove(player)
+                    removeSneakingPlayer(player)
                 }
             }
         } else {
-            sneakingPlayers.remove(player)
+            removeSneakingPlayer(player)
+        }
+    }
+
+    fun removeSneakingPlayer(player: Player) {
+        if(sneakingPlayers.remove(player) != null) {
+            player.sendMessage("${ChatColor.YELLOW}You are no longer extracting!")
         }
     }
 
     fun onMoveEvent(player: Player) {
-        if(sneakingPlayers.containsKey(player)) {
-            sneakingPlayers[player] = System.currentTimeMillis()
-            player.sendMessage("${ChatColor.RED}You must remain still whilst waiting for extraction!")
-        }
         areaInstances.forEach {
             if(it.onMove(player)) return@forEach
         }
@@ -327,10 +340,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     }
 
     fun removeMap(player: Player) {
-        player.inventory.forEach { item ->
-            if(item != null && item.type == Material.FILLED_MAP && item.itemMeta.customModelData == 4) {
-                item.type = Material.AIR
-                return@forEach
+        for(i in 0 until player.inventory.size) {
+            player.inventory.getItem(i)?.let { item ->
+                if(item.type == Material.FILLED_MAP && item.itemMeta.customModelData == 4) {
+                    player.inventory.setItem(i, null)
+                    return
+                }
             }
         }
     }
@@ -350,10 +365,11 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
-    fun onBlockInteract(block: Block, player: Player) {
+    fun onBlockInteract(block: Block, player: Player) : Boolean {
         for(it in areaInstances) {
-            if(it.onBlockInteract(plugin, block, player)) break
+            if(it.onBlockInteract(plugin, block, player)) return true
         }
+        return false
     }
 
     fun onDeathEvent(event: EntityDeathEvent) : Boolean {

@@ -27,6 +27,7 @@ class ExtractionZone(val chance: Double,
                      bossCooldown: Long
 ) : Area(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown) {
 
+    override val displayType: String = "Extraction Zone"
     override fun initialise(plugin: RavinPlugin, world: World) {
         beaconLoc?.let {
             world.loadChunk(it.blockX, it.blockZ)

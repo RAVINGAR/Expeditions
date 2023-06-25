@@ -12,7 +12,7 @@ import org.bukkit.Material
 import org.bukkit.World
 
 class Expedition(val identifier: String,
-                 val description: String,
+                 description: List<String>,
                  val displayName: String,
                  val world: World,
                  val maxPlayers: Int,
@@ -36,10 +36,11 @@ class Expedition(val identifier: String,
 
     init {
         val builder = StringBuilder()
-        description.split("\n".toRegex()).forEach {
-            builder.append("\n")
-            builder.append(ChatColor.GRAY)
-            builder.append(it)
+        for((i, line) in description.withIndex()) {
+            builder.append(ChatColor.translateAlternateColorCodes('&', line))
+            if(i + 1 < description.size) {
+                builder.append("\n")
+            }
         }
         formatted = builder.toString()
     }
@@ -47,14 +48,15 @@ class Expedition(val identifier: String,
     fun render(plugin: RavinPlugin) : Job {
         val topLeftX = centreX - radius
         val topLeftZ = centreZ - radius
+
         return plugin.launch(Dispatchers.IO) {
             for(xF in 1 .. 4) {
                 for(xZ in 1 .. 4) {
                     plugin.launch(Dispatchers.IO) {
                         for(x in (xF - 1) * 32 until xF * 32) {
                             for(z in (xZ - 1) * 32 until xZ * 32) {
-                                val sumX = topLeftX + (x / 128) * radius * 2
-                                val sumZ = topLeftZ + (z / 128) * radius * 2
+                                val sumX = (topLeftX + (x / 128.0) * radius * 2).toInt()
+                                val sumZ = (topLeftZ + (z / 128.0) * radius * 2).toInt()
                                 val type = withContext(plugin.minecraftDispatcher) {
                                     world.getHighestBlockAt(sumX, sumZ).type
                                 }

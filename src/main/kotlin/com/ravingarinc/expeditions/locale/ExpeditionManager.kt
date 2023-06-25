@@ -72,7 +72,7 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
 
             val map = Expedition(
                 name,
-                it.getString("map.description") ?: "",
+                it.getStringList("map.description"),
                 it.getString("map.name") ?: name,
                 world,
                 it.getInt("map.max-players", 1),

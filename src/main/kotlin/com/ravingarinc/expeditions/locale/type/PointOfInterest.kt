@@ -1,7 +1,6 @@
 package com.ravingarinc.expeditions.locale.type
 
 import com.ravingarinc.api.module.RavinPlugin
-import com.ravingarinc.expeditions.locale.type.Area
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.MobType
 import org.bukkit.World
@@ -24,11 +23,13 @@ class PointOfInterest(displayName: String,
                       bossSpawnLocation: BlockVector?,
                       bossCooldown: Long
 ) : Area(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown) {
+    override val displayType: String = "Point of Interest"
     override fun initialise(plugin: RavinPlugin, world: World) {
 
     }
 
     override fun dispose(plugin: RavinPlugin, world: World) {
+
 
     }
 }

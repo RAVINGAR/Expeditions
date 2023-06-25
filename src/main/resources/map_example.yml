@@ -1,7 +1,10 @@
 map:
   name: 'Battlegrounds' # Display name of the map
   world-name: Battlegrounds # The actual name of the world.
-  description: 'Fight your way through\na war-torn\nbattlegrounds'
+  description:
+    - '&7Fight your way'
+    - '&7through a war torn'
+    - '&7battlegrounds.'
   centre: 0,0 # Centre of the map
   # Radius from the centre of the map to where the world border is placed
   radius: 125

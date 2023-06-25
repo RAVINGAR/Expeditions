@@ -9,7 +9,6 @@ import com.ravingarinc.api.module.RavinPlugin
 import org.bukkit.Bukkit
 import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
-import org.checkerframework.checker.units.qual.A
 import java.util.*
 import kotlin.experimental.ExperimentalTypeInference
 
@@ -155,15 +154,14 @@ sealed class Version(
 
         override fun updateMetadata(
             entity: Entity,
-            data: List<Pair<WrappedDataWatcher.Serializer, Any>>
+            data: List<Triple<Int, WrappedDataWatcher.Serializer, Any>>
         ): PacketContainer {
             val packet = Version.protocol.createPacket(PacketType.Play.Server.ENTITY_METADATA)
             packet.integers.write(0, entity.entityId)
             val watcher = WrappedDataWatcher()
             watcher.entity = entity
-            for(i in data.indices) {
-                val d = data[i]
-                watcher.setObject(i, d.first, d.second)
+            data.forEach {
+                watcher.setObject(it.first, it.second, it.third)
             }
             packet.watchableCollectionModifier.write(0, watcher.watchableObjects)
             return packet
@@ -175,13 +173,13 @@ sealed class Version(
     protected abstract val indexedEntities: Map<EntityType, Int>
 
     @OptIn(ExperimentalTypeInference::class)
-    fun updateMetadata(entity: Entity, @BuilderInference builder: MutableList<Pair<WrappedDataWatcher.Serializer, Any>>.() -> Unit) : PacketContainer {
-        val list = ArrayList<Pair<WrappedDataWatcher.Serializer, Any>>()
+    fun updateMetadata(entity: Entity, @BuilderInference builder: MutableList<Triple<Int, WrappedDataWatcher.Serializer, Any>>.() -> Unit) : PacketContainer {
+        val list = ArrayList<Triple<Int,WrappedDataWatcher.Serializer, Any>>()
         builder.invoke(list)
         return updateMetadata(entity, list)
     }
 
-    abstract fun updateMetadata(entity: Entity, data: List<Pair<WrappedDataWatcher.Serializer, Any>>) : PacketContainer
+    abstract fun updateMetadata(entity: Entity, data: List<Triple<Int, WrappedDataWatcher.Serializer, Any>>) : PacketContainer
 
     fun getEntityTypeId(type: EntityType): Int {
         return indexedEntities[type]
@@ -256,6 +254,6 @@ fun RavinPlugin.getVersion() : Version {
     return Versions.serverVersion
 }
 
-fun <A, B> MutableList<Pair<A, B>>.add(index: Int, a: A, b: B) {
-    this.add(index, Pair(a, b))
+fun MutableList<Triple<Int, WrappedDataWatcher.Serializer, Any>>.build(index: Int, serializer: WrappedDataWatcher.Serializer, obj: Any) {
+    this.add(Triple(index, serializer, obj))
 }

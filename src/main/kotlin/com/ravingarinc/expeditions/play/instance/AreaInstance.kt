@@ -2,18 +2,18 @@ package com.ravingarinc.expeditions.play.instance
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
-import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.type.Area
 import com.ravingarinc.expeditions.locale.type.Expedition
 import kotlinx.coroutines.delay
+import org.bukkit.ChatColor
 import org.bukkit.World
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.util.BlockVector
+import org.bukkit.util.Vector
 import java.util.concurrent.ConcurrentHashMap
-import java.util.logging.Level
 import kotlin.random.Random
 
 /**
@@ -84,7 +84,6 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
 
             val pair = area.mobCollection.random()
             area.mobLocations.randomOrNull(random)?.let { vector ->
-
                 pair.first.spawn(pair.second.random(random), vector, world)?.let { spawnedMobs.add(it) }
             }
         }
@@ -107,7 +106,13 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
                 world.getChunkAt(it.first.blockX, it.first.blockZ) // Load chunk
                 val loot = LootableChest(it.second, this, it.first, world)
                 spawnedChests[it.first] = loot
-                inArea.forEach { player -> loot.show(player) }
+                val vector = Vector(it.first.x, it.first.y, it.first.z)
+                val radSquared = expedition.lootRange * expedition.lootRange
+                inArea.forEach { player ->
+                    if(player.location.toVector().distanceSquared(vector) < radSquared) {
+                        loot.show(player)
+                    }
+                }
             }
         }
     }
@@ -125,10 +130,11 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
 
     fun onMove(player: Player) : Boolean {
         val loc = player.location.toVector()
-        return if(area.isInArea(loc.blockX, loc.blockY, loc.blockZ)) {
-            inArea.add(player)
+        return if(area.isInArea(loc.x.toInt(), loc.y.toInt(), loc.z.toInt())) {
+            if(inArea.add(player)) {
+                player.sendTitle("${ChatColor.GOLD}${area.displayName}", "${ChatColor.YELLOW}${area.displayType}", 15, 70, 15)
+            }
             val radSquared = expedition.lootRange * expedition.lootRange
-            I.log(Level.WARNING, " Debug -> is in area!")
             spawnedChests.forEach {
                 if(it.key.distanceSquared(loc) < radSquared) {
                     it.value.show(player)

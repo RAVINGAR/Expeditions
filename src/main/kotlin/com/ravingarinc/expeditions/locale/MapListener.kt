@@ -2,7 +2,6 @@ package com.ravingarinc.expeditions.locale
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
-import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModuleListener
 import com.ravingarinc.expeditions.api.getMaterialList
@@ -17,12 +16,12 @@ import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.EntitySpawnEvent
 import org.bukkit.event.player.*
 import org.bukkit.inventory.EquipmentSlot
 import java.util.*
-import java.util.logging.Level
 
 class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::class.java, plugin, PlayHandler::class.java) {
     private lateinit var handler: PlayHandler
@@ -93,12 +92,23 @@ class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::c
     }
 
     @EventHandler
+    fun onEntityDamageEvent(event: EntityDamageByEntityEvent) {
+        val player = event.damager
+        if(player is Player && event.entity is MagmaCube) {
+            handler.getJoinedExpedition(player)?.let {
+                if(it.onBlockInteract(player.world.getBlockAt(event.entity.location), player)) {
+                    event.isCancelled = true
+                }
+            }
+        }
+    }
+
+    @EventHandler
     fun onPlayerInteractEntity(event: PlayerInteractEntityEvent) {
         if(event.hand != EquipmentSlot.HAND) return
         val entity = event.rightClicked
         if(entity is MagmaCube) {
             handler.getJoinedExpedition(event.player)?.let {
-                I.log(Level.WARNING, "Debug -> Player Interact Entity!")
                 it.onBlockInteract(event.player.world.getBlockAt(entity.location), event.player)
             }
         }
@@ -109,7 +119,6 @@ class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::c
     fun onPlayerInteract(event: PlayerInteractEvent) {
         val block = event.clickedBlock ?: return
         if(block.type != manager.getLootBlock()) return
-        I.log(Level.WARNING, "Debug -> Player Interact here!")
         handler.getJoinedExpedition(event.player)?.let {
             it.onBlockInteract(block, event.player)
             event.setUseInteractedBlock(Event.Result.DENY)
