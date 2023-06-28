@@ -10,6 +10,7 @@ import com.ravingarinc.expeditions.integration.MultiverseHandler
 import com.ravingarinc.expeditions.locale.ExpeditionManager
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.persistent.ConfigManager
+import com.ravingarinc.expeditions.play.instance.CachedPlayer
 import com.ravingarinc.expeditions.play.instance.ExpeditionInstance
 import kotlinx.coroutines.delay
 import org.bukkit.Material
@@ -32,6 +33,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
 
     private val expeditionPlayers: MutableMap<Player, ExpeditionInstance> = ConcurrentHashMap()
     private val abandonedPlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
+    private val respawningPlayers: MutableMap<UUID, CachedPlayer> = ConcurrentHashMap()
 
     override suspend fun suspendLoad() {
         manager = plugin.getModule(ConfigManager::class.java)
@@ -66,6 +68,9 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
             delay(5.ticks)
             ticker.start()
         }
+        manager.getRespawningPlayers().forEach {
+            respawningPlayers[it.player.uniqueId] = it
+        }
     }
 
     override suspend fun suspendCancel() {
@@ -78,8 +83,9 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         }}
         instances.clear()
 
-        abandonedPlayers.forEach { manager.addAbandonedPlayer(it) }
         abandonedPlayers.clear()
+        respawningPlayers.clear()
+        expeditionPlayers.clear()
         joinCommands.clear()
         overhangingBlocks.clear()
     }
@@ -90,6 +96,19 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
 
     fun getInstances(): Map<String,List<ExpeditionInstance>> {
         return instances
+    }
+
+    fun addRespawn(cache: CachedPlayer) {
+        this.respawningPlayers[cache.player.uniqueId] = cache
+        manager.addRespawningPlayer(cache)
+    }
+
+    fun removeRespawn(player: Player) : CachedPlayer? {
+        val value = this.respawningPlayers.remove(player.uniqueId)
+        if(value != null) {
+            manager.removeRespawningPlayer(value)
+        }
+        return value
     }
 
     fun addAbandon(uuid: UUID) {
@@ -106,8 +125,8 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         manager.removeAbandonedPlayer(player.uniqueId)
     }
 
-    fun saveAbandons() {
-        manager.saveAbandons()
+    fun saveData() {
+        manager.saveData()
     }
 
     fun joinExpedition(identifier: String, player: Player) : Boolean {
@@ -119,11 +138,14 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                 joinCommands.forEach {
                     plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name))
                 }
-                expeditionPlayers[player] = i
                 return true
             }
         }
         return false
+    }
+
+    fun addJoinedExpedition(player: Player, instance: ExpeditionInstance) {
+        this.expeditionPlayers[player] = instance
     }
 
     fun getJoinedExpedition(player: Player) : ExpeditionInstance? {

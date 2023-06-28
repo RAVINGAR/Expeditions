@@ -6,7 +6,8 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.play.instance.ExpeditionRenderer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import org.bukkit.ChatColor
 import org.bukkit.Material
 import org.bukkit.World
@@ -32,7 +33,8 @@ class Expedition(val identifier: String,
     private val areas: MutableList<Area> = ArrayList()
 
     private val formatted: String
-    val colourCache: Array<Byte> = Array(16384) { ExpeditionRenderer.MapColour.STONE.id }
+
+    val colourCache: ByteArray = ByteArray(16384) { ExpeditionRenderer.MapColour.STONE.id }
 
     init {
         val builder = StringBuilder()
@@ -50,28 +52,36 @@ class Expedition(val identifier: String,
         val topLeftZ = centreZ - radius
 
         return plugin.launch(Dispatchers.IO) {
+            val jobs = ArrayList<Job>()
             for(xF in 1 .. 4) {
                 for(xZ in 1 .. 4) {
-                    plugin.launch(Dispatchers.IO) {
+                    jobs.add(this.launch(plugin.minecraftDispatcher) {
+                        val children = ArrayList<Job>()
                         for(x in (xF - 1) * 32 until xF * 32) {
                             for(z in (xZ - 1) * 32 until xZ * 32) {
                                 val sumX = (topLeftX + (x / 128.0) * radius * 2).toInt()
                                 val sumZ = (topLeftZ + (z / 128.0) * radius * 2).toInt()
-                                val type = withContext(plugin.minecraftDispatcher) {
-                                    world.getHighestBlockAt(sumX, sumZ).type
-                                }
-                                ExpeditionRenderer.MapColour.values().forEach {
-                                    if(it.predicate.invoke(type)) {
-                                        colourCache[z * 128 + x] = it.id
-                                        return@forEach
+                                val type = world.getHighestBlockAt(sumX, sumZ).type
+                                children.add(this.launch(Dispatchers.IO) {
+                                    ExpeditionRenderer.MapColour.values().forEach {
+                                        if(it.predicate.invoke(type)) {
+                                            this@Expedition.setColour(z * 128 + x, it.id)
+                                            return@forEach
+                                        }
                                     }
-                                }
+                                })
                             }
                         }
-                    }
+                        children.joinAll()
+                    })
                 }
             }
+            jobs.joinAll()
         }
+    }
+
+    fun setColour(index: Int, byte: Byte) {
+        this.colourCache[index] = byte
     }
 
     fun addArea(area: Area) {

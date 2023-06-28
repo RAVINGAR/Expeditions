@@ -1,6 +1,7 @@
 package com.ravingarinc.expeditions.play.instance
 
 import com.github.shynixn.mccoroutine.bukkit.launch
+import com.ravingarinc.expeditions.api.withChunk
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
@@ -49,6 +50,7 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
     }
 
     open fun onTick(random: Random, instance: ExpeditionInstance) {
+        if(ticks == 0L) return
         if(mobInterval != -1L && ticks % mobInterval == 0L) {
             instance.tickMobs(random)
         }
@@ -67,7 +69,7 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
 }
 
 class IdlePhase(expedition: Expedition) :
-    Phase("Idle", -1, -1, -1, {
+    Phase("${ChatColor.GRAY}Idle ✓", -1, -1, -1, {
         PlayPhase(expedition)
 }) {
     override fun onStart(instance: ExpeditionInstance) {
@@ -108,7 +110,7 @@ class IdlePhase(expedition: Expedition) :
 }
 
 class PlayPhase(expedition: Expedition) :
-    Phase("Peaceful", expedition.mobInterval, expedition.lootInterval, expedition.calmPhaseDuration, {
+    Phase("${ChatColor.GREEN}Peaceful ✓", expedition.mobInterval, expedition.lootInterval, expedition.calmPhaseDuration, {
     StormPhase(expedition)
 }) {
         private val totalTime = expedition.calmPhaseDuration + expedition.stormPhaseDuration
@@ -129,7 +131,7 @@ class PlayPhase(expedition: Expedition) :
 }
 
 class StormPhase(expedition: Expedition) :
-    Phase("Storm", (expedition.mobInterval / expedition.mobModifier).toLong(), (expedition.lootInterval / expedition.lootModifier).toLong(), expedition.stormPhaseDuration, {
+    Phase("${ChatColor.RED}Storm ❌", (expedition.mobInterval / expedition.mobModifier).toLong(), (expedition.lootInterval / expedition.lootModifier).toLong(), expedition.stormPhaseDuration, {
     RestorationPhase(expedition)
 }) {
     private val totalTime = expedition.calmPhaseDuration + expedition.stormPhaseDuration
@@ -141,7 +143,8 @@ class StormPhase(expedition: Expedition) :
         instance.bossBar.addFlag(BarFlag.DARKEN_SKY)
         instance.bossBar.color = BarColor.RED
 
-        instance.getRemainingPlayers().forEach {
+        instance.getRemainingPlayers().forEach { cache ->
+            val it = cache.player.player!!
             instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
             it.sendTitle("", "${ChatColor.RED}The storm is approaching!", 20, 70, 15)
             it.sendMessage("${ChatColor.YELLOW}Make your way to the nearest extraction point")
@@ -154,20 +157,23 @@ class StormPhase(expedition: Expedition) :
         tickExtractions(instance)
         when ((durationTicks - ticks) / 20) {
             60L -> {
-                instance.getRemainingPlayers().forEach {
+                instance.getRemainingPlayers().forEach { cache ->
+                    val it = cache.player.player!!
                     instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
                     it.sendMessage("${ChatColor.YELLOW}There are 60 seconds remaining. Make your way to the nearest extraction point before it's too late!")
                 }
             }
             30L -> {
-                instance.getRemainingPlayers().forEach {
+                instance.getRemainingPlayers().forEach { cache ->
+                    val it = cache.player.player!!
                     it.playSound(it, Sound.ENTITY_ENDERMAN_SCREAM, 0.7F, 0.1F)
                     instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
                     it.sendMessage("${ChatColor.YELLOW}There are 30 seconds remaining. Make your way to the nearest extraction point before it's too late!")
                 }
             }
             10L -> {
-                instance.getRemainingPlayers().forEach {
+                instance.getRemainingPlayers().forEach { cache ->
+                    val it = cache.player.player!!
                     instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
                     it.sendMessage("${ChatColor.YELLOW}There are 10 seconds remaining. Make your way to the nearest extraction point before it's too late!")
                 }
@@ -182,17 +188,18 @@ class StormPhase(expedition: Expedition) :
         val handler = instance.plugin.getModule(PlayHandler::class.java)
         // Done before getQuitPlayers, since this method may add to quit players
         instance.getRemainingPlayers().forEach {
-            it.playSound(it, Sound.ENTITY_ENDERMAN_DEATH, 0.7F, 0.4F)
-            it.playSound(it, Sound.ENTITY_WITHER_SPAWN, 0.9F, 0.2F)
-            it.inventory.clear()
-            instance.world.strikeLightningEffect(it.location)
-            it.health = 0.0
-            handler.removeJoinedExpedition(it)
+            val player = it.player.player!!
+            player.playSound(player, Sound.ENTITY_ENDERMAN_DEATH, 0.7F, 0.4F)
+            player.playSound(player, Sound.ENTITY_WITHER_SPAWN, 0.9F, 0.2F)
+            player.inventory.clear()
+            instance.removePlayer(player, RemoveReason.DEATH)
+            instance.world.strikeLightningEffect(player.location)
+            player.health = 0.0
         }
         instance.getQuitPlayers().forEach {
             handler.addAbandon(it)
         }
-        handler.saveAbandons()
+        handler.saveData()
         instance.clearPlayers()
         instance.bossBar.removeAll()
         instance.bossBar.removeFlag(BarFlag.CREATE_FOG)
@@ -202,7 +209,7 @@ class StormPhase(expedition: Expedition) :
 }
 
 class RestorationPhase(expedition: Expedition) :
-    Phase("Restoration", -1, -1, 0L, {
+    Phase("${ChatColor.YELLOW}Restoring ❌", -1, -1, 0L, {
     IdlePhase(expedition)
 }) {
     override fun onStart(instance: ExpeditionInstance) {
@@ -211,10 +218,9 @@ class RestorationPhase(expedition: Expedition) :
         }
         instance.brokenBlocks.values.forEach { pair ->
             val block = pair.first
-            if(!block.chunk.isLoaded) {
-                instance.world.getChunkAt(block)
+            instance.world.withChunk(block.location) {
+                block.setType(pair.second, false)
             }
-            block.setType(pair.second, false)
         }
         instance.clear()
     }
@@ -241,7 +247,7 @@ fun tickExtractions(instance: ExpeditionInstance) {
             player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 0.8F)
             val progress = diff / (instance.expedition.extractionTime * 50.0)
             val builder = Component.text()
-                .content("Extraction Time")
+                .content("Extraction")
                 .color(NamedTextColor.GOLD)
                 .append(Component.text(" | ").color(NamedTextColor.GRAY))
                 .append(Component.text("[").color(NamedTextColor.GRAY));
@@ -250,15 +256,16 @@ fun tickExtractions(instance: ExpeditionInstance) {
                     .text("|")
                     .color(if(progress > (i / 16.0)) NamedTextColor.YELLOW else NamedTextColor.GRAY))
             }
+            builder.append(Component.text("]").color(NamedTextColor.GRAY))
             player.sendActionBar(builder.build())
-            
+
             if(progress >= 1.0) {
                 instance.sneakingPlayers.remove(player)
                 instance.plugin.launch {
                     player.sendMessage("${ChatColor.YELLOW}You successfully extracted!")
                     player.playSound(player, Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8F, 0.8F)
                     player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)
-                    instance.extract(player)
+                    instance.removePlayer(player, RemoveReason.EXTRACTION)
                 }
             }
         } else {

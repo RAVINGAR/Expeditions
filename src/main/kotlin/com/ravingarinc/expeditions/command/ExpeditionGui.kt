@@ -47,9 +47,18 @@ object ExpeditionGui {
             .addPageFiller("type_filler") { manager.getMaps() }
             .setIdentifierProvider { it -> "type_${it.identifier}" }
             .setDisplayNameProvider { it -> "${ChatColor.AQUA}${it.displayName}" }
-            .setLoreProvider { it -> it.getFormattedDescription() }
+            .setLoreProvider { it ->
+                var str = it.getFormattedDescription()
+                handler.getInstances()[it.identifier]?.let { list ->
+                    str += "\n"
+                    for((i, inst) in list.withIndex()) {
+                        str += "\n${ChatColor.GRAY}#${i + 1} | ${inst.getPhaseName()} ${ChatColor.GRAY}| ${ChatColor.DARK_GRAY}${inst.getAmountOfPlayers()}/${it.maxPlayers}"
+                    }
+                }
+                return@setLoreProvider str
+            }
             .setMaterialProvider { _ -> Material.FILLED_MAP }
-            .addActionProvider { it -> RunnableAction { gui, player ->
+            .addActionProvider { it -> RunnableAction { _, player ->
                 if(handler.joinExpedition(it.identifier, player)) {
                     player.closeInventory()
                     player.sendMessage("${ChatColor.GREEN}You have joined the '${it.displayName}' expedition!")

@@ -25,6 +25,9 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
         //val duration =  (instance.expedition.calmPhaseDuration + instance.expedition.stormPhaseDuration).toInt()
         //it.addPotionEffect(PotionEffect(PotionEffectType.INVISIBILITY, duration, 1, true, false))
         //it.addPotionEffect(PotionEffect(PotionEffectType.GLOWING, duration, 1, true, false))
+
+        // ONLY when you first load into a world and go to a POI, the magma cube doesn't appear properly. Or rather isn't
+        // registered by this object correctly. Maybe delay the initial tick?
     }
 
     private val showingPlayers: MutableSet<UUID> = HashSet()
@@ -46,7 +49,7 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
         for(result in results) {
             world.playSound(loc, Sound.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 0.7F, 1.0F)
             world.dropItemNaturally(loc, result)
-            delay(Random.nextLong(100))
+            delay(Random.nextLong(150))
         }
     }
 

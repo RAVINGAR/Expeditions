@@ -4,7 +4,9 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
 import com.ravingarinc.expeditions.api.copyResource
+import com.ravingarinc.expeditions.play.instance.CachedPlayer
 import kotlinx.coroutines.Dispatchers
+import org.bukkit.Location
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
@@ -46,7 +48,50 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
         data.config.set("abandoned-players", list)
     }
 
-    fun saveAbandons() {
+    fun getRespawningPlayers() : Collection<CachedPlayer> {
+        val collection = ArrayList<CachedPlayer>()
+        for(it in data.config.getStringList("respawning-players")) {
+            val split = it.split(";".toRegex(), 2)
+            if(split.size < 2) continue
+            val uuid = UUID.fromString(split[0])
+            val loc = split[1].split(",".toRegex(), 4)
+            val world = plugin.server.getWorld(loc[0]) ?: continue
+            val x = loc[1].toDoubleOrNull() ?: continue
+            val y = loc[2].toDoubleOrNull() ?: continue
+            val z = loc[3].toDoubleOrNull() ?: continue
+
+            val player = plugin.server.getOfflinePlayer(uuid)
+            collection.add(CachedPlayer(player, Location(world, x, y, z)))
+        }
+        return collection
+    }
+
+    fun addRespawningPlayer(cache: CachedPlayer) {
+        val list = data.config.getStringList("respawning-players")
+        val uuid = cache.player.uniqueId.toString()
+        for(line in list) {
+            if(line.startsWith(uuid)) {
+                return
+            }
+        }
+        val loc = cache.previousLocale
+        list.add("$uuid;${loc.world.name},${loc.x},${loc.y},${loc.z}")
+        data.config.set("respawning-players", list)
+    }
+
+    fun removeRespawningPlayer(cache: CachedPlayer) {
+        val list = data.config.getStringList("respawning-players")
+        val uuid = cache.player.uniqueId.toString()
+        for(line in ArrayList(list)) {
+            if(line.startsWith(uuid)) {
+                list.remove(line)
+                data.config.set("respawning-players", list)
+                break
+            }
+        }
+    }
+
+    fun saveData() {
         plugin.launch(Dispatchers.IO) {
             data.save()
         }

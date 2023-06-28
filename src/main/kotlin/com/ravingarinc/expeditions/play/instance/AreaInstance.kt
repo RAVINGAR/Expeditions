@@ -3,6 +3,7 @@ package com.ravingarinc.expeditions.play.instance
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.module.RavinPlugin
+import com.ravingarinc.expeditions.api.withChunk
 import com.ravingarinc.expeditions.locale.type.Area
 import com.ravingarinc.expeditions.locale.type.Expedition
 import kotlinx.coroutines.delay
@@ -48,13 +49,14 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
     fun dispose(plugin: RavinPlugin, world: World) {
         area.dispose(plugin, world)
         spawnedMobs.forEach {
-            world.getChunkAt(it.location)
-            it.remove()
+            if(it.isValid) {
+                world.withChunk(it.location) { _ -> it.remove() }
+            }
         }
         spawnedMobs.clear()
         spawnedChests.forEach {
-            world.getChunkAt(it.key.blockX, it.key.blockZ)
-            it.value.destroy()
+            val chest = it.value
+            world.withChunk(it.key.blockX / 16, it.key.blockZ / 16) { chest.destroy() }
         }
         spawnedChests.clear()
         inArea.clear()
@@ -103,16 +105,20 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
             }
             usingList.forEach {
                 availableLootLocations.remove(it.first)
-                world.getChunkAt(it.first.blockX, it.first.blockZ) // Load chunk
-                val loot = LootableChest(it.second, this, it.first, world)
-                spawnedChests[it.first] = loot
-                val vector = Vector(it.first.x, it.first.y, it.first.z)
-                val radSquared = expedition.lootRange * expedition.lootRange
-                inArea.forEach { player ->
-                    if(player.location.toVector().distanceSquared(vector) < radSquared) {
-                        loot.show(player)
+                world.withChunk(it.first.blockX / 16, it.first.blockZ / 16) { _ ->
+                    val loot = LootableChest(it.second, this, it.first, world)
+                    spawnedChests[it.first] = loot
+                    val vector = Vector(it.first.x, it.first.y, it.first.z)
+                    val radSquared = expedition.lootRange * expedition.lootRange
+                    inArea.forEach { player ->
+                        if(player.location.toVector().distanceSquared(vector) < radSquared) {
+                            loot.show(player)
+                        } else {
+                            loot.hide(player)
+                        }
                     }
                 }
+
             }
         }
     }
@@ -144,7 +150,11 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
             }
             true
         } else {
-            inArea.remove(player)
+            if(inArea.remove(player)) {
+                spawnedChests.forEach {
+                    it.value.hide(player)
+                }
+            }
             false
         }
     }

@@ -96,7 +96,14 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
 
             I.log(Level.INFO, "Loaded expedition map '${name}'")
             maps.add(map)
-            map.render(plugin)
+            map.render(plugin).invokeOnCompletion {
+                if(it == null) {
+                    I.log(Level.INFO, "Successfully rendered map for '${name}' expedition!")
+                } else {
+                    I.log(Level.WARNING, "Encountered exception rendering map for '${name}' expedition!", it)
+                }
+
+            }
         }
     }
 

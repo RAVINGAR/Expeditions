@@ -28,6 +28,7 @@ import java.util.logging.Level
 import kotlin.random.Random
 
 class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, val world: World) {
+    private val handler = plugin.getModule(PlayHandler::class.java)
     private var phase: Phase = IdlePhase(expedition)
     val bossBar = plugin.server.createBossBar(
         NamespacedKey(plugin, "${world.name}_bossbar"),
@@ -38,7 +39,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     val mapView: MapView
 
-    val renderer: ExpeditionRenderer = ExpeditionRenderer(expedition.colourCache)
+    val renderer: ExpeditionRenderer = ExpeditionRenderer(expedition)
     init {
         val view = Bukkit.createMap(world)
         view.centerX = expedition.centreX
@@ -81,7 +82,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                     joinedPlayers.remove(uuid)
                     quitPlayers[uuid] = it.value
                 } else {
-                    extract(player)
+                    removePlayer(player, RemoveReason.EXTRACTION)
                 }
             }
         }
@@ -95,11 +96,11 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         return joinedPlayers.keys
     }
 
-    fun getRemainingPlayers() : Collection<Player> {
-        val list = ArrayList<Player>()
+    fun getRemainingPlayers() : Collection<CachedPlayer> {
+        val list = ArrayList<CachedPlayer>()
         joinedPlayers.values.forEach {
             if(it.player.isOnline) {
-                list.add(it.player.player!!)
+                list.add(it)
             } else {
                 quitPlayers[it.player.uniqueId] = it
             }
@@ -168,37 +169,10 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     private fun join(player: Player) {
         // Todo, also check if they are in a party?
-        joinedPlayers[player.uniqueId] = CachedPlayer(player, player.location)
-        val handler = plugin.getModule(PlayHandler::class.java)
         plugin.launch {
-            teleport(player, handler.getOverhangingBlocks())
+            val loc = findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
+            addPlayer(player, loc)
         }
-    }
-
-    private suspend fun teleport(player: Player, overhanging: Set<Material>) {
-        val loc = findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, overhanging)
-        if(player.teleport(loc)) {
-            giveMap(player)
-            bossBar.addPlayer(player)
-        } else {
-            I.log(Level.WARNING, "Could not teleport '${player.name}' for unknown reason! Something is cancelling this teleportation!")
-            delay(5.ticks)
-            teleport(player, overhanging)
-        }
-    }
-
-    fun extract(player: Player) : Boolean {
-        // Remove player from event
-        removeMap(player)
-        joinedPlayers.remove(player.uniqueId)?.let {
-            player.teleport(it.previousLocale)
-        }
-        bossBar.removePlayer(player)
-        areaInstances.forEach {
-            it.inArea.remove(player)
-        }
-        plugin.getModule(PlayHandler::class.java).removeJoinedExpedition(player)
-        return true
     }
 
     private fun findSuitableLocation(
@@ -264,25 +238,49 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun onJoinEvent(player: Player) : Boolean {
         val uuid = player.uniqueId
         quitPlayers.remove(uuid)?.let {
-            joinedPlayers[uuid] = CachedPlayer(player, player.location)
-            player.teleport(it.previousLocale)
-            bossBar.addPlayer(player)
-            areaInstances.forEach { area ->
-                if(area.onMove(player)) return@forEach
-            }
+            addPlayer(player, it.previousLocale)
             return true
         }
         return false
     }
 
     /**
-     * Handle player quit event. This checks if a player is currently participating in this instance.
+     * Called when a player is added to this expedition. This is either through re-joining or
+     * a new join
      */
-    fun onQuitEvent(player: Player) {
+    fun addPlayer(player: Player, location: Location) {
         val uuid = player.uniqueId
-        joinedPlayers.remove(uuid)?.let {
-            quitPlayers[uuid] = CachedPlayer(player, player.location)
-            player.teleport(it.previousLocale)
+        val previousLocale = player.location
+        if(!player.teleport(location)) {
+            I.log(Level.WARNING, "Could not teleport '${player.name}' for unknown reason! Something is cancelling this teleportation! Trying again in 20 ticks...")
+            plugin.launch {
+                delay(20.ticks)
+                addPlayer(player, location)
+            }
+            return
+        }
+        joinedPlayers[uuid] = CachedPlayer(player, previousLocale)
+        bossBar.addPlayer(player)
+        areaInstances.forEach { it.onMove(player) }
+        handler.addJoinedExpedition(player, this)
+
+        giveMap(player)
+    }
+
+    /**
+     * Remove player from this expedition instance. Called by death, extraction or quit.
+     */
+    fun removePlayer(player: Player, reason: RemoveReason) {
+        joinedPlayers.remove(player.uniqueId)?.let { cache ->
+            when(reason) {
+                RemoveReason.QUIT -> handler.addAbandon(player.uniqueId)
+                RemoveReason.DEATH -> handler.addRespawn(cache)
+                RemoveReason.EXTRACTION -> player.teleport(cache.previousLocale)
+            }
+            removeMap(player)
+
+            handler.removeJoinedExpedition(player)
+            bossBar.removePlayer(player)
             sneakingPlayers.remove(player)
             areaInstances.forEach {
                 it.inArea.remove(player)
@@ -290,11 +288,15 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
-    fun onSpawnEvent(player: Player) {
-        joinedPlayers.remove(player.uniqueId)?.let {
-            // Todo add send message here
+    /**
+     * Handle player quit event. This checks if a player is currently participating in this instance.
+     */
+    fun onQuitEvent(player: Player) {
+        val uuid = player.uniqueId
+        joinedPlayers[uuid]?.let {
+            quitPlayers[uuid] = CachedPlayer(player, player.location)
             player.teleport(it.previousLocale)
-            removeMap(player)
+            removePlayer(player, RemoveReason.QUIT)
         }
     }
 
@@ -303,16 +305,10 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             areaInstances.forEach {
                 if(it.inArea.contains(player) && it.area is ExtractionZone) {
                     sneakingPlayers[player] = Pair(System.currentTimeMillis(), player.location.toVector())
-                } else {
-                    removeSneakingPlayer(player)
+                    return
                 }
             }
-        } else {
-            removeSneakingPlayer(player)
         }
-    }
-
-    fun removeSneakingPlayer(player: Player) {
         if(sneakingPlayers.remove(player) != null) {
             player.sendMessage("${ChatColor.YELLOW}You are no longer extracting!")
         }
@@ -324,7 +320,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
-    fun giveMap(player: Player) {
+    private fun giveMap(player: Player) {
         val mapItem = ItemStack(Material.FILLED_MAP)
         val meta = (mapItem.itemMeta as MapMeta)
         meta.setDisplayName("${ChatColor.GOLD}${expedition.displayName} Map")
@@ -339,18 +335,21 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         player.inventory.addItem(mapItem)
     }
 
-    fun removeMap(player: Player) {
-        for(i in 0 until player.inventory.size) {
-            player.inventory.getItem(i)?.let { item ->
-                if(item.type == Material.FILLED_MAP && item.itemMeta.customModelData == 4) {
-                    player.inventory.setItem(i, null)
-                    return
+    private fun removeMap(player: Player) {
+        if(!player.inventory.isEmpty) {
+            for(i in 0 until player.inventory.size) {
+                player.inventory.getItem(i)?.let { item ->
+                    if(item.type == Material.FILLED_MAP && item.itemMeta.customModelData == 4) {
+                        player.inventory.setItem(i, null)
+                        return
+                    }
                 }
             }
         }
+        renderer.removePlayer(player)
     }
 
-    fun getScaleFromSize(radius: Int) : MapView.Scale {
+    private fun getScaleFromSize(radius: Int) : MapView.Scale {
         val rad = radius * 2
         if((0..127).contains(rad)) {
             return MapView.Scale.CLOSEST
@@ -372,12 +371,25 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         return false
     }
 
+    fun getAmountOfPlayers() : Int {
+        return joinedPlayers.size
+    }
+
     fun onDeathEvent(event: EntityDeathEvent) : Boolean {
         val entity = event.entity
-        for(it in areaInstances) {
-            if(it.onDeath(entity)) return true
+        var result = false
+        if(entity is Player && joinedPlayers.containsKey(entity.uniqueId)) {
+            removePlayer(entity, RemoveReason.DEATH)
+            result = true
         }
-        return false
+        for(it in areaInstances) {
+            if(it.onDeath(entity)) {
+                result = true
+                break
+            }
+        }
+
+        return result
     }
 
     fun setPhase(phase: Phase) {
@@ -393,5 +405,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         return false
     }
 
-    private data class CachedPlayer(val player: OfflinePlayer, val previousLocale: Location)
+    fun getPhaseName() : String {
+        return phase.name
+    }
+}
+data class CachedPlayer(val player: OfflinePlayer, val previousLocale: Location)
+
+enum class RemoveReason {
+    DEATH, QUIT, EXTRACTION
 }

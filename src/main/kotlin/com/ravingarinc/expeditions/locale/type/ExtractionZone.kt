@@ -1,6 +1,7 @@
 package com.ravingarinc.expeditions.locale.type
 
 import com.ravingarinc.api.module.RavinPlugin
+import com.ravingarinc.expeditions.api.withChunk
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.MobType
 import org.bukkit.Material
@@ -30,17 +31,17 @@ class ExtractionZone(val chance: Double,
     override val displayType: String = "Extraction Zone"
     override fun initialise(plugin: RavinPlugin, world: World) {
         beaconLoc?.let {
-            world.loadChunk(it.blockX, it.blockZ)
-            world.getBlockAt(it.blockX, it.blockY, it.blockZ).type = Material.BEACON
-            world.unloadChunk(it.blockX, it.blockZ)
+            world.withChunk(it.blockX / 16, it.blockZ / 16) { chunk ->
+                world.getBlockAt(it.blockX, it.blockY, it.blockZ).type = Material.BEACON
+            }
         }
     }
 
     override fun dispose(plugin: RavinPlugin, world: World) {
         beaconLoc?.let {
-            world.loadChunk(it.blockX, it.blockZ)
-            world.getBlockAt(it.blockX, it.blockY, it.blockZ).type = Material.STONE
-            world.unloadChunk(it.blockX, it.blockZ)
+            world.withChunk(it.blockX / 16, it.blockZ / 16) { chunk ->
+                world.getBlockAt(it.blockX, it.blockY, it.blockZ).type = Material.STONE
+            }
         }
     }
 }

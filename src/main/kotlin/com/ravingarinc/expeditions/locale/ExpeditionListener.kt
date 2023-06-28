@@ -18,12 +18,11 @@ import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDeathEvent
-import org.bukkit.event.entity.EntitySpawnEvent
 import org.bukkit.event.player.*
 import org.bukkit.inventory.EquipmentSlot
 import java.util.*
 
-class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::class.java, plugin, PlayHandler::class.java) {
+class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(ExpeditionListener::class.java, plugin, PlayHandler::class.java) {
     private lateinit var handler: PlayHandler
     private lateinit var manager: ExpeditionManager
     private val breakableBlocks: MutableSet<Material> = EnumSet.noneOf(Material::class.java)
@@ -66,10 +65,7 @@ class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::c
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val player = event.player
-        handler.getJoinedExpedition(player)?.let {
-            it.onQuitEvent(player)
-            handler.removeJoinedExpedition(player)
-        }
+        handler.getJoinedExpedition(player)?.onQuitEvent(player)
         movementCooldown.remove(player.uniqueId)
     }
 
@@ -81,13 +77,11 @@ class MapListener(plugin: RavinPlugin) : SuspendingModuleListener(MapListener::c
     }
 
     @EventHandler
-    fun onEntitySpawn(event: EntitySpawnEvent) {
-        val entity = event.entity
-        if(entity !is Player) return
-        // todo does this need a delay?
-        handler.getJoinedExpedition(entity)?.let {
-            it.onSpawnEvent(entity)
-            handler.removeJoinedExpedition(entity)
+    fun onEntitySpawn(event: PlayerRespawnEvent) {
+        val player = event.player
+
+        handler.removeRespawn(player)?.let {
+            event.respawnLocation = it.previousLocale
         }
     }
 

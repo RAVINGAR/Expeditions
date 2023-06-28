@@ -1,5 +1,6 @@
 package com.ravingarinc.expeditions.api
 
+import com.ravingarinc.api.I
 import com.ravingarinc.api.module.Module
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
@@ -10,10 +11,7 @@ import com.ravingarinc.expeditions.play.mob.MythicMobType
 import com.ravingarinc.expeditions.play.mob.VanillaMobType
 import io.lumine.mythic.lib.api.item.NBTItem
 import net.Indyuce.mmoitems.api.interaction.util.DurabilityItem
-import org.bukkit.Bukkit
-import org.bukkit.Material
-import org.bukkit.Sound
-import org.bukkit.World
+import org.bukkit.*
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Player
@@ -24,6 +22,7 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.*
+import java.util.logging.Level
 import kotlin.random.Random
 
 
@@ -164,6 +163,7 @@ fun parseBlockVector(string: String) : BlockVector? {
     val y = split[1].toDoubleOrNull()
     val z = split[2].toDoubleOrNull()
     if(x == null || y == null || z == null) {
+        warn("Could not parse string '$string' as a valid location!")
         return null
     }
     return BlockVector(x, y, z)
@@ -275,10 +275,10 @@ fun ConfigurationSection.getMobType(path: String) : MobType? {
 }
 
 fun parseMobType(string: String) : MobType? {
-    val split = string.lowercase().split(":".toRegex(), limit = 2)
-    if(split[0] == "mythic" || split[0] == "mythicmobs" || split[0] == "mm") {
+    val split = string.split(":".toRegex(), limit = 2)
+    if(split[0].equals("mythic", true) || split[0].equals("mythicmobs", true) || split[0].equals("mm", true)) {
         return MythicMobType(split[1])
-    } else if (split[0] == "vanilla" || split[0] == "v") {
+    } else if (split[0].equals("vanilla", true) || split[0].equals("v", true)) {
         val id = split[1]
         var entity : EntityType? = null
         for(type in EntityType.values()) {
@@ -397,5 +397,29 @@ fun ItemStack.takeDurability(player: Player, amount: Int = 1) {
         meta.damage = meta.damage + amount
         this.itemMeta = meta
     }
+}
+
+fun World.withChunk(location: Location, withChunk: (Chunk) -> Unit) {
+    withChunk(location.blockX / 16, location.blockZ / 16, withChunk)
+}
+
+/**
+ * Attempts to load a chunk if it is not already loaded, only executing the given function once the chunk
+ * is loaded. This operation uses getChunkAtAsync, meaning the chunk may not be loaded immediately.
+ */
+fun World.withChunk(chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
+    if(this.isChunkLoaded(chunkX, chunkZ)) {
+        withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
+    } else {
+        val future = this.getChunkAtAsync(chunkX, chunkZ)
+        future.whenComplete { chunk, throwable ->
+            if(chunk == null) {
+                I.log(Level.WARNING, "Encountered error loading chunk!", throwable)
+                return@whenComplete
+            }
+            withChunk.invoke(chunk)
+        }
+    }
+
 }
 
