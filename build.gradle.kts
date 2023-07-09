@@ -1,13 +1,12 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.8.10"
+    kotlin("jvm") version "1.8.21"
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("idea")
     id("net.minecrell.plugin-yml.bukkit") version "0.5.3"
     id("pmd")
     id("java-library")
-    id("io.typecraft.gradlesource.spigot") version "1.0.0"
 }
 
 group = "com.ravingarinc.expeditions"
@@ -56,15 +55,16 @@ dependencies {
     library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-api", "2.11.0")
     library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-core", "2.11.0")
 
-    implementation("com.ravingarinc.api:common:1.3.1")
-    implementation("com.ravingarinc.api:module:1.3.1")
-    implementation("com.ravingarinc.api:gui:1.3.1")
-    implementation("org.jetbrains:annotations:23.1.0")
+    implementation("com.ravingarinc.api:common:1.4.0")
+    implementation("com.ravingarinc.api:module:1.4.0")
+    implementation("com.ravingarinc.api:gui:1.4.0")
+    implementation("com.ravingarinc.api:version:1.4.0")
+    compileOnly("org.jetbrains:annotations:23.1.0")
 
     //compileOnly("org.spigotmc:spigot:1.19.4-R0.1-SNAPSHOT:remapped-mojang")
     //compileOnly("org.spigotmc:spigot-api:1.18.2-R0.1-SNAPSHOT")
 
-    compileOnly("io.papermc.paper:paper-api:1.18.2-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT")
     compileOnly("io.lumine:Mythic-Dist:5.1.0-SNAPSHOT")
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
@@ -73,9 +73,6 @@ dependencies {
         isTransitive = false
     }
     compileOnly("com.comphenix.protocol:ProtocolLib:5.0.0")
-    testImplementation("org.jetbrains:annotations:23.1.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.0")
 }
 
 tasks {
@@ -99,7 +96,7 @@ tasks {
 
     register<Copy>("copyToDev") {
         from(shadowJar)
-        into(project.layout.projectDirectory.dir("../../Desktop/Programming/Server/plugins"))
+        into(project.layout.projectDirectory.dir("../../Desktop/Programming/Servers/Latest/plugins"))
         //into "E:/Documents/Workspace/Servers/1.18.2-TEST/plugins/"
     }
 
@@ -137,7 +134,7 @@ bukkit {
     main = "com.ravingarinc.expeditions.Expeditions"
 
     // API version (should be set for 1.13+)
-    apiVersion = "1.18"
+    apiVersion = "1.19"
 
     // Other possible properties from plugin.yml (optional)
     author = "RAVINGAR"

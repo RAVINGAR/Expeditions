@@ -17,7 +17,7 @@ import org.bukkit.Material
 import java.util.*
 import java.util.logging.Level
 
-class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManager::class.java, plugin, ConfigManager::class.java, MultiverseHandler::class.java) {
+class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManager::class.java, plugin, true, ConfigManager::class.java, MultiverseHandler::class.java) {
     private val maps: MutableList<Expedition> = ArrayList()
 
     private val lootTables: MutableMap<String, LootTable> = Hashtable()

@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import org.bukkit.ChatColor
 import org.bukkit.Material
 import org.bukkit.World
+import java.awt.Color
 
 class Expedition(val identifier: String,
                  description: List<String>,
@@ -34,7 +35,7 @@ class Expedition(val identifier: String,
 
     private val formatted: String
 
-    val colourCache: ByteArray = ByteArray(16384) { ExpeditionRenderer.MapColour.STONE.id }
+    val colourCache: Array<Color> = Array(16384) { ExpeditionRenderer.MapColour.STONE.id }
 
     init {
         val builder = StringBuilder()
@@ -63,10 +64,10 @@ class Expedition(val identifier: String,
                                 val sumZ = (topLeftZ + (z / 128.0) * radius * 2).toInt()
                                 val type = world.getHighestBlockAt(sumX, sumZ).type
                                 children.add(this.launch(Dispatchers.IO) {
-                                    ExpeditionRenderer.MapColour.values().forEach {
-                                        if(it.predicate.invoke(type)) {
-                                            this@Expedition.setColour(z * 128 + x, it.id)
-                                            return@forEach
+                                    for(colour in ExpeditionRenderer.MapColour.values()) {
+                                        if(colour.predicate.invoke(type)) {
+                                            this@Expedition.colourCache[z * 128 + x] = colour.id
+                                            break
                                         }
                                     }
                                 })
@@ -78,10 +79,6 @@ class Expedition(val identifier: String,
             }
             jobs.joinAll()
         }
-    }
-
-    fun setColour(index: Int, byte: Byte) {
-        this.colourCache[index] = byte
     }
 
     fun addArea(area: Area) {

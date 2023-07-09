@@ -1,6 +1,5 @@
 package com.ravingarinc.expeditions.play.mob
 
-import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import io.lumine.mythic.api.adapters.AbstractLocation
 import io.lumine.mythic.api.mobs.MythicMob
@@ -11,7 +10,6 @@ import org.bukkit.World
 import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
 import org.bukkit.util.BlockVector
-import java.util.logging.Level
 
 sealed interface MobType {
     fun identifier() : String

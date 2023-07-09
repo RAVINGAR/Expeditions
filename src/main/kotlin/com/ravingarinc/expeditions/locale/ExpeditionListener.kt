@@ -22,7 +22,7 @@ import org.bukkit.event.player.*
 import org.bukkit.inventory.EquipmentSlot
 import java.util.*
 
-class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(ExpeditionListener::class.java, plugin, PlayHandler::class.java) {
+class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(ExpeditionListener::class.java, plugin, true, PlayHandler::class.java) {
     private lateinit var handler: PlayHandler
     private lateinit var manager: ExpeditionManager
     private val breakableBlocks: MutableSet<Material> = EnumSet.noneOf(Material::class.java)

@@ -1,8 +1,8 @@
 package com.ravingarinc.expeditions.play.instance
 
-import com.ravingarinc.expeditions.api.Version
-import com.ravingarinc.expeditions.api.build
-import com.ravingarinc.expeditions.api.getVersion
+import com.ravingarinc.api.Version
+import com.ravingarinc.api.Versions
+import com.ravingarinc.api.build
 import com.ravingarinc.expeditions.play.item.LootTable
 import kotlinx.coroutines.delay
 import org.bukkit.*
@@ -55,7 +55,7 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
 
     fun show(player: Player) {
         if(showingPlayers.add(player.uniqueId)) {
-            Version.protocol.sendServerPacket(player, instance.plugin.getVersion().updateMetadata(entity) {
+            Version.protocol.sendServerPacket(player, Versions.version.updateMetadata(entity) {
                 this.build(0, Version.byteSerializer, (0x40 or 0x20).toByte())
                 this.build(4, Version.boolSerializer, true)
                 this.build(5, Version.boolSerializer, true)
@@ -67,7 +67,7 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
 
     fun hide(player: Player) {
         if(showingPlayers.remove(player.uniqueId)) {
-            Version.protocol.sendServerPacket(player, instance.plugin.getVersion().updateMetadata(entity) {
+            Version.protocol.sendServerPacket(player, Versions.version.updateMetadata(entity) {
                 this.build(0, Version.byteSerializer, (0x20).toByte())
                 this.build(4, Version.boolSerializer, true)
                 this.build(5, Version.boolSerializer, true)

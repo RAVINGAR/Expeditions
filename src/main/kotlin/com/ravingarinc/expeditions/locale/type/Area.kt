@@ -4,7 +4,6 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.WeightedCollection
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.MobType
-import org.apache.commons.lang.math.DoubleRange
 import org.bukkit.World
 import org.bukkit.util.BlockVector
 import kotlin.math.max
@@ -53,11 +52,11 @@ abstract class Area(val displayName: String,
      */
     abstract fun dispose(plugin: RavinPlugin, world: World)
 
-    private val xRange = DoubleRange(min(startLoc.x, endLoc.x), max(startLoc.x, endLoc.x))
-    private val yRange = DoubleRange(min(startLoc.y, endLoc.y), max(startLoc.y, endLoc.y))
-    private val zRange = DoubleRange(min(startLoc.z, endLoc.z), max(startLoc.z, endLoc.z))
+    private val xRange = min(startLoc.x, endLoc.x).toInt() .. max(startLoc.x, endLoc.x).toInt()
+    private val yRange = min(startLoc.y, endLoc.y).toInt() .. max(startLoc.y, endLoc.y).toInt()
+    private val zRange = min(startLoc.z, endLoc.z).toInt() .. max(startLoc.z, endLoc.z).toInt()
 
     fun isInArea(x: Int, y: Int, z: Int) : Boolean {
-        return xRange.containsDouble(x) && yRange.containsDouble(y) && zRange.containsDouble(z)
+        return xRange.contains(x) && yRange.contains(y) && zRange.contains(z)
     }
 }

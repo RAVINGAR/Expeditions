@@ -18,7 +18,7 @@ import org.bukkit.entity.Player
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.java, plugin, ExpeditionManager::class.java) {
+class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.java, plugin, true, ExpeditionManager::class.java) {
     private lateinit var expeditions: ExpeditionManager
     private lateinit var multiverse: MultiverseHandler
     private lateinit var manager: ConfigManager
