@@ -4,6 +4,7 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
+import com.ravingarinc.expeditions.api.Ticker
 import com.ravingarinc.expeditions.api.getMaterialList
 import com.ravingarinc.expeditions.command.ExpeditionGui
 import com.ravingarinc.expeditions.integration.MultiverseHandler
@@ -12,6 +13,9 @@ import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.persistent.ConfigManager
 import com.ravingarinc.expeditions.play.instance.CachedPlayer
 import com.ravingarinc.expeditions.play.instance.ExpeditionInstance
+import com.ravingarinc.expeditions.play.instance.IdlePhase
+import com.ravingarinc.expeditions.play.instance.PlayPhase
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -35,6 +39,8 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     private val abandonedPlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
     private val respawningPlayers: MutableMap<UUID, CachedPlayer> = ConcurrentHashMap()
 
+    private lateinit var capacityJob: CapacityTicker
+
     override suspend fun suspendLoad() {
         manager = plugin.getModule(ConfigManager::class.java)
         manager.config.consume("general") {
@@ -55,6 +61,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         multiverse = plugin.getModule(MultiverseHandler::class.java)
 
         ticker = PlayTicker(plugin, instances.values)
+        capacityJob = CapacityTicker(plugin, this)
 
         plugin.launch {
             delay(20.ticks)
@@ -67,20 +74,19 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
             }
             delay(5.ticks)
             ticker.start()
+            capacityJob.start(12000)
         }
         manager.getRespawningPlayers().forEach {
             respawningPlayers[it.player.uniqueId] = it
         }
+
     }
 
     override suspend fun suspendCancel() {
         ExpeditionGui.dispose()
         ticker.cancel()
-        instances.values.forEach { list -> list.forEach {
-            it.end()
-            it.getQuitPlayers().forEach { uuid -> addAbandon(uuid) }
-            multiverse.deleteWorld(it.world)
-        }}
+        capacityJob.cancel()
+        instances.values.forEach { list -> list.forEach { destroyInstance(it) }}
         instances.clear()
 
         abandonedPlayers.clear()
@@ -161,19 +167,27 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     }
 
     fun checkCapacity() {
-        instances.values.forEach { list ->
+        instances.forEach { (key, list) ->
             var total = 0
             var maxTotal = 0
+            val emptyMaps = ArrayList<ExpeditionInstance>()
             for(i in list) {
-                total += i.getJoinedPlayers().size
-                maxTotal += i.expedition.maxPlayers
+                val phase = i.getPhase()
+                val joined = i.getJoinedPlayers().size
+                if(phase is IdlePhase) {
+                    if(joined == 0) { emptyMaps.add(i) }
+                } else if (phase is PlayPhase) {
+                    total += joined
+                    maxTotal += i.expedition.maxPlayers
+                }
             }
-            val capacity = total / maxTotal.toDouble()
-            if(capacity > 0.5) {
-                // increase maps
-            } else {
-                // todo here remove unused maps
+            if(emptyMaps.size == 0 && list.size < maxInstances) {
+                if(maxTotal > 0 && (total / maxTotal.toDouble()) > 0.75) {
+                    expeditions.getMapByIdentifier(key)?.let { expedition ->
+                        createInstance(expedition)?.let { list.add(it) } }
+                }
             }
+            emptyMaps.forEach { if(list.size > initialInstances && list.remove(it)) { destroyInstance(it) } }
         }
     }
 
@@ -190,7 +204,14 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
      * Called when the instance should be forcefully destroyed
      */
     fun destroyInstance(instance: ExpeditionInstance) {
-        // todo
+        instance.end()
+        instance.getQuitPlayers().forEach { uuid -> addAbandon(uuid) }
+        multiverse.deleteWorld(instance.world)
     }
+}
 
+class CapacityTicker(plugin: RavinPlugin, private val handler: PlayHandler) : Ticker(plugin, 12000.ticks) {
+    override suspend fun CoroutineScope.tick() {
+        handler.checkCapacity()
+    }
 }

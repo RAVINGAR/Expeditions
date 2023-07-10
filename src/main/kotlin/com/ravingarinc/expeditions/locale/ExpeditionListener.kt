@@ -102,9 +102,8 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         if(event.hand != EquipmentSlot.HAND) return
         val entity = event.rightClicked
         if(entity is MagmaCube) {
-            handler.getJoinedExpedition(event.player)?.let {
-                it.onBlockInteract(event.player.world.getBlockAt(entity.location), event.player)
-            }
+            handler.getJoinedExpedition(event.player)
+                ?.onBlockInteract(event.player.world.getBlockAt(entity.location), event.player)
         }
 
     }

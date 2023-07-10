@@ -405,6 +405,10 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         return false
     }
 
+    fun getPhase() : Phase {
+        return phase
+    }
+
     fun getPhaseName() : String {
         return phase.name
     }

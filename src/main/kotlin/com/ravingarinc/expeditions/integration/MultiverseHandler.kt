@@ -57,6 +57,7 @@ class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(Multiver
             mvWorld.isHidden = true
             mvWorld.setKeepSpawnInMemory(false)
             mvWorld.allowPortalMaking(AllowedPortalType.NONE)
+            //mvWorld.setRespawnToWorld()
             return mvWorld.cbWorld
         } else {
             warn("Could not clone world '${name}' for unknown reason!")
