@@ -1,6 +1,9 @@
 package com.ravingarinc.expeditions.play.item
 
 import com.ravingarinc.api.I
+import com.ravingarinc.api.module.warn
+import io.lumine.mythic.bukkit.MythicBukkit
+import io.lumine.mythic.bukkit.adapters.BukkitItemStack
 import io.lumine.mythic.lib.api.item.NBTItem
 import net.Indyuce.mmoitems.MMOItems
 import net.Indyuce.mmoitems.api.player.PlayerData
@@ -53,6 +56,26 @@ class MMOItemType(private val type: String, private val identifier: String) : It
             return false
         }
         return (nbtItem.type == type && nbtItem.getString("MMOITEMS_ITEM_ID").equals(identifier, true))
+    }
+}
+
+class CrucibleItemType(private val identifier: String) : ItemType {
+    override fun generate(player: Player?): ItemStack? {
+        val item = MythicBukkit.inst().itemManager.getItem(identifier)
+        if(item.isPresent) {
+            return (item.get().generateItemStack(1) as BukkitItemStack).build()
+        }
+        warn("Could not find MythicCrucible item with id '$identifier'!")
+        return null
+    }
+
+    override fun isSameAs(item: ItemStack): Boolean {
+        val identifier = MythicBukkit.inst().itemManager.getMythicTypeFromItem(item) ?: return false
+        return identifier == this.identifier
+    }
+
+    override fun getId(): String {
+        return identifier
     }
 }
 

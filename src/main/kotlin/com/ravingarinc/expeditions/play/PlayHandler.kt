@@ -18,6 +18,7 @@ import com.ravingarinc.expeditions.play.instance.PlayPhase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import org.bukkit.Material
+import org.bukkit.World
 import org.bukkit.entity.Player
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -191,6 +192,17 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         }
     }
 
+    fun isExpeditionWorld(world: World) : Boolean {
+        instances.values.forEach { list ->
+            list.forEach {
+                if(it.world == world) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     fun createInstance(expedition: Expedition): ExpeditionInstance? {
         val instanceWorld = multiverse.cloneWorld(expedition.world) ?: return null
         val instance = ExpeditionInstance(plugin, expedition, instanceWorld)
@@ -206,6 +218,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     fun destroyInstance(instance: ExpeditionInstance) {
         instance.end()
         instance.getQuitPlayers().forEach { uuid -> addAbandon(uuid) }
+        saveData()
         multiverse.deleteWorld(instance.world)
     }
 }

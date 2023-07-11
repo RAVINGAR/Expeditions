@@ -7,7 +7,9 @@ import com.ravingarinc.expeditions.api.withChunk
 import com.ravingarinc.expeditions.locale.type.Area
 import com.ravingarinc.expeditions.locale.type.Expedition
 import kotlinx.coroutines.delay
-import org.bukkit.ChatColor
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.World
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
@@ -56,7 +58,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         spawnedMobs.clear()
         spawnedChests.forEach {
             val chest = it.value
-            world.withChunk(it.key.blockX / 16, it.key.blockZ / 16) { chest.destroy() }
+            world.withChunk(it.key.blockX shr 4, it.key.blockZ shr 4) { chest.destroy() }
         }
         spawnedChests.clear()
         inArea.clear()
@@ -105,7 +107,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
             }
             usingList.forEach {
                 availableLootLocations.remove(it.first)
-                world.withChunk(it.first.blockX / 16, it.first.blockZ / 16) { _ ->
+                world.withChunk(it.first.blockX shr 4, it.first.blockZ shr 4) { _ ->
                     val loot = LootableChest(it.second, this, it.first, world)
                     spawnedChests[it.first] = loot
                     val vector = Vector(it.first.x, it.first.y, it.first.z)
@@ -138,7 +140,11 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         val loc = player.location.toVector()
         return if(area.isInArea(loc.x.toInt(), loc.y.toInt(), loc.z.toInt())) {
             if(inArea.add(player)) {
-                player.sendTitle("${ChatColor.GOLD}${area.displayName}", "${ChatColor.YELLOW}${area.displayType}", 15, 70, 15)
+
+                val component = Component.text().append(Component
+                    .text(area.displayName).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
+                    .append(Component.text(" | ").color(NamedTextColor.GRAY))
+                    .append(Component.text(area.displayName).color(NamedTextColor.YELLOW)))
             }
             val radSquared = expedition.lootRange * expedition.lootRange
             spawnedChests.forEach {

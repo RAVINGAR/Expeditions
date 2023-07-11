@@ -29,6 +29,13 @@ general:
   extraction-time: 10s
   # The block to use for loot chests
   loot-chest-block: chest
+  # If something goes wrong and a player has joined an expedition world when they aren't supposed to, teleport them to
+  # this location
+  fallback-location: 0,60,0
+  fallback-world: Lobby
+  # The allowed commands whilst in an expedition unless you have the permission expeditions.admin.bypass
+  allowed-commands:
+    - party
 loot-tables: # Loot tables used by maps are specified here.
   common_crate: # Unique identifier for this loot table
     quantity: 1-3 # Can be a single number, or a range such as 3-4 or 3to4. Represents the amount of loot types given.

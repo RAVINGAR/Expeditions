@@ -9,14 +9,9 @@ import com.ravingarinc.expeditions.play.item.*
 import com.ravingarinc.expeditions.play.mob.MobType
 import com.ravingarinc.expeditions.play.mob.MythicMobType
 import com.ravingarinc.expeditions.play.mob.VanillaMobType
-import io.lumine.mythic.lib.api.item.NBTItem
-import net.Indyuce.mmoitems.api.interaction.util.DurabilityItem
 import org.bukkit.*
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.EntityType
-import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.meta.Damageable
 import org.bukkit.util.BlockVector
 import java.io.File
 import java.nio.file.Files
@@ -158,7 +153,11 @@ fun ConfigurationSection.getBlockVector(path: String) : BlockVector? {
 
 fun parseBlockVector(string: String) : BlockVector? {
     if(string == "null") return null
-    val split = string.replace(" ", "").split(",", ";", "-", limit = 3)
+    val split = string.replace(" ".toRegex(), "").split(",", ";", limit = 3)
+    if(split.size < 3) {
+        warn("Could not parse location '$string' as three coordinates are required!")
+        return null
+    }
     val x = split[0].toDoubleOrNull()
     val y = split[1].toDoubleOrNull()
     val z = split[2].toDoubleOrNull()
@@ -231,6 +230,10 @@ fun parseMob(string: String) : Triple<MobType, Double, IntRange>? {
         return null
     }
     if(split[0].equals("mythic", true) || split[0].equals("mythicmobs", true) || split[0].equals("mm", true)) {
+        if(!Bukkit.getServer().pluginManager.isPluginEnabled("MythicMobs")) {
+            warn("Could not get parse mythic mob type as MythicMobs is not enabled!")
+            return null
+        }
         val subSplit = split[1].split(",".toRegex(), limit = 3)
         val id = subSplit[0]
         val weight = subSplit[1].toDoubleOrNull()
@@ -277,6 +280,10 @@ fun ConfigurationSection.getMobType(path: String) : MobType? {
 fun parseMobType(string: String) : MobType? {
     val split = string.split(":".toRegex(), limit = 2)
     if(split[0].equals("mythic", true) || split[0].equals("mythicmobs", true) || split[0].equals("mm", true)) {
+        if(!Bukkit.getServer().pluginManager.isPluginEnabled("MythicMobs")) {
+            warn("Could not get parse mythic mob type as MythicMobs is not enabled!")
+            return null
+        }
         return MythicMobType(split[1])
     } else if (split[0].equals("vanilla", true) || split[0].equals("v", true)) {
         val id = split[1]
@@ -309,6 +316,10 @@ fun ConfigurationSection.getItem(path: String): ItemType? {
 fun parseItem(string: String): ItemType? {
     val split = string.lowercase(Locale.getDefault()).split(":".toRegex(), limit = 3)
     if (split[0] == "mmoitem" || split[0] == "mmoitems") {
+        if(!Bukkit.getServer().pluginManager.isPluginEnabled("MMOItems")) {
+            warn("Could not load MMOItem '$string' as MMOItems is not enabled!")
+            return null
+        }
         if (split.size == 3) {
             return MMOItemType(split[1].uppercase(), split[2].uppercase())
         } else {
@@ -322,7 +333,12 @@ fun parseItem(string: String): ItemType? {
             return VanillaItemType(material)
         }
     } else if(split[0] == "crucible") {
-        TODO("Not implemented")
+        if(!Bukkit.getServer().pluginManager.isPluginEnabled("MythicCrucible")) {
+            warn("Could not load crucible '$string' as MythicCrucible is not enabled!")
+            return null
+        }
+        val identifier = split[1]
+        return CrucibleItemType(identifier)
     } else {
         warn("Unknown item type '${split[0]}' found for string $string! Please use 'mmoitem' or 'vanilla'")
     }
@@ -378,7 +394,7 @@ fun parseMaterial(string: String): Material? {
     }
     return material
 }
-
+/*
 fun ItemStack.getMMOIdentifier(): String {
     return NBTItem.get(this).getString("MMOITEMS_ITEM_ID") ?: ""
 }
@@ -397,10 +413,10 @@ fun ItemStack.takeDurability(player: Player, amount: Int = 1) {
         meta.damage = meta.damage + amount
         this.itemMeta = meta
     }
-}
+}*/
 
 fun World.withChunk(location: Location, withChunk: (Chunk) -> Unit) {
-    withChunk(location.blockX / 16, location.blockZ / 16, withChunk)
+    withChunk(location.blockX shr 4, location.blockZ shr 4, withChunk)
 }
 
 /**

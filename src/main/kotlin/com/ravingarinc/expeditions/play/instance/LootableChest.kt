@@ -19,8 +19,8 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
         it.size = 1
         it.isSilent = true
         it.setGravity(false)
-        it.isInvulnerable = true
         it.setAI(false)
+        it.isInvulnerable = true
         it.isPersistent = true
         //val duration =  (instance.expedition.calmPhaseDuration + instance.expedition.stormPhaseDuration).toInt()
         //it.addPotionEffect(PotionEffect(PotionEffectType.INVISIBILITY, duration, 1, true, false))

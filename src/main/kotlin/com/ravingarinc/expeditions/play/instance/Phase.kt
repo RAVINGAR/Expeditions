@@ -146,8 +146,8 @@ class StormPhase(expedition: Expedition) :
         instance.getRemainingPlayers().forEach { cache ->
             val it = cache.player.player!!
             instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
-            it.sendTitle("", "${ChatColor.RED}The storm is approaching!", 20, 70, 15)
-            it.sendMessage("${ChatColor.YELLOW}Make your way to the nearest extraction point")
+            it.sendTitle("${ChatColor.DARK_RED}WARNING", "${ChatColor.RED}The storm is approaching!", 20, 70, 15)
+            it.sendMessage("${ChatColor.YELLOW}Make your way to the nearest extraction point!")
         }
     }
 
@@ -235,9 +235,10 @@ class RestorationPhase(expedition: Expedition) :
 }
 
 fun tickExtractions(instance: ExpeditionInstance) {
-    HashMap(instance.sneakingPlayers).forEach { (player, pair) ->
+    ArrayList(instance.sneakingPlayers.keys).forEach { player ->
         val time = System.currentTimeMillis()
         val location = player.location.toVector()
+        val pair = instance.sneakingPlayers[player]!!
         if(location == pair.second) {
             val diff = time - pair.first
             if((0..1000L).contains(diff)) {

@@ -31,7 +31,7 @@ class ExtractionZone(val chance: Double,
     override val displayType: String = "Extraction Zone"
     override fun initialise(plugin: RavinPlugin, world: World) {
         beaconLoc?.let {
-            world.withChunk(it.blockX / 16, it.blockZ / 16) { chunk ->
+            world.withChunk(it.blockX shr 4, it.blockZ shr 4) { chunk ->
                 world.getBlockAt(it.blockX, it.blockY, it.blockZ).type = Material.BEACON
             }
         }
@@ -39,7 +39,7 @@ class ExtractionZone(val chance: Double,
 
     override fun dispose(plugin: RavinPlugin, world: World) {
         beaconLoc?.let {
-            world.withChunk(it.blockX / 16, it.blockZ / 16) { chunk ->
+            world.withChunk(it.blockX shr 4, it.blockZ shr 4) { chunk ->
                 world.getBlockAt(it.blockX, it.blockY, it.blockZ).type = Material.STONE
             }
         }

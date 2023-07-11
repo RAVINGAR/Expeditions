@@ -3,14 +3,13 @@ package com.ravingarinc.expeditions.api
 import kotlin.random.Random
 
 class WeightedCollection<E> : Collection<E> {
-    private val entries: MutableMap<E, Entry<E>> = HashMap()
     private val orderedEntries: MutableList<Entry<E>> = ArrayList()
     private var accumulatedWeight: Double = 0.0
     override val size: Int
-        get() = entries.size
+        get() = orderedEntries.size
 
     override fun isEmpty(): Boolean {
-        return entries.isEmpty()
+        return orderedEntries.isEmpty()
     }
 
     override fun iterator(): Iterator<E> {
@@ -28,17 +27,16 @@ class WeightedCollection<E> : Collection<E> {
     }
 
     override fun containsAll(elements: Collection<E>): Boolean {
-        return entries.keys.containsAll(elements)
+        throw UnsupportedOperationException()
     }
 
     override fun contains(element: E): Boolean {
-        return entries.contains(element)
+        throw UnsupportedOperationException()
     }
 
     fun add(element: E, weight: Double) {
         accumulatedWeight += weight
         val entry: Entry<E> = Entry(size, accumulatedWeight, element)
-        entries[element] = entry
         orderedEntries.add(entry)
     }
 

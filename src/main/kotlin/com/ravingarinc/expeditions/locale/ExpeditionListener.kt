@@ -4,11 +4,14 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModuleListener
+import com.ravingarinc.expeditions.api.getBlockVector
 import com.ravingarinc.expeditions.api.getMaterialList
+import com.ravingarinc.expeditions.api.getWorld
 import com.ravingarinc.expeditions.persistent.ConfigManager
 import com.ravingarinc.expeditions.play.PlayHandler
 import kotlinx.coroutines.delay
 import org.bukkit.ChatColor
+import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.entity.MagmaCube
 import org.bukkit.entity.Player
@@ -28,6 +31,10 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
     private val breakableBlocks: MutableSet<Material> = EnumSet.noneOf(Material::class.java)
 
     private val movementCooldown: MutableMap<UUID, Long> = HashMap()
+
+    private val allowedCommands: MutableSet<String> = HashSet()
+
+    private lateinit var fallbackLocation: Location
     override suspend fun suspendLoad() {
         handler = plugin.getModule(PlayHandler::class.java)
         manager = plugin.getModule(ExpeditionManager::class.java)
@@ -35,12 +42,23 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         config.config.config.getMaterialList("general.breakable-blocks").forEach {
             breakableBlocks.add(it)
         }
+        val vec = config.config.config.getBlockVector("general.fallback-location")
+        val world = config.config.config.getWorld("general.fallback-world")
+        fallbackLocation = if(vec == null || world == null) {
+            plugin.server.worlds[0].spawnLocation
+        } else {
+            Location(world, vec.x + 0.5, vec.y, vec.z + 0.5)
+        }
+        config.config.config.getStringList("general.allowed-commands").forEach {
+            allowedCommands.add(it.replace("/", ""))
+        }
         super.suspendLoad()
     }
 
     override suspend fun suspendCancel() {
         super.suspendCancel()
         breakableBlocks.clear()
+        allowedCommands.clear()
     }
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
@@ -57,10 +75,17 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
                 player.sendMessage("${ChatColor.RED}You previously abandoned an expedition! You were devoured by the storm and lost all your items!")
                 player.inventory.clear()
                 player.health = 0.0
+            } else {
+                if(handler.isExpeditionWorld(player.world)) {
+                    player.sendMessage("${ChatColor.RED}You have been removed from that expired expedition!")
+                    player.teleport(fallbackLocation)
+                }
             }
         }
 
     }
+
+
 
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
@@ -86,6 +111,21 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
     }
 
     @EventHandler
+    fun onCommandProcessEvent(event: PlayerCommandPreprocessEvent) {
+        val player = event.player
+        handler.getJoinedExpedition(player)?.let {
+            val split = event.message.split(" ".toRegex())
+            if(player.hasPermission("expeditions.admin.bypass")) {
+                return@let
+            }
+            if(!allowedCommands.contains(split[0].replace("/", ""))) {
+                player.sendMessage("${ChatColor.RED}You cannot use that command whilst in an expedition!")
+                event.isCancelled = true
+            }
+        }
+    }
+
+    @EventHandler
     fun onEntityDamageEvent(event: EntityDamageByEntityEvent) {
         val player = event.damager
         if(player is Player && event.entity is MagmaCube) {
@@ -93,6 +133,17 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
                 if(it.onBlockInteract(player.world.getBlockAt(event.entity.location), player)) {
                     event.isCancelled = true
                 }
+            }
+        }
+    }
+
+    @EventHandler
+    fun onPlayerInteractMob(event: PlayerInteractEvent) {
+        if(event.hand != EquipmentSlot.HAND) return
+        val player = event.player
+        player.getTargetEntity(4, false)?.let { entity ->
+            if(entity is MagmaCube) {
+                handler.getJoinedExpedition(player)?.onBlockInteract(player.world.getBlockAt(entity.location), player)
             }
         }
     }
@@ -110,6 +161,7 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
 
     @EventHandler
     fun onPlayerInteract(event: PlayerInteractEvent) {
+        if(event.hand != EquipmentSlot.HAND) return
         val block = event.clickedBlock ?: return
         if(block.type != manager.getLootBlock()) return
         handler.getJoinedExpedition(event.player)?.let {

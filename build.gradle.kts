@@ -139,7 +139,7 @@ bukkit {
     // Other possible properties from plugin.yml (optional)
     author = "RAVINGAR"
     depend = listOf("Multiverse-Core", "ProtocolLib")
-    softDepend = listOf("MMOItems", "MythicMobs")
+    softDepend = listOf("MMOItems", "MythicMobs", "MythicCrucible")
 
     commands {
         register("expeditions") {
