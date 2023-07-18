@@ -3,6 +3,7 @@ package com.ravingarinc.expeditions.play.instance
 import com.ravingarinc.api.Version
 import com.ravingarinc.api.Versions
 import com.ravingarinc.api.build
+import com.ravingarinc.api.sendPacket
 import com.ravingarinc.expeditions.play.item.LootTable
 import kotlinx.coroutines.delay
 import org.bukkit.*
@@ -10,7 +11,6 @@ import org.bukkit.Particle.DustOptions
 import org.bukkit.entity.MagmaCube
 import org.bukkit.entity.Player
 import org.bukkit.util.BlockVector
-import java.util.*
 import kotlin.random.Random
 
 class LootableChest(private val loot: LootTable, val instance: AreaInstance, private val location: BlockVector, private val world: World) {
@@ -30,7 +30,7 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
         // registered by this object correctly. Maybe delay the initial tick?
     }
 
-    private val showingPlayers: MutableSet<UUID> = HashSet()
+    private val showingPlayers: MutableSet<Player> = HashSet()
     init {
         block.setType(instance.expedition.lootBlock, false)
     }
@@ -54,7 +54,10 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
     }
 
     fun show(player: Player) {
-        if(showingPlayers.add(player.uniqueId)) {
+        if(showingPlayers.add(player)) {
+            val loc = entity.location
+            player.sendPacket(Versions.version.removeEntity(entity.entityId))
+            player.sendPacket(Versions.version.spawnMob(entity.entityId, entity.uniqueId, entity.type, loc.x, loc.y, loc.z, 0, 0, 0))
             Version.protocol.sendServerPacket(player, Versions.version.updateMetadata(entity) {
                 this.build(0, Version.byteSerializer, (0x40 or 0x20).toByte())
                 this.build(4, Version.boolSerializer, true)
@@ -66,20 +69,24 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
     }
 
     fun hide(player: Player) {
-        if(showingPlayers.remove(player.uniqueId)) {
+        if(showingPlayers.remove(player)) {
+            player.sendPacket(Versions.version.removeEntity(entity.entityId))
+            /*
             Version.protocol.sendServerPacket(player, Versions.version.updateMetadata(entity) {
                 this.build(0, Version.byteSerializer, (0x20).toByte())
                 this.build(4, Version.boolSerializer, true)
                 this.build(5, Version.boolSerializer, true)
                 this.build(15, Version.byteSerializer, (0x01).toByte())
                 this.build(16, Version.integerSerializer, 2)
-            })
+            })*/
         }
     }
 
     fun destroy() {
-        block.setType(Material.AIR, false)
+        showingPlayers.forEach { it.sendPacket(Versions.version.removeEntity(entity.entityId)) }
+        showingPlayers.clear()
         entity.remove()
+        block.setType(Material.AIR, false)
     }
 
     companion object {

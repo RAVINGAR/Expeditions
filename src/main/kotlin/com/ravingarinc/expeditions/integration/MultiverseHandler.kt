@@ -9,6 +9,7 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModuleListener
 import com.ravingarinc.api.module.warn
 import org.bukkit.Difficulty
+import org.bukkit.GameRule
 import org.bukkit.World
 import org.bukkit.event.EventHandler
 import java.util.logging.Level
@@ -57,6 +58,7 @@ class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(Multiver
             mvWorld.isHidden = true
             mvWorld.setKeepSpawnInMemory(false)
             mvWorld.allowPortalMaking(AllowedPortalType.NONE)
+            mvWorld.cbWorld.setGameRule(GameRule.KEEP_INVENTORY, false)
             //mvWorld.setRespawnToWorld()
             return mvWorld.cbWorld
         } else {

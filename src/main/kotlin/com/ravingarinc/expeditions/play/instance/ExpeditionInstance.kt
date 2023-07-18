@@ -274,7 +274,10 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         joinedPlayers.remove(player.uniqueId)?.let { cache ->
             when(reason) {
                 RemoveReason.QUIT -> handler.addAbandon(player.uniqueId)
-                RemoveReason.DEATH -> handler.addRespawn(cache)
+                RemoveReason.DEATH -> {
+                    handler.addRespawn(cache)
+
+                }
                 RemoveReason.EXTRACTION -> player.teleport(cache.previousLocale)
             }
             removeMap(player)

@@ -1,6 +1,7 @@
 package com.ravingarinc.expeditions.play
 
 import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
@@ -182,13 +183,15 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                     maxTotal += i.expedition.maxPlayers
                 }
             }
-            if(emptyMaps.size == 0 && list.size < maxInstances) {
-                if(maxTotal > 0 && (total / maxTotal.toDouble()) > 0.75) {
-                    expeditions.getMapByIdentifier(key)?.let { expedition ->
-                        createInstance(expedition)?.let { list.add(it) } }
+            plugin.launch(plugin.minecraftDispatcher) {
+                if(emptyMaps.size == 0 && list.size < maxInstances) {
+                    if(maxTotal > 0 && (total / maxTotal.toDouble()) > 0.75) {
+                        expeditions.getMapByIdentifier(key)?.let { expedition ->
+                            createInstance(expedition)?.let { list.add(it) } }
+                    }
                 }
+                emptyMaps.forEach { if(list.size > initialInstances && list.remove(it)) { destroyInstance(it) } }
             }
-            emptyMaps.forEach { if(list.size > initialInstances && list.remove(it)) { destroyInstance(it) } }
         }
     }
 
@@ -201,6 +204,14 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
             }
         }
         return false
+    }
+
+    fun addInstance(instance: ExpeditionInstance) {
+        this.instances[instance.expedition.identifier]?.add(instance)
+    }
+
+    fun removeInstance(instance: ExpeditionInstance) {
+        this.instances[instance.expedition.identifier]?.remove(instance)
     }
 
     fun createInstance(expedition: Expedition): ExpeditionInstance? {

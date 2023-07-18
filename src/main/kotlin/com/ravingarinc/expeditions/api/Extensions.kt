@@ -436,6 +436,15 @@ fun World.withChunk(chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
             withChunk.invoke(chunk)
         }
     }
+}
 
+fun World.blockWithChunk(plugin: RavinPlugin, chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
+    if(this.isChunkLoaded(chunkX, chunkZ)) {
+        withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
+    } else {
+        addPluginChunkTicket(chunkX, chunkZ, plugin)
+        withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
+        removePluginChunkTicket(chunkX, chunkZ, plugin)
+    }
 }
 

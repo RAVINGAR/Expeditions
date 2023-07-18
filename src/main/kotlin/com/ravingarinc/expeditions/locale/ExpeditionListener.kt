@@ -17,12 +17,16 @@ import org.bukkit.entity.MagmaCube
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockExplodeEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDeathEvent
+import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.player.*
 import org.bukkit.inventory.EquipmentSlot
+import org.bukkit.util.Vector
 import java.util.*
 
 class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(ExpeditionListener::class.java, plugin, true, PlayHandler::class.java) {
@@ -31,6 +35,7 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
     private val breakableBlocks: MutableSet<Material> = EnumSet.noneOf(Material::class.java)
 
     private val movementCooldown: MutableMap<UUID, Long> = HashMap()
+    private val lastLocation: MutableMap<UUID, Vector> = HashMap()
 
     private val allowedCommands: MutableSet<String> = HashSet()
 
@@ -59,11 +64,14 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         super.suspendCancel()
         breakableBlocks.clear()
         allowedCommands.clear()
+        movementCooldown.clear()
+        lastLocation.clear()
     }
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
         movementCooldown[player.uniqueId] = System.currentTimeMillis()
+        lastLocation[player.uniqueId] = player.location.toVector()
         handler.getInstances().values.forEach { list -> list.forEach {
             if(it.onJoinEvent(player)) return
         }}
@@ -141,9 +149,16 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
     fun onPlayerInteractMob(event: PlayerInteractEvent) {
         if(event.hand != EquipmentSlot.HAND) return
         val player = event.player
-        player.getTargetEntity(4, false)?.let { entity ->
-            if(entity is MagmaCube) {
-                handler.getJoinedExpedition(player)?.onBlockInteract(player.world.getBlockAt(entity.location), player)
+        handler.getJoinedExpedition(player)?.let { instance ->
+            val target = player.getTargetEntity(4, false)
+            if(target == null) {
+                player.getTargetBlock(null, 4).let {
+                    instance.onBlockInteract(it, player)
+                }
+            } else {
+                if (target is MagmaCube) {
+                    instance.onBlockInteract(player.world.getBlockAt(target.location), player)
+                } else { }
             }
         }
     }
@@ -196,6 +211,22 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
     }
 
     @EventHandler
+    fun onEntityExplode(event: EntityExplodeEvent) {
+        if(event.blockList().isEmpty()) return
+        if(handler.isExpeditionWorld(event.entity.world)) {
+            event.isCancelled = true
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    fun onBlockExplode(event: BlockExplodeEvent) {
+        if(event.blockList().isEmpty()) return
+        if(handler.isExpeditionWorld(event.block.world)) {
+            event.isCancelled = true
+        }
+    }
+
+    @EventHandler
     fun onShiftEvent(event: PlayerToggleSneakEvent) {
         handler.getJoinedExpedition(event.player)?.onSneakEvent(event.player, event.isSneaking)
     }
@@ -205,9 +236,13 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         val player = event.player
         val time = System.currentTimeMillis()
         val lastTime = movementCooldown[player.uniqueId] ?: time
-        if(time - lastTime > 500L) {
+        if(time - lastTime > 1000L) {
             movementCooldown[player.uniqueId] = time
-            handler.getJoinedExpedition(player)?.onMoveEvent(player)
+            val vector = player.location.toVector()
+            val lastVector = lastLocation[player.uniqueId] ?: vector
+            if(vector != lastVector) {
+                handler.getJoinedExpedition(player)?.onMoveEvent(player)
+            }
         }
     }
 }

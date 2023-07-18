@@ -140,11 +140,11 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         val loc = player.location.toVector()
         return if(area.isInArea(loc.x.toInt(), loc.y.toInt(), loc.z.toInt())) {
             if(inArea.add(player)) {
-
                 val component = Component.text().append(Component
                     .text(area.displayName).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
                     .append(Component.text(" | ").color(NamedTextColor.GRAY))
-                    .append(Component.text(area.displayName).color(NamedTextColor.YELLOW)))
+                    .append(Component.text(area.displayType).color(NamedTextColor.YELLOW)))
+                player.sendActionBar(component)
             }
             val radSquared = expedition.lootRange * expedition.lootRange
             spawnedChests.forEach {
@@ -167,7 +167,11 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
 
     fun onDeath(entity: Entity) : Boolean {
         if(entity is Player) {
-            return inArea.remove(entity)
+            if(inArea.remove(entity)) {
+                spawnedChests.forEach {
+                    it.value.hide(entity)
+                }
+            }
         }
         if(boss != null) {
             if(boss == entity) {

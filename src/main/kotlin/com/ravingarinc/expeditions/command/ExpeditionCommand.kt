@@ -13,6 +13,50 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
         val expeditions = plugin.getModule(ExpeditionManager::class.java)
         val handler = plugin.getModule(PlayHandler::class.java)
 
+        addOption("instance", "expeditions.admin", "- Admin command to manage instances", 1) { _, _ -> false}
+            .addOption("add", null, "<type> - Create a new expedition instance.", 3) { sender, args ->
+                val type = expeditions.getMapByIdentifier(args[2])
+                if(type == null) {
+                    sender.sendMessage("${ChatColor.RED}Unknown expedition type called '${args[2]}'!")
+                } else {
+                    val inst =handler.createInstance(type)
+                    if(inst == null) {
+                        sender.sendMessage("${ChatColor.RED}Something went wrong creating expedition!")
+                        return@addOption true
+                    }
+                    handler.addInstance(inst)
+                    sender.sendMessage("${ChatColor.GREEN}Successfully created new instance!")
+                }
+                return@addOption true
+            }.buildTabCompletions { _, args ->
+                if(args.size == 3) {
+                    return@buildTabCompletions expeditions.getMaps().map { it.identifier }.toList()
+                }
+                return@buildTabCompletions emptyList<String>()
+            }.parent
+            .addOption("remove", null, "<type> - Removes an empty expedition instance.", 3) { sender, args ->
+                val instances = handler.getInstances()[args[2]]
+                if(instances == null) {
+                    sender.sendMessage("${ChatColor.RED}Unknown expedition type called '${args[2]}'!")
+                } else {
+                    for(inst in ArrayList(instances)) {
+                        if(inst.getAmountOfPlayers() == 0) {
+                            handler.destroyInstance(inst)
+                            handler.removeInstance(inst)
+                            sender.sendMessage("${ChatColor.GREEN}Successfully removed and destroyed instance!")
+                            return@addOption true
+                        }
+                    }
+                    sender.sendMessage("${ChatColor.RED}Could not find empty instance to destroy!")
+                }
+                return@addOption true
+            }.buildTabCompletions { _, args ->
+                if(args.size == 3) {
+                    return@buildTabCompletions expeditions.getMaps().map { it.identifier }.toList()
+                }
+                return@buildTabCompletions emptyList<String>()
+            }
+
         addOption("admin", "expeditions.admin", "- Admin command for Expeditions", 1) { _, _ -> false }
             .addOption("leave", null, "<player> - Force leave an expedition", 2) { sender, args ->
                 val player = sender as? Player ?: if (args.size > 2) plugin.server.getPlayer(args[2]) else null

@@ -1,10 +1,12 @@
 package com.ravingarinc.expeditions.play.instance
 
 import com.github.shynixn.mccoroutine.bukkit.launch
+import com.ravingarinc.expeditions.api.blockWithChunk
 import com.ravingarinc.expeditions.api.withChunk
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
+import kotlinx.coroutines.Dispatchers
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.ChatColor
@@ -199,7 +201,9 @@ class StormPhase(expedition: Expedition) :
         instance.getQuitPlayers().forEach {
             handler.addAbandon(it)
         }
-        handler.saveData()
+        instance.plugin.launch(Dispatchers.IO) {
+            handler.saveData()
+        }
         instance.clearPlayers()
         instance.bossBar.removeAll()
         instance.bossBar.removeFlag(BarFlag.CREATE_FOG)
@@ -220,6 +224,14 @@ class RestorationPhase(expedition: Expedition) :
             val block = pair.first
             instance.world.withChunk(block.location) {
                 block.setType(pair.second, false)
+            }
+        }
+        instance.world.entities.forEach { entity ->
+            if(entity.isValid) {
+                val loc = entity.location
+                instance.world.blockWithChunk(instance.plugin, loc.blockX shr 4, loc.blockZ shr 4) {
+                    entity.remove()
+                }
             }
         }
         instance.clear()
@@ -243,7 +255,6 @@ fun tickExtractions(instance: ExpeditionInstance) {
             val diff = time - pair.first
             if((0..1000L).contains(diff)) {
                 player.sendMessage("${ChatColor.YELLOW}Prepare for extraction!")
-
             }
             player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 0.8F)
             val progress = diff / (instance.expedition.extractionTime * 50.0)

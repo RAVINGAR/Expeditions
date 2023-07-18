@@ -1,11 +1,9 @@
 package com.ravingarinc.expeditions.persistent
 
-import com.github.shynixn.mccoroutine.bukkit.launch
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
 import com.ravingarinc.expeditions.api.copyResource
 import com.ravingarinc.expeditions.play.instance.CachedPlayer
-import kotlinx.coroutines.Dispatchers
 import org.bukkit.Location
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
@@ -92,9 +90,7 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
     }
 
     fun saveData() {
-        plugin.launch(Dispatchers.IO) {
-            data.save()
-        }
+        data.save()
     }
 
     fun getMapConfigs(): Map<String, ConfigurationSection> {
