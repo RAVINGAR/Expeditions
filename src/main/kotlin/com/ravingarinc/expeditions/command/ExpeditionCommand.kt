@@ -90,6 +90,13 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
             return@addOption true
         }
 
+        addOption("reload", "expeditions.admin", "- Reloads the plugin", 1) { sender, args ->
+            sender.sendMessage("${ChatColor.YELLOW}Attempting to reload Expeditions... this may take a while.")
+            plugin.reload()
+            sender.sendMessage("${ChatColor.GREEN}Successfully reloaded Expeditions!")
+            return@addOption true
+        }
+
         addHelpOption(ChatColor.AQUA, ChatColor.DARK_AQUA)
     }
 }

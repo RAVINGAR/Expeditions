@@ -64,8 +64,6 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         super.suspendCancel()
         breakableBlocks.clear()
         allowedCommands.clear()
-        movementCooldown.clear()
-        lastLocation.clear()
     }
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
