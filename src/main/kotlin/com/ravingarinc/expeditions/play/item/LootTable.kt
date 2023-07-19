@@ -17,7 +17,7 @@ class LootTable @OptIn(ExperimentalTypeInference::class) constructor(private val
     override fun collectResults(player: Player?): List<ItemStack> {
         val list: List<ItemStack> = buildList {
             val amount = quantity.random()
-            for(i in 0..amount) {
+            for(i in 0 until amount) {
                 loots.random().getItem(player)?.let {
                     this.add(it)
                 }
