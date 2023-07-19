@@ -22,6 +22,7 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
         it.setAI(false)
         it.isInvulnerable = true
         it.isPersistent = true
+        it.removeWhenFarAway = false
         //val duration =  (instance.expedition.calmPhaseDuration + instance.expedition.stormPhaseDuration).toInt()
         //it.addPotionEffect(PotionEffect(PotionEffectType.INVISIBILITY, duration, 1, true, false))
         //it.addPotionEffect(PotionEffect(PotionEffectType.GLOWING, duration, 1, true, false))
@@ -37,8 +38,7 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
 
     suspend fun loot(player: Player) {
         val results = loot.collectResults(player)
-        block.setType(Material.AIR, false)
-        entity.remove()
+        destroy()
         val loc = Location(world, location.x + 0.5, location.y + 0.5, location.z + 0.5)
         world.spawnParticle(Particle.SPELL_INSTANT, loc, 15, 0.4, 0.75, 0.4, 1.0)
         world.spawnParticle(Particle.REDSTONE, loc, 10, 0.5, 0.5, 0.5, dust)
@@ -54,6 +54,9 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
     }
 
     fun show(player: Player) {
+        if(!entity.isValid) {
+            return
+        }
         if(showingPlayers.add(player)) {
             val loc = entity.location
             player.sendPacket(Versions.version.removeEntity(entity.entityId))

@@ -57,6 +57,7 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         config.config.config.getStringList("general.allowed-commands").forEach {
             allowedCommands.add(it.replace("/", ""))
         }
+
         super.suspendLoad()
     }
 

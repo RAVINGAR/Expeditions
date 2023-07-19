@@ -9,6 +9,7 @@ import com.ravingarinc.expeditions.play.item.*
 import com.ravingarinc.expeditions.play.mob.MobType
 import com.ravingarinc.expeditions.play.mob.MythicMobType
 import com.ravingarinc.expeditions.play.mob.VanillaMobType
+import kotlinx.coroutines.future.await
 import org.bukkit.*
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.EntityType
@@ -17,8 +18,8 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.*
+import java.util.concurrent.ThreadLocalRandom
 import java.util.logging.Level
-import kotlin.random.Random
 
 
 fun <T : Module> RavinPlugin.withModule(module: Class<T>, function: T.() -> Unit) {
@@ -42,7 +43,7 @@ fun formatMilliseconds(milliseconds: Long): String {
 }
 
 fun Double.roll(): Boolean {
-    return this > 0.0 && (this >= 1.0 || Random.nextDouble() < this)
+    return this > 0.0 && (this >= 1.0 || ThreadLocalRandom.current().nextDouble() < this)
 }
 
 fun ConfigurationSection.getPercentage(path: String): Double {
@@ -106,9 +107,9 @@ fun ConfigurationSection.getDropTable(path: String): LootTable {
         getMapList("$path.loot").forEach { map ->
             val id = map["id"].toString()
             val r = parseRange(map["quantity"].toString())
-            val chance = parsePercentage(map["weight"].toString())
+            val weight = (map["weight"].toString()).toDoubleOrNull() ?: 0.0
             parseItem(id)?.let {
-                this@LootTable.add(LootItem(it, r, chance))
+                this@LootTable.add(LootItem(it, r, weight))
             }
         }
     }
@@ -438,13 +439,16 @@ fun World.withChunk(chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
     }
 }
 
-fun World.blockWithChunk(plugin: RavinPlugin, chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
+suspend fun World.blockWithChunk(location: Location, withChunk: (Chunk) -> Unit) {
+    return blockWithChunk(location.blockX shr 4, location.blockZ shr 4, withChunk)
+}
+
+suspend fun World.blockWithChunk(chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
     if(this.isChunkLoaded(chunkX, chunkZ)) {
         withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
     } else {
-        addPluginChunkTicket(chunkX, chunkZ, plugin)
-        withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
-        removePluginChunkTicket(chunkX, chunkZ, plugin)
+        val chunk = this.getChunkAtAsyncUrgently(chunkX, chunkZ).await()
+        withChunk.invoke(chunk)
     }
 }
 

@@ -1,12 +1,15 @@
 package com.ravingarinc.expeditions.play.instance
 
 import com.github.shynixn.mccoroutine.bukkit.launch
+import com.ravingarinc.api.module.RavinPlugin
+import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.blockWithChunk
-import com.ravingarinc.expeditions.api.withChunk
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.ChatColor
@@ -15,6 +18,7 @@ import org.bukkit.Sound
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarFlag
 import org.bukkit.map.MapCursor
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 
@@ -216,29 +220,50 @@ class RestorationPhase(expedition: Expedition) :
     Phase("${ChatColor.YELLOW}Restoring ❌", -1, -1, 0L, {
     IdlePhase(expedition)
 }) {
+        private val jobs : MutableSet<Job> = ConcurrentHashMap.newKeySet()
     override fun onStart(instance: ExpeditionInstance) {
-        instance.areaInstances.forEach {
-            it.dispose(instance.plugin, instance.world)
-        }
-        instance.brokenBlocks.values.forEach { pair ->
-            val block = pair.first
-            instance.world.withChunk(block.location) {
-                block.setType(pair.second, false)
+        queueJob(instance.plugin) {
+            instance.brokenBlocks.values.forEach { pair ->
+                val block = pair.first
+                instance.world.blockWithChunk(block.location) {
+                    block.setType(pair.second, false)
+                }
             }
+            instance.brokenBlocks.clear()
         }
-        instance.world.entities.forEach { entity ->
-            if(entity.isValid) {
-                val loc = entity.location
-                instance.world.blockWithChunk(instance.plugin, loc.blockX shr 4, loc.blockZ shr 4) {
-                    entity.remove()
+        queueJob(instance.plugin) {
+            instance.areaInstances.forEach {
+                it.dispose(instance.plugin, instance.world)
+            }
+            instance.areaInstances.clear()
+        }
+        queueJob(instance.plugin) {
+            instance.world.entities.forEach { entity ->
+                if(entity.isValid) {
+                    instance.world.blockWithChunk(entity.location) {
+                        entity.remove()
+                    }
                 }
             }
         }
-        instance.clear()
+    }
+
+    private fun queueJob(plugin: RavinPlugin, block: suspend CoroutineScope.() -> Unit) {
+        val job = plugin.launch(block = block)
+        jobs.add(job)
+        job.invokeOnCompletion {
+            if(it == null) {
+                jobs.remove(job)
+            } else {
+                warn("Encountered exception in Restoration Phase!", it)
+            }
+        }
     }
 
     override fun onTick(random: Random, instance: ExpeditionInstance) {
-        next(instance)
+        if(jobs.isEmpty()) {
+            next(instance)
+        }
     }
 
     override fun onEnd(instance: ExpeditionInstance) {

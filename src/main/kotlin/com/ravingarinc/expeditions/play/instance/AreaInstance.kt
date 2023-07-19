@@ -3,6 +3,7 @@ package com.ravingarinc.expeditions.play.instance
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.module.RavinPlugin
+import com.ravingarinc.expeditions.api.blockWithChunk
 import com.ravingarinc.expeditions.api.withChunk
 import com.ravingarinc.expeditions.locale.type.Area
 import com.ravingarinc.expeditions.locale.type.Expedition
@@ -48,17 +49,14 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
     /**
      * Initialise the area belonging to this instance. This may involve force loading chunks.
      */
-    fun dispose(plugin: RavinPlugin, world: World) {
+    suspend fun dispose(plugin: RavinPlugin, world: World) {
         area.dispose(plugin, world)
         spawnedMobs.forEach {
-            if(it.isValid) {
-                world.withChunk(it.location) { _ -> it.remove() }
-            }
+            if(it.isValid) { world.blockWithChunk(it.location) { _ -> it.remove() } }
         }
         spawnedMobs.clear()
-        spawnedChests.forEach {
-            val chest = it.value
-            world.withChunk(it.key.blockX shr 4, it.key.blockZ shr 4) { chest.destroy() }
+        spawnedChests.forEach { entry ->
+            world.blockWithChunk(entry.key.blockX shr 4, entry.key.blockZ shr 4) { entry.value.destroy() }
         }
         spawnedChests.clear()
         inArea.clear()
@@ -79,6 +77,10 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         val chance = area.mobSpawnChance
         if(chance == 0.0) return
         if(area.mobCollection.isEmpty()) return
+
+        ArrayList(spawnedMobs).forEach {
+            if(!it.isValid) { spawnedMobs.remove(it) }
+        }
 
         for(i in 0 until expedition.mobSpawnAmount) {
             val loc = area.mobLocations.randomOrNull(random) ?: break

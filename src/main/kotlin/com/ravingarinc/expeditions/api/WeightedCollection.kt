@@ -1,8 +1,9 @@
 package com.ravingarinc.expeditions.api
 
-import kotlin.random.Random
+import java.util.concurrent.ThreadLocalRandom
 
 class WeightedCollection<E> : Collection<E> {
+    private val entries: MutableMap<E, Entry<E>> = HashMap()
     private val orderedEntries: MutableList<Entry<E>> = ArrayList()
     private var accumulatedWeight: Double = 0.0
     override val size: Int
@@ -36,15 +37,30 @@ class WeightedCollection<E> : Collection<E> {
 
     fun add(element: E, weight: Double) {
         accumulatedWeight += weight
-        val entry: Entry<E> = Entry(size, accumulatedWeight, element)
+        val entry: Entry<E> = Entry(size, accumulatedWeight, weight, element)
+        entries[entry.value] = entry
         orderedEntries.add(entry)
+    }
+
+    fun remove(element: E) : Boolean {
+        entries.remove(element)?.let {
+            orderedEntries.removeAt(it.index)
+            accumulatedWeight -= it.originWeight
+            for(i in it.index until orderedEntries.size) {
+                val o = orderedEntries[i]
+                o.index = o.index - 1
+                o.accumulatedWeight -= it.originWeight
+            }
+            return true
+        }
+        return false
     }
 
     fun random(): E {
         if (size == 1) {
             return orderedEntries[0].value
         }
-        val r = Random.nextDouble() * accumulatedWeight
+        val r = ThreadLocalRandom.current().nextDouble() * accumulatedWeight
         for (entry in orderedEntries) {
             if (entry.accumulatedWeight >= r) {
                 return entry.value
@@ -53,5 +69,5 @@ class WeightedCollection<E> : Collection<E> {
         throw IllegalStateException("WeightedCollection was empty!")
     }
 
-    private class Entry<E>(val index: Int, val accumulatedWeight: Double, val value: E)
+    private class Entry<E>(var index: Int, var accumulatedWeight: Double, var originWeight: Double, val value: E)
 }

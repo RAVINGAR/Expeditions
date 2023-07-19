@@ -118,11 +118,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         sneakingPlayers.clear()
     }
 
-    fun clear() {
-        brokenBlocks.clear()
-        areaInstances.clear()
-    }
-
     suspend fun tick(random: Random) {
         if(tickLock.isLocked) {
             I.log(Level.WARNING, "Tick on ExpeditionInstance was locked whilst ticking! Server main tick must be behind!")
@@ -319,7 +314,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     fun onMoveEvent(player: Player) {
         areaInstances.forEach {
-            if(it.onMove(player)) return@forEach
+            if(it.onMove(player)) {
+                if(it.area is ExtractionZone && player.isSneaking && !sneakingPlayers.containsKey(player)) {
+                    sneakingPlayers[player] = Pair(System.currentTimeMillis(), player.location.toVector())
+                }
+                return@forEach
+            }
         }
     }
 
