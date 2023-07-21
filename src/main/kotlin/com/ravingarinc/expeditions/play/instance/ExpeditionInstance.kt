@@ -341,11 +341,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     private fun removeMap(player: Player) {
         if(!player.inventory.isEmpty) {
             for(i in 0 until player.inventory.size) {
-                player.inventory.getItem(i)?.let { item ->
-                    if(item.type == Material.FILLED_MAP && item.itemMeta.customModelData == 4) {
-                        player.inventory.setItem(i, null)
-                        return
-                    }
+                val item = player.inventory.getItem(i) ?: continue
+                val meta = item.itemMeta
+                if(!meta.hasCustomModelData()) continue
+                if(item.type == Material.FILLED_MAP && item.itemMeta.customModelData == 4) {
+                    player.inventory.setItem(i, null)
+                    return
                 }
             }
         }
