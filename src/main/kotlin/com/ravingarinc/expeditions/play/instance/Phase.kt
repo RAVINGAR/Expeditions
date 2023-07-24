@@ -227,7 +227,7 @@ class RestorationPhase(expedition: Expedition) :
         queueJob(instance.plugin) {
             instance.brokenBlocks.values.forEach { pair ->
                 val block = pair.first
-                instance.world.blockWithChunk(block.location) {
+                instance.world.blockWithChunk(instance.plugin, block.location) {
                     block.setType(pair.second, false)
                 }
             }
@@ -242,7 +242,7 @@ class RestorationPhase(expedition: Expedition) :
         queueJob(instance.plugin) {
             instance.world.entities.forEach { entity ->
                 if(entity.isValid) {
-                    instance.world.blockWithChunk(entity.location) {
+                    instance.world.blockWithChunk(instance.plugin, entity.location) {
                         entity.remove()
                     }
                 }

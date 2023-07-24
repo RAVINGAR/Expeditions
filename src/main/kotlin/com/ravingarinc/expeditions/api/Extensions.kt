@@ -9,7 +9,6 @@ import com.ravingarinc.expeditions.play.item.*
 import com.ravingarinc.expeditions.play.mob.MobType
 import com.ravingarinc.expeditions.play.mob.MythicMobType
 import com.ravingarinc.expeditions.play.mob.VanillaMobType
-import kotlinx.coroutines.future.await
 import org.bukkit.*
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.EntityType
@@ -439,16 +438,17 @@ fun World.withChunk(chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
     }
 }
 
-suspend fun World.blockWithChunk(location: Location, withChunk: (Chunk) -> Unit) {
-    return blockWithChunk(location.blockX shr 4, location.blockZ shr 4, withChunk)
+suspend fun World.blockWithChunk(plugin: RavinPlugin, location: Location, withChunk: (Chunk) -> Unit) {
+    return blockWithChunk(plugin, location.blockX shr 4, location.blockZ shr 4, withChunk)
 }
 
-suspend fun World.blockWithChunk(chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
+suspend fun World.blockWithChunk(plugin: RavinPlugin, chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
     if(this.isChunkLoaded(chunkX, chunkZ)) {
         withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
     } else {
-        val chunk = this.getChunkAtAsyncUrgently(chunkX, chunkZ).await()
-        withChunk.invoke(chunk)
+        this.addPluginChunkTicket(chunkX, chunkZ, plugin)
+        withChunk.invoke(getChunkAt(chunkX, chunkZ))
+        this.removePluginChunkTicket(chunkX, chunkZ, plugin)
     }
 }
 

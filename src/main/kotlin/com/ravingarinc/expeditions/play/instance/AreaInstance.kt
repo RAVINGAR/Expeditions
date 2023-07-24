@@ -52,11 +52,11 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
     suspend fun dispose(plugin: RavinPlugin, world: World) {
         area.dispose(plugin, world)
         spawnedMobs.forEach {
-            if(it.isValid) { world.blockWithChunk(it.location) { _ -> it.remove() } }
+            if(it.isValid) { world.blockWithChunk(plugin, it.location) { _ -> it.remove() } }
         }
         spawnedMobs.clear()
         spawnedChests.forEach { entry ->
-            world.blockWithChunk(entry.key.blockX shr 4, entry.key.blockZ shr 4) { entry.value.destroy() }
+            world.blockWithChunk(plugin, entry.key.blockX shr 4, entry.key.blockZ shr 4) { entry.value.destroy() }
         }
         spawnedChests.clear()
         inArea.clear()
