@@ -26,6 +26,8 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
     protected var ticks = 0L
     protected var isActive: AtomicBoolean = AtomicBoolean(false)
 
+    val currentTicks: Long get() = ticks
+
     fun start(instance: ExpeditionInstance) {
         onStart(instance)
         isActive.setRelease(true)

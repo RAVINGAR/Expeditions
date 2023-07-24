@@ -353,6 +353,27 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         renderer.removePlayer(player)
     }
 
+    /**
+     * Returns the time left in milliseconds
+     */
+    fun getTimeLeft() : Long {
+        if(phase is PlayPhase) {
+            return (expedition.calmPhaseDuration + expedition.stormPhaseDuration - phase.currentTicks) * 50
+        } else if (phase is StormPhase) {
+            return (expedition.stormPhaseDuration - phase.currentTicks) * 50
+        }
+        return 0L
+    }
+
+    fun getPlayerArea(player: Player) : String {
+        for(area in areaInstances) {
+            if(area.inArea.contains(player)) {
+                return area.area.displayName
+            }
+        }
+        return ""
+    }
+
     private fun getScaleFromSize(radius: Int) : MapView.Scale {
         val rad = radius * 2
         if((0..127).contains(rad)) {

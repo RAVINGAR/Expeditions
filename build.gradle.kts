@@ -36,6 +36,12 @@ repositories {
         }
     }
 
+    maven("https://repo.extendedclip.com/content/repositories/placeholderapi/") {
+        content {
+            includeGroup("me.clip")
+        }
+    }
+
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://oss.sonatype.org/content/groups/public/")
@@ -68,6 +74,7 @@ dependencies {
     compileOnly("io.lumine:Mythic-Dist:5.1.0-SNAPSHOT")
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
+    compileOnly("me.clip:placeholderapi:2.11.2")
 
     compileOnly("com.onarandombox.multiversecore:multiverse-core:4.3.2") {
         isTransitive = false
@@ -139,7 +146,7 @@ bukkit {
     // Other possible properties from plugin.yml (optional)
     author = "RAVINGAR"
     depend = listOf("Multiverse-Core", "ProtocolLib")
-    softDepend = listOf("MMOItems", "MythicMobs", "MythicCrucible")
+    softDepend = listOf("MMOItems", "MythicMobs", "MythicCrucible", "PlaceholderAPI")
 
     commands {
         register("expeditions") {
