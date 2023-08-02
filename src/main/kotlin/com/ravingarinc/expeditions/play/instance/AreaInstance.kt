@@ -90,7 +90,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
             } else {
                 previousNPCInteractions.add(player.uniqueId)
                 area.npcFollowText?.let { text ->
-                    player.sendMessage(text)
+                    if(text.isNotBlank()) player.sendMessage(text)
                 }
             }
         }
@@ -100,7 +100,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         npc?.let {
             it.stopFollowing(player)
             area.npcUnfollowText?.let { text ->
-                player?.sendMessage(text)
+                if(text.isNotBlank()) player?.sendMessage(text)
             }
         }
     }
