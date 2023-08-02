@@ -21,15 +21,21 @@ class PointOfInterest(displayName: String,
                       bossLevel: Int,
                       bossSpawnChance: Double,
                       bossSpawnLocation: BlockVector?,
-                      bossCooldown: Long
-) : Area(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown) {
+                      bossCooldown: Long,
+                      npcIdentifier: String?,
+                      npcSpawnLoc: BlockVector?,
+                      npcOnSpawn: List<String>,
+                      npcOnExtract: List<String>,
+                      npcFollowText: String?,
+                      npcRefollowText: String?,
+                      npcUnfollowText: String?
+) : Area(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown, npcIdentifier, npcSpawnLoc, npcOnSpawn, npcOnExtract, npcFollowText, npcRefollowText, npcUnfollowText) {
     override val displayType: String = "Point of Interest"
     override fun initialise(plugin: RavinPlugin, world: World) {
 
     }
 
     override fun dispose(plugin: RavinPlugin, world: World) {
-
 
     }
 }

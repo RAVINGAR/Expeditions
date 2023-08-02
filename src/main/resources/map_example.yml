@@ -58,6 +58,25 @@ points-of-interest:
     boss-spawn-chance: 5% # Every time this area is ticked, this chance is rolled for the boss spawn. Only 1 boss will be spawned at a time
     boss-spawn-location: 60,70,45 # Location for where the boss should be spawned
     boss-cooldown: 120s # After a boss is defeated, how long is the cooldown between spawns in seconds.
+    # The identifier of the NPC. This will be used for the 'on-extract' commands
+    npc-identifier: "Lost Architect"
+    npc-spawn-location: 70,80,30
+    # Various text options to play. Leave empty if you do not wish for the NPC to say anything.
+    npc-on-follow-text: "&aBrave adventurer, thank you for saving me! I will follow you to escape!"
+    npc-refollow-text: "You're back! I will go where you go"
+    npc-on-unfollow-text: "Okay, I will stay here!"
+    # For things such as setting skin or other attributes. The placeholder {id} will be replaced with the NPC's ID
+    # These commands will be executed in the order specified.
+    npc-on-spawn-commands:
+      - 'npc select {id}'
+      - 'npc skin --url https://minesk.in/bf1847df17d54e4991daedbeb1b3b0f8'
+    # Commands that will be executed when a player extracts with given NPC's
+    # NPCs are automatically removed when they are extracted.
+    # {id} - Replaced with the NPC's id
+    # {npc} - Replaced with the npc's identifier/name as specified in npc-identifier
+    # {player} - Replaced with the player that extracts with the NPC.
+    npc-on-extract-commands:
+      - 'hideouts register npc {id} {player}'
  # Extraction zones can share the same features as a POI :)
  # Players can only use the command /extract if they are in an extraction zone. Im recommending a
  # command, simply because that allows you freedom to do whatever. (AKA could rig a button to make the player execute that command)

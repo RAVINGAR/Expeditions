@@ -42,6 +42,12 @@ repositories {
         }
     }
 
+    maven("https://maven.citizensnpcs.co/repo") {
+        content {
+            includeGroup("net.citizensnpcs")
+        }
+    }
+
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://oss.sonatype.org/content/groups/public/")
@@ -75,6 +81,8 @@ dependencies {
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.2")
+
+    compileOnly("net.citizensnpcs:citizens-main:2.0.30-SNAPSHOT")
 
     compileOnly("com.onarandombox.multiversecore:multiverse-core:4.3.2") {
         isTransitive = false
@@ -146,7 +154,7 @@ bukkit {
     // Other possible properties from plugin.yml (optional)
     author = "RAVINGAR"
     depend = listOf("Multiverse-Core", "ProtocolLib")
-    softDepend = listOf("MMOItems", "MythicMobs", "MythicCrucible", "PlaceholderAPI")
+    softDepend = listOf("MMOItems", "MythicMobs", "MythicCrucible", "PlaceholderAPI", "Citizens")
 
     commands {
         register("expeditions") {

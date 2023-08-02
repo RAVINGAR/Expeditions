@@ -14,6 +14,7 @@ import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.EmptyMobType
 import com.ravingarinc.expeditions.play.mob.MobType
 import org.bukkit.Material
+import org.bukkit.util.BlockVector
 import java.util.*
 import java.util.logging.Level
 
@@ -165,6 +166,28 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             return@let null
         } ?: EmptyMobType
 
+        val npcIdentifier: String? = poi["npc-identifier"]?.toString()
+        val npcSpawnLoc: BlockVector? = parseBlockVector(poi["npc-spawn-location"].toString())
+        val npcFollowText: String? = poi["npc-follow-text"]?.toString()
+        val npcRefollowText: String? = poi["npc-refollow-text"]?.toString()
+        val npcUnfollowText: String? = poi["npc-unfollow-text"]?.toString()
+        val npcOnSpawn: List<String> = buildList {
+            (poi["npc-on-spawn-commands"] as? List<*>)?.let { list ->
+                for(i in list) {
+                    val str = i.toString()
+                    this.add(if(str.startsWith("/")) str.substring(1) else str)
+                }
+            }
+        }
+        val npcOnExtract: List<String> = buildList {
+            (poi["npc-on-extract-commands"] as? List<*>)?.let { list ->
+                for(i in list) {
+                    val str = i.toString()
+                    this.add(if(str.startsWith("/")) str.substring(1) else str)
+                }
+            }
+        }
+
         return PointOfInterest(
             poi["name"].toString(),
             startLoc,
@@ -181,7 +204,14 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             poi["boss-level"].toString().toIntOrNull() ?: 1,
             parsePercentage(poi["boss-spawn-chance"].toString()),
             parseBlockVector(poi["boss-spawn-location"].toString()),
-            poi["boss-cooldown"].toString().toLongOrNull() ?: 120
+            poi["boss-cooldown"].toString().toLongOrNull() ?: 120,
+            npcIdentifier,
+            npcSpawnLoc,
+            npcOnSpawn,
+            npcOnExtract,
+            npcFollowText,
+            npcRefollowText,
+            npcUnfollowText
         )
     }
     
@@ -242,6 +272,28 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             return@let null
         } ?: EmptyMobType
 
+        val npcIdentifier: String? = zone["npc-identifier"]?.toString()
+        val npcSpawnLoc: BlockVector? = parseBlockVector(zone["npc-spawn-location"].toString())
+        val npcFollowText: String? = zone["npc-follow-text"]?.toString()
+        val npcRefollowText: String? = zone["npc-refollow-text"]?.toString()
+        val npcUnfollowText: String? = zone["npc-unfollow-text"]?.toString()
+        val npcOnSpawn: List<String> = buildList {
+            (zone["npc-on-spawn-commands"] as? List<*>)?.let { list ->
+                for(i in list) {
+                    val str = i.toString()
+                    this.add(if(str.startsWith("/")) str.substring(1) else str)
+                }
+            }
+        }
+        val npcOnExtract: List<String> = buildList {
+            (zone["npc-on-extract-commands"] as? List<*>)?.let { list ->
+                for(i in list) {
+                    val str = i.toString()
+                    this.add(if(str.startsWith("/")) str.substring(1) else str)
+                }
+            }
+        }
+
         return ExtractionZone(
             parsePercentage(zone["chance"].toString()),
             parseBlockVector(zone["beacon-loc"].toString()),
@@ -260,7 +312,14 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             zone["boss-level"].toString().toIntOrNull() ?: 1,
             parsePercentage(zone["boss-spawn-chance"].toString()),
             parseBlockVector(zone["boss-spawn-location"].toString()),
-            zone["boss-cooldown"].toString().toLongOrNull() ?: 120
+            zone["boss-cooldown"].toString().toLongOrNull() ?: 120,
+            npcIdentifier,
+            npcSpawnLoc,
+            npcOnSpawn,
+            npcOnExtract,
+            npcFollowText,
+            npcRefollowText,
+            npcUnfollowText
         )
     }
 

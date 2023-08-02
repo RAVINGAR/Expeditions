@@ -37,6 +37,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     val sneakingPlayers: MutableMap<Player, Pair<Long, Vector>> = ConcurrentHashMap()
 
+    val npcFollowers: MutableMap<Player, AreaInstance> = HashMap()
+
     val mapView: MapView
 
     val renderer: ExpeditionRenderer = ExpeditionRenderer(expedition)
@@ -75,6 +77,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
      */
     fun end() {
         bossBar.removeAll()
+        npcFollowers.forEach { it.value.stopFollowing(null) }
+        npcFollowers.clear()
         Hashtable(joinedPlayers).forEach {
             it.value.player.player.let { player ->
                 if(player == null) {
@@ -86,6 +90,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                 }
             }
         }
+        areaInstances.forEach { it.destroyNPC() }
     }
 
     fun contains(player: Player) : Boolean {
@@ -106,6 +111,35 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             }
         }
         return list
+    }
+
+    fun onPlayerDamage(player: Player) {
+        npcFollowers[player]?.let {
+            it.stopFollowing(player)
+            npcFollowers.remove(player)
+        }
+    }
+
+    fun onNPCClick(player: Player, entityId: Int) {
+        npcFollowers[player]?.let {
+            if(it.getNPCId() == entityId) {
+                it.stopFollowing(player)
+                npcFollowers.remove(player)
+            } else {
+                player.sendMessage("${ChatColor.RED}You can only have one follower at a time!")
+            }
+            return
+        }
+        for(area in areaInstances) {
+            if(area.getNPCId() == entityId) {
+                val npc = area.getNPC() ?: continue
+                if(npc.getFollowing() == null) {
+                    area.startFollowing(player)
+                    npcFollowers[player] = area
+                }
+                break
+            }
+        }
     }
 
     fun getQuitPlayers() : Collection<UUID> {
@@ -268,12 +302,29 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun removePlayer(player: Player, reason: RemoveReason) {
         joinedPlayers.remove(player.uniqueId)?.let { cache ->
             when(reason) {
-                RemoveReason.QUIT -> handler.addAbandon(player.uniqueId)
-                RemoveReason.DEATH -> {
-                    handler.addRespawn(cache)
-
+                RemoveReason.QUIT -> {
+                    npcFollowers[player]?.stopFollowing(player)
+                    handler.addAbandon(player.uniqueId)
                 }
-                RemoveReason.EXTRACTION -> player.teleport(cache.previousLocale)
+                RemoveReason.DEATH -> {
+                    npcFollowers[player]?.resetNPC(world)
+                    handler.addRespawn(cache)
+                }
+                RemoveReason.EXTRACTION -> {
+                    npcFollowers[player]?.let {
+                        val npc = it.getNPC()
+                        if(npc != null) {
+                            it.area.npcOnExtract.forEach { command ->
+                                plugin.server.dispatchCommand(plugin.server.consoleSender, command
+                                        .replace("{id}", npc.numericalId().toString())
+                                        .replace("{npc}", npc.identifier())
+                                        .replace("{player}", player.name))
+                            }
+                            it.destroyNPC()
+                        }
+                    }
+                    player.teleport(cache.previousLocale)
+                }
             }
             removeMap(player)
 

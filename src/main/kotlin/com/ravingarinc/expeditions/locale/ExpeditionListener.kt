@@ -22,6 +22,7 @@ import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockExplodeEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.player.*
@@ -142,6 +143,12 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
                 }
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onPlayerDamageEvent(event: EntityDamageEvent) {
+        val entity = event.entity
+        if(entity is Player) handler.getJoinedExpedition(entity)?.onPlayerDamage(entity)
     }
 
     @EventHandler

@@ -58,7 +58,6 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
     }
 
     open fun onTick(random: Random, instance: ExpeditionInstance) {
-        if(ticks == 0L) return
         if(mobInterval != -1L && ticks % mobInterval == 0L) {
             instance.tickMobs(random)
         }
