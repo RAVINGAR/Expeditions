@@ -62,9 +62,9 @@ points-of-interest:
     npc-identifier: "Lost Architect"
     npc-spawn-location: 70,80,30
     # Various text options to play. Leave empty if you do not wish for the NPC to say anything.
-    npc-on-follow-text: "&aBrave adventurer, thank you for saving me! I will follow you to escape!"
+    npc-follow-text: "&aBrave adventurer, thank you for saving me! I will follow you to escape!"
     npc-refollow-text: "You're back! I will go where you go."
-    npc-on-unfollow-text: "Okay, I will stay here!"
+    npc-unfollow-text: "Okay, I will stay here!"
     # For things such as setting skin or other attributes. The placeholder {id} will be replaced with the NPC's ID
     # These commands will be executed in the order specified.
     npc-on-spawn-commands:

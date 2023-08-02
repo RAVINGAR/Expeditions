@@ -24,7 +24,7 @@ class CitizensNPC(private val identifier: String) : ExpeditionNPC {
             npc?.let {
                 it.spawn(Location(world, x, y, z))
                 it.isProtected = true
-                it.defaultGoalController.addBehavior(FollowingBehaviour(this), 0)
+                it.defaultGoalController.addBehavior(FollowingBehaviour(this), 1)
             }
         }
     }
@@ -78,7 +78,8 @@ class CitizensNPC(private val identifier: String) : ExpeditionNPC {
     }
 
     override fun isValid(): Boolean {
-        return npc != null && npc?.entity?.isValid ?: false
+        if(npc == null) return false
+        return npc?.entity?.isValid ?: false
     }
 
     override fun numericalId(): Int {

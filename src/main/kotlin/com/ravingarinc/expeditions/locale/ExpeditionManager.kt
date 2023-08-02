@@ -13,6 +13,7 @@ import com.ravingarinc.expeditions.persistent.ConfigManager
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.EmptyMobType
 import com.ravingarinc.expeditions.play.mob.MobType
+import org.bukkit.ChatColor
 import org.bukkit.Material
 import org.bukkit.util.BlockVector
 import java.util.*
@@ -168,9 +169,9 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
 
         val npcIdentifier: String? = poi["npc-identifier"]?.toString()
         val npcSpawnLoc: BlockVector? = parseBlockVector(poi["npc-spawn-location"].toString())
-        val npcFollowText: String? = poi["npc-follow-text"]?.toString()
-        val npcRefollowText: String? = poi["npc-refollow-text"]?.toString()
-        val npcUnfollowText: String? = poi["npc-unfollow-text"]?.toString()
+        val npcFollowText: String = ChatColor.translateAlternateColorCodes('&',poi["npc-follow-text"]?.toString() ?: "")
+        val npcRefollowText: String = ChatColor.translateAlternateColorCodes('&',poi["npc-refollow-text"]?.toString() ?: "")
+        val npcUnfollowText: String = ChatColor.translateAlternateColorCodes('&',poi["npc-unfollow-text"]?.toString() ?: "")
         val npcOnSpawn: List<String> = buildList {
             (poi["npc-on-spawn-commands"] as? List<*>)?.let { list ->
                 for(i in list) {
@@ -274,9 +275,9 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
 
         val npcIdentifier: String? = zone["npc-identifier"]?.toString()
         val npcSpawnLoc: BlockVector? = parseBlockVector(zone["npc-spawn-location"].toString())
-        val npcFollowText: String? = zone["npc-follow-text"]?.toString()
-        val npcRefollowText: String? = zone["npc-refollow-text"]?.toString()
-        val npcUnfollowText: String? = zone["npc-unfollow-text"]?.toString()
+        val npcFollowText: String = ChatColor.translateAlternateColorCodes('&',zone["npc-follow-text"]?.toString() ?: "")
+        val npcRefollowText: String = ChatColor.translateAlternateColorCodes('&',zone["npc-refollow-text"]?.toString() ?: "")
+        val npcUnfollowText: String = ChatColor.translateAlternateColorCodes('&',zone["npc-unfollow-text"]?.toString() ?: "")
         val npcOnSpawn: List<String> = buildList {
             (zone["npc-on-spawn-commands"] as? List<*>)?.let { list ->
                 for(i in list) {

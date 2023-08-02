@@ -29,9 +29,9 @@ abstract class Area(val displayName: String,
                     val npcSpawnLoc: BlockVector?,
                     val npcOnSpawn: List<String>,
                     val npcOnExtract: List<String>,
-                    val npcFollowText: String?,
-                    val npcRefollowText: String?,
-                    val npcUnfollowText: String?) {
+                    val npcFollowText: String,
+                    val npcRefollowText: String,
+                    val npcUnfollowText: String) {
     abstract val displayType: String
 
     val lootCollection: WeightedCollection<LootTable> = WeightedCollection()

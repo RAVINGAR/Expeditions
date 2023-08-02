@@ -303,15 +303,15 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         joinedPlayers.remove(player.uniqueId)?.let { cache ->
             when(reason) {
                 RemoveReason.QUIT -> {
-                    npcFollowers[player]?.stopFollowing(player)
+                    npcFollowers.remove(player)?.stopFollowing(null)
                     handler.addAbandon(player.uniqueId)
                 }
                 RemoveReason.DEATH -> {
-                    npcFollowers[player]?.resetNPC(world)
+                    npcFollowers.remove(player)?.resetNPC(world)
                     handler.addRespawn(cache)
                 }
                 RemoveReason.EXTRACTION -> {
-                    npcFollowers[player]?.let {
+                    npcFollowers.remove(player)?.let {
                         val npc = it.getNPC()
                         if(npc != null) {
                             it.area.npcOnExtract.forEach { command ->

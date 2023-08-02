@@ -14,7 +14,6 @@ import kotlinx.coroutines.delay
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
-import org.bukkit.ChatColor
 import org.bukkit.World
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
@@ -84,14 +83,10 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         npc?.let {
             it.startFollowing(player)
             if(previousNPCInteractions.contains(player.uniqueId)) {
-                area.npcRefollowText?.let { text ->
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', text))
-                }
+                if(area.npcRefollowText.isNotBlank()) player.sendMessage(area.npcRefollowText)
             } else {
                 previousNPCInteractions.add(player.uniqueId)
-                area.npcFollowText?.let { text ->
-                    if(text.isNotBlank()) player.sendMessage(text)
-                }
+                if(area.npcFollowText.isNotBlank()) player.sendMessage(area.npcFollowText)
             }
         }
     }
@@ -99,9 +94,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
     fun stopFollowing(player: Player?) {
         npc?.let {
             it.stopFollowing(player)
-            area.npcUnfollowText?.let { text ->
-                if(text.isNotBlank()) player?.sendMessage(text)
-            }
+            if(area.npcUnfollowText.isNotBlank()) player?.sendMessage(area.npcUnfollowText)
         }
     }
 
