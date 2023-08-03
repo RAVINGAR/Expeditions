@@ -1,5 +1,6 @@
 package com.ravingarinc.expeditions.integration.npc
 
+import com.ravingarinc.api.module.warn
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,7 +36,9 @@ class CitizensNPC(private val identifier: String) : ExpeditionNPC {
 
     override fun destroy() {
         npc?.let {
+            warn("Destroying NPC!")
             it.destroy()
+            CitizensAPI.getNPCRegistry().deregister(it)
             npc = null
         }
     }

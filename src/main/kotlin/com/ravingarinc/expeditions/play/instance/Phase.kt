@@ -64,6 +64,7 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
         if(lootInterval != -1L && ticks % lootInterval == 0L) {
             instance.tickLoot(random)
         }
+        instance.tickNPC()
     }
 
     fun next(instance: ExpeditionInstance) {

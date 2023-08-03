@@ -175,6 +175,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
+    fun tickNPC() {
+        areaInstances.forEach {
+            it.tickNPC(world)
+        }
+    }
+
     fun breakBlock(block: Block, material: Material) {
         brokenBlocks[BlockVector(block.x, block.y, block.z)] = Pair(block, material)
     }
@@ -267,6 +273,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun onJoinEvent(player: Player) : Boolean {
         val uuid = player.uniqueId
         quitPlayers.remove(uuid)?.let {
+            handler.removeAbandon(player)
             addPlayer(player, it.previousLocale)
             return true
         }

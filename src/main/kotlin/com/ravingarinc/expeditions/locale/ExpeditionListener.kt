@@ -100,6 +100,7 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         val player = event.player
         handler.getJoinedExpedition(player)?.onQuitEvent(player)
         movementCooldown.remove(player.uniqueId)
+        lastLocation.remove(player.uniqueId)
     }
 
     @EventHandler

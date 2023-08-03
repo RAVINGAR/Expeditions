@@ -1,6 +1,5 @@
 package com.ravingarinc.expeditions.api
 
-import com.ravingarinc.api.I
 import com.ravingarinc.api.module.Module
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
@@ -18,7 +17,6 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
-import java.util.logging.Level
 
 
 fun <T : Module> RavinPlugin.withModule(module: Class<T>, function: T.() -> Unit) {
@@ -415,6 +413,8 @@ fun ItemStack.takeDurability(player: Player, amount: Int = 1) {
     }
 }*/
 
+/*
+@Deprecated("This chunk is not guaranteed to load correctly")
 fun World.withChunk(location: Location, withChunk: (Chunk) -> Unit) {
     withChunk(location.blockX shr 4, location.blockZ shr 4, withChunk)
 }
@@ -423,6 +423,7 @@ fun World.withChunk(location: Location, withChunk: (Chunk) -> Unit) {
  * Attempts to load a chunk if it is not already loaded, only executing the given function once the chunk
  * is loaded. This operation uses getChunkAtAsync, meaning the chunk may not be loaded immediately.
  */
+@Deprecated("This chunk is not guaranteed to load correctly")
 fun World.withChunk(chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
     if(this.isChunkLoaded(chunkX, chunkZ)) {
         withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
@@ -436,13 +437,13 @@ fun World.withChunk(chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
             withChunk.invoke(chunk)
         }
     }
-}
+}*/
 
-suspend fun World.blockWithChunk(plugin: RavinPlugin, location: Location, withChunk: (Chunk) -> Unit) {
+fun World.blockWithChunk(plugin: RavinPlugin, location: Location, withChunk: (Chunk) -> Unit) {
     return blockWithChunk(plugin, location.blockX shr 4, location.blockZ shr 4, withChunk)
 }
 
-suspend fun World.blockWithChunk(plugin: RavinPlugin, chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
+fun World.blockWithChunk(plugin: RavinPlugin, chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
     if(this.isChunkLoaded(chunkX, chunkZ)) {
         withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
     } else {

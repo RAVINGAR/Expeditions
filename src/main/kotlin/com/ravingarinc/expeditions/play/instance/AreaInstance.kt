@@ -5,7 +5,6 @@ import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.blockWithChunk
-import com.ravingarinc.expeditions.api.withChunk
 import com.ravingarinc.expeditions.integration.NPCHandler
 import com.ravingarinc.expeditions.integration.npc.ExpeditionNPC
 import com.ravingarinc.expeditions.locale.type.Area
@@ -35,6 +34,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
     private var bossCooldown: Long = 0
     private var boss: Entity? = null
     private var npc: ExpeditionNPC? = null
+    private var npcLastFollowingTime: Long = -1
 
     val inArea: MutableSet<Player> = HashSet()
 
@@ -56,7 +56,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
     /**
      * Initialise the area belonging to this instance. This may involve force loading chunks.
      */
-    suspend fun dispose(plugin: RavinPlugin, world: World) {
+    fun dispose(plugin: RavinPlugin, world: World) {
         destroyNPC()
         area.dispose(plugin, world)
         spawnedMobs.forEach {
@@ -94,8 +94,13 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
     fun stopFollowing(player: Player?) {
         npc?.let {
             it.stopFollowing(player)
+            npcLastFollowingTime = System.currentTimeMillis()
             if(area.npcUnfollowText.isNotBlank()) player?.sendMessage(area.npcUnfollowText)
         }
+    }
+
+    fun getLastNPCFollowTime() : Long {
+        return npcLastFollowingTime
     }
 
     fun spawnNPC(world: World) {
@@ -123,11 +128,21 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
             it.stopFollowing(null)
             it.teleport(spawnLoc.x, spawnLoc.y, spawnLoc.z, world)
         }
+        npcLastFollowingTime = -1L
+    }
+
+    fun tickNPC(world: World) {
+        if(npcLastFollowingTime == -1L) return
+        npc?.let {
+            if(it.getFollowing() == null && System.currentTimeMillis() - npcLastFollowingTime > 60000) {
+                resetNPC(world)
+            }
+        }
     }
 
     fun destroyNPC() {
         npc?.let {
-            if(it.isValid()) it.destroy()
+            it.destroy()
             npc = null
         }
     }
@@ -138,8 +153,9 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
                 bossCooldown -= 20L
             } else if(area.bossSpawnChance != 0.0 && random.nextDouble() < area.bossSpawnChance) {
                 area.bossSpawnLocation?.let {
-                    if(!world.isChunkLoaded(it.blockX shr 4, it.blockZ shr 4)) return@let
-                    boss = area.bossType.spawn(area.bossLevel, it, world)
+                    world.blockWithChunk(plugin, it.blockX shr 4, it.blockZ shr 4) { _ ->
+                        boss = area.bossType.spawn(area.bossLevel, it, world)
+                    }
                 }
             }
         }
@@ -154,13 +170,14 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
 
         for(i in 0 until expedition.mobSpawnAmount) {
             val loc = area.mobLocations.randomOrNull(random) ?: break
-            if(!world.isChunkLoaded(loc.blockX shr 4, loc.blockZ shr 4)) continue
             if(spawnedMobs.size >= area.maxMobs) break
             if(chance != 1.0 && random.nextDouble() > chance) continue
 
-            val pair = area.mobCollection.random()
-            area.mobLocations.randomOrNull(random)?.let { vector ->
-                pair.first.spawn(pair.second.random(random), vector, world)?.let { spawnedMobs.add(it) }
+            world.blockWithChunk(plugin, loc.blockX shr 4, loc.blockZ shr 4) {
+                val pair = area.mobCollection.random()
+                area.mobLocations.randomOrNull(random)?.let { vector ->
+                    pair.first.spawn(pair.second.random(random), vector, world)?.let { spawnedMobs.add(it) }
+                }
             }
         }
     }
@@ -179,7 +196,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
             }
             usingList.forEach {
                 availableLootLocations.remove(it.first)
-                world.withChunk(it.first.blockX shr 4, it.first.blockZ shr 4) { _ ->
+                world.blockWithChunk(plugin, it.first.blockX shr 4, it.first.blockZ shr 4) { _ ->
                     val loot = LootableChest(it.second, this, it.first, world)
                     spawnedChests[it.first] = loot
                     val vector = Vector(it.first.x, it.first.y, it.first.z)
