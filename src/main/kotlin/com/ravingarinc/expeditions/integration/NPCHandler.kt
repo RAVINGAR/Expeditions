@@ -5,7 +5,9 @@ import com.ravingarinc.api.module.SuspendingModule
 import com.ravingarinc.expeditions.integration.npc.CitizensNPC
 import com.ravingarinc.expeditions.integration.npc.ExpeditionNPC
 import com.ravingarinc.expeditions.play.PlayHandler
+import net.citizensnpcs.api.CitizensAPI
 import net.citizensnpcs.api.event.NPCRightClickEvent
+import net.citizensnpcs.api.npc.MemoryNPCDataStore
 import org.bukkit.event.EventHandler
 import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
@@ -18,6 +20,7 @@ class NPCHandler(plugin: RavinPlugin) : SuspendingModule(NPCHandler::class.java,
         if(plugin.server.pluginManager.getPlugin("Citizens") != null) {
             provider = { CitizensNPC(it) }
             listener = CitizensListener(plugin)
+            CitizensAPI.createNamedNPCRegistry("expeditions", MemoryNPCDataStore())
             plugin.server.pluginManager.registerEvents(listener!!, plugin)
             return
         }

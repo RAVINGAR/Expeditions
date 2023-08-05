@@ -1,6 +1,5 @@
 package com.ravingarinc.expeditions.integration.npc
 
-import com.ravingarinc.api.module.warn
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -21,7 +20,7 @@ class CitizensNPC(private val identifier: String) : ExpeditionNPC {
 
     override fun spawn(x: Double, y: Double, z: Double, world: World) {
         if(npc == null) {
-            npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, identifier)
+            npc = CitizensAPI.getNamedNPCRegistry("expeditions").createNPC(EntityType.PLAYER, identifier)
             npc?.let {
                 it.spawn(Location(world, x, y, z))
                 it.isProtected = true
@@ -36,9 +35,7 @@ class CitizensNPC(private val identifier: String) : ExpeditionNPC {
 
     override fun destroy() {
         npc?.let {
-            warn("Destroying NPC!")
             it.destroy()
-            CitizensAPI.getNPCRegistry().deregister(it)
             npc = null
         }
     }
