@@ -66,9 +66,8 @@ points-of-interest:
     npc-refollow-text: "You're back! I will go where you go."
     npc-unfollow-text: "Okay, I will stay here!"
     # For things such as setting skin or other attributes. The placeholder {id} will be replaced with the NPC's ID
-    # These commands will be executed in the order specified.
+    # These commands will be executed in the order specified. A npc is automatically selected before these commands.
     npc-on-spawn-commands:
-      - 'npc select {id}'
       - 'npc skin --url https://minesk.in/bf1847df17d54e4991daedbeb1b3b0f8'
     # Commands that will be executed when a player extracts with given NPC's
     # NPCs are automatically removed when they are extracted.

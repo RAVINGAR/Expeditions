@@ -1,5 +1,6 @@
 package com.ravingarinc.expeditions.integration.npc
 
+import com.ravingarinc.api.module.RavinPlugin
 import org.bukkit.World
 import org.bukkit.entity.Player
 import org.jetbrains.annotations.Blocking
@@ -11,6 +12,10 @@ interface ExpeditionNPC {
     fun destroy()
 
     fun teleport(x: Double, y: Double, z: Double, world: World)
+
+    fun select(plugin: RavinPlugin)
+
+    fun unselect(plugin: RavinPlugin)
 
     @Blocking
     fun startFollowing(player: Player)
@@ -47,6 +52,14 @@ class EmptyNPC : ExpeditionNPC {
     }
 
     override fun stopFollowing(player: Player?) {
+
+    }
+
+    override fun select(plugin: RavinPlugin) {
+
+    }
+
+    override fun unselect(plugin: RavinPlugin) {
 
     }
 

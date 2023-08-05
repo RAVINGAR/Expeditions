@@ -113,6 +113,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
                 world.blockWithChunk(plugin, spawnLoc.blockX shr 4, spawnLoc.blockZ shr 4) {
                     internalNPC.spawn(spawnLoc.x, spawnLoc.y, spawnLoc.z, world)
                 }
+                internalNPC.select(plugin)
                 area.npcOnSpawn.forEach {
                     plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("{id}", internalNPC.numericalId().toString()))
                 }

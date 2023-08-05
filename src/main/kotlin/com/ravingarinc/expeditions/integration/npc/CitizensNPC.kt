@@ -1,5 +1,6 @@
 package com.ravingarinc.expeditions.integration.npc
 
+import com.ravingarinc.api.module.RavinPlugin
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -29,6 +30,14 @@ class CitizensNPC(private val identifier: String) : ExpeditionNPC {
         }
     }
 
+    override fun select(plugin: RavinPlugin) {
+        npc?.let { CitizensAPI.getDefaultNPCSelector().select(plugin.server.consoleSender, it) }
+    }
+
+    override fun unselect(plugin: RavinPlugin) {
+        npc?.let { CitizensAPI.getDefaultNPCSelector().select(plugin.server.consoleSender, null) }
+    }
+
     fun getInternalNPC() : NPC? {
         return npc
     }
@@ -53,9 +62,7 @@ class CitizensNPC(private val identifier: String) : ExpeditionNPC {
         if(following == player) return
         runBlocking {
             playerLock.withLock {
-                npc?.let {
-                    followingPlayer = player
-                }
+                npc?.let { followingPlayer = player }
             }
         }
 
