@@ -68,7 +68,7 @@ class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(Multiver
     }
 
     private fun getFreeName(world: String) : String? {
-        for(i in 0..16) {
+        for(i in 0..128) {
             val freeName = "${world}_$i"
             if(!clonedWorldNames.contains(freeName)) return freeName
         }

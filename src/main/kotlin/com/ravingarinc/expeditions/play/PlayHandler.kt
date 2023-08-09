@@ -6,6 +6,7 @@ import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
 import com.ravingarinc.expeditions.api.Ticker
+import com.ravingarinc.expeditions.api.getDuration
 import com.ravingarinc.expeditions.api.getMaterialList
 import com.ravingarinc.expeditions.command.ExpeditionGui
 import com.ravingarinc.expeditions.integration.MultiverseHandler
@@ -31,6 +32,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
 
     private var initialInstances = 1
     private var maxInstances: Int = 4
+    private var tickInterval: Int = 1200
     private val joinCommands: MutableList<String> = ArrayList()
 
     private val instances: MutableMap<String, MutableList<ExpeditionInstance>> = ConcurrentHashMap()
@@ -46,6 +48,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     override suspend fun suspendLoad() {
         manager = plugin.getModule(ConfigManager::class.java)
         manager.config.consume("general") {
+            tickInterval = (it.getDuration("tick-interval") ?: 1200).toInt()
             initialInstances = it.getInt("initial-instances", 1)
             maxInstances = it.getInt("max-instances", 4)
             it.getStringList("on-join-expedition-commands").forEach { str ->
@@ -63,7 +66,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         multiverse = plugin.getModule(MultiverseHandler::class.java)
 
         ticker = PlayTicker(plugin, instances.values)
-        capacityJob = CapacityTicker(plugin, this)
+        capacityJob = CapacityTicker(plugin, this, tickInterval)
 
         plugin.launch {
             delay(20.ticks)
@@ -76,7 +79,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
             }
             delay(5.ticks)
             ticker.start()
-            capacityJob.start(12000)
+            capacityJob.start(tickInterval)
         }
         manager.getRespawningPlayers().forEach {
             respawningPlayers[it.player.uniqueId] = it
@@ -234,7 +237,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     }
 }
 
-class CapacityTicker(plugin: RavinPlugin, private val handler: PlayHandler) : Ticker(plugin, 12000.ticks) {
+class CapacityTicker(plugin: RavinPlugin, private val handler: PlayHandler, interval: Int) : Ticker(plugin, interval.ticks) {
     override suspend fun CoroutineScope.tick() {
         handler.checkCapacity()
     }

@@ -1,4 +1,6 @@
 general:
+  # The interval at which instances are checked as to whether they should be removed, or if additional ones should be added
+  tick-interval: 1min
   # How many initial instances for each map is generated. Additional instances may be created if cap is reached
   initial-instances: 1
   # Maximum amount of instances
