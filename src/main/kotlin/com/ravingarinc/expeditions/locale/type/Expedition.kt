@@ -66,7 +66,7 @@ class Expedition(val identifier: String,
                                 children.add(this.launch(Dispatchers.IO) {
                                     for(colour in ExpeditionRenderer.MapColour.values()) {
                                         if(colour.predicate.invoke(type)) {
-                                            this@Expedition.colourCache[z * 128 + x] = colour.id
+                                            this@Expedition.colourCache[z * 128 + x] = colour.randomise()
                                             break
                                         }
                                     }
