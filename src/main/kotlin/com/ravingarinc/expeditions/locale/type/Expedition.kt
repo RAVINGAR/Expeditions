@@ -62,15 +62,31 @@ class Expedition(val identifier: String,
                             for(z in (xZ - 1) * 32 until xZ * 32) {
                                 val sumX = (topLeftX + (x / 128.0) * radius * 2).toInt()
                                 val sumZ = (topLeftZ + (z / 128.0) * radius * 2).toInt()
-                                val type = world.getHighestBlockAt(sumX, sumZ).type
+
                                 children.add(this.launch(Dispatchers.IO) {
-                                    for(colour in ExpeditionRenderer.MapColour.values()) {
-                                        if(colour.predicate.invoke(type)) {
-                                            this@Expedition.colourCache[z * 128 + x] = colour.randomise()
-                                            break
+                                    val colours = Array(4) { ExpeditionRenderer.MapColour.NONE.id }
+                                    for(innerX in 0 until 2) {
+                                        for(innerZ in 0 until 2) {
+                                            val type = world.getHighestBlockAt(sumX + innerX, sumZ + innerZ).type
+                                            for(colour in ExpeditionRenderer.MapColour.values()) {
+                                                if(colour.predicate.invoke(type)) {
+                                                    colours[innerX + 2 * innerZ] = colour.id
+                                                    break
+                                                }
+                                            }
                                         }
                                     }
+
+                                    var totalRed = 0; var totalGreen = 0; var totalBlue = 0;
+                                    for(c in colours) {
+                                        totalRed += c.red
+                                        totalGreen += c.green
+                                        totalBlue += c.blue
+                                    }
+                                    val finalColour = Color(totalRed / 4, totalGreen / 4, totalBlue / 4)
+                                    this@Expedition.colourCache[z * 128 + x] = finalColour
                                 })
+
                             }
                         }
                         children.joinAll()

@@ -98,15 +98,6 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
 
             I.log(Level.INFO, "Loaded expedition map '${name}'")
             maps.add(map)
-            val startTime = System.currentTimeMillis()
-            map.render(plugin).invokeOnCompletion {
-                if(it == null) {
-                    I.log(Level.INFO, "Successfully rendered map for '${name}' expedition, taking ${System.currentTimeMillis() - startTime} ms!")
-                } else {
-                    I.log(Level.WARNING, "Encountered exception rendering map for '${name}' expedition!", it)
-                }
-
-            }
         }
     }
 

@@ -3,6 +3,7 @@ package com.ravingarinc.expeditions.play
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.github.shynixn.mccoroutine.bukkit.ticks
+import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
 import com.ravingarinc.expeditions.api.Ticker
@@ -24,6 +25,7 @@ import org.bukkit.World
 import org.bukkit.entity.Player
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Level
 
 class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.java, plugin, true, ExpeditionManager::class.java) {
     private lateinit var expeditions: ExpeditionManager
@@ -75,6 +77,15 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                 instances[type.identifier] = list
                 for(i in 1..initialInstances) {
                     createInstance(type)?.let { list.add(it) }
+                }
+                // Render after copying the worlds... such to avoid chunk glitch issues.
+                val startTime = System.currentTimeMillis()
+                type.render(plugin).invokeOnCompletion {
+                    if(it == null) {
+                        I.log(Level.INFO, "Successfully rendered map for '${name}' expedition, taking ${System.currentTimeMillis() - startTime} ms!")
+                    } else {
+                        I.log(Level.WARNING, "Encountered exception rendering map for '${name}' expedition!", it)
+                    }
                 }
             }
             delay(5.ticks)

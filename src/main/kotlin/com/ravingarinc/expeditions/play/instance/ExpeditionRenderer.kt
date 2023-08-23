@@ -55,12 +55,13 @@ class ExpeditionRenderer(val expedition: Expedition) : MapRenderer(false) {
         SAND(Color(16247203), { it.name.startsWith("SAND") || it.name.startsWith("BIRCH") }),
         FIRE(Color(16711680), { it == LAVA || it == Material.FIRE || it == TNT || it == Material.REDSTONE_BLOCK }),
         ICE(Color(10526975), { it.name.endsWith("ICE") || it.name.startsWith("SNOW") }),
-        PLANT(Color(31744), { it == Material.GRASS || it == Material.DANDELION || it == Material.ROSE_BUSH || it == Material.POPPY
-                || it.name.endsWith("LEAVES") || it.name.endsWith("TULIP") || it == Material.CORNFLOWER
+        PLANT(Color(31744), { it == Material.GRASS || it == Material.DANDELION || it == Material.ROSE_BUSH || it == Material.POPPY || it == Material.BLUE_ORCHID || it == org.bukkit.Material.ALLIUM
+                || it == Material.AZURE_BLUET || it == Material.OXEYE_DAISY || it == Material.LILY_PAD || it == Material.SUGAR_CANE || it.name.endsWith("SAPLING")
+                || it.name.endsWith("LEAVES") || it.name.endsWith("TULIP") || it == Material.CORNFLOWER || it == Material.BAMBOO || it.name.contains("AZALEA")
                 || it == Material.FERN || it == TALL_GRASS || it == Material.LARGE_FERN}),
         TERRACOTTA_WHITE(Color(13742497), { it == Material.WHITE_TERRACOTTA }),
         TERRACOTTA_CYAN(Color(5725276), { it == Material.CYAN_TERRACOTTA }),
-        SNOW(Color(16777215), { it == Material.SNOW || it == Material.SNOW_BLOCK || it.name.startsWith("WHITE")}),
+        SNOW(Color(255, 255, 255), { it == Material.SNOW || it == Material.SNOW_BLOCK || it == Material.POWDER_SNOW || it.name.startsWith("WHITE")}),
         CLAY(Color(10791096), { it == Material.CLAY || it.name.startsWith("IRON")}),
         DIRT(Color(9923917), { it == Material.DIRT || it == Material.COARSE_DIRT || it == Material.FARMLAND
                 || it == Material.DIRT_PATH || it == BROWN_MUSHROOM_BLOCK
@@ -98,6 +99,20 @@ class ExpeditionRenderer(val expedition: Expedition) : MapRenderer(false) {
             val red = floor(id.red * random).toInt()
             val green = floor(id.green * random).toInt()
             val blue = floor(id.blue * random).toInt()
+            return Color(red, green, blue)
+        }
+
+        fun brighter() : Color {
+            val red = floor(id.red * shades[1]).toInt()
+            val green = floor(id.green * shades[1]).toInt()
+            val blue = floor(id.blue * shades[1]).toInt()
+            return Color(red, green, blue)
+        }
+
+        fun darker() : Color {
+            val red = floor(id.red * shades[3]).toInt()
+            val green = floor(id.green * shades[3]).toInt()
+            val blue = floor(id.blue * shades[3]).toInt()
             return Color(red, green, blue)
         }
 
