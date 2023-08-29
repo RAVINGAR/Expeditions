@@ -1,13 +1,14 @@
 map:
   name: 'Battlegrounds' # Display name of the map
   world-name: Battlegrounds # The actual name of the world.
+  # The permission required to view and join this expedition. Leave blank or remove if you don't wish to restrict via perms
+  permission: 'expeditions.battlegrounds'
   description:
     - '&7Fight your way'
     - '&7through a war torn'
     - '&7battlegrounds.'
   centre: 0,0 # Centre of the map
-  # Radius from the centre of the map to where the world border is placed
-  radius: 125
+  radius: 125 # Radius from the centre of the map to where the world border is placed
   max-players: 8
   # This is the amount of mobs that are attempted to be spawned FOR EACH
   # POI or Extraction Zone when this map is ticked.

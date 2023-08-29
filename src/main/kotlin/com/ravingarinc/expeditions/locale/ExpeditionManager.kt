@@ -72,15 +72,16 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 continue
             }
 
-            val spawnLocations = buildList { it.getStringList("spawn-locations").forEach { loc ->
+            val spawnLocations = buildList { it.getStringList("map.spawn-locations").forEach { loc ->
                 parseBlockVector(loc)?.let { vec -> this.add(vec) }
             } }
-
+            val permission: String? = it.getString("map.permission")
 
             val map = Expedition(
                 name,
                 it.getStringList("map.description"),
                 it.getString("map.name") ?: name,
+                if(permission != null && permission.isEmpty()) null else permission,
                 world,
                 it.getInt("map.max-players", 1),
                 pair.first,

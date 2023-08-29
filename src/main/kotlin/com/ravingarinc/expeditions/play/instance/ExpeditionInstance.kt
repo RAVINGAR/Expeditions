@@ -223,8 +223,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             if(availableSpawns.isEmpty()) {
                 expedition.spawnLocations.shuffled().forEach { availableSpawns.add(it) }
             }
-            val vector = availableSpawns.poll() ?: throw IllegalStateException("Available spawns should not be empty at this point! This would only occur if an expeditions spawn locations were set wrong!")
-            return Location(world, vector.x + 0.5, vector.y, vector.z + 0.5)
+            val vector = availableSpawns.poll()!!
+            return Location(world, vector.x + 0.5, vector.y + 0.1, vector.z + 0.5)
         }
     }
 

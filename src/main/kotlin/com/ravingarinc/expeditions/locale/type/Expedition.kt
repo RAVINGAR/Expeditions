@@ -17,6 +17,7 @@ import java.awt.Color
 class Expedition(val identifier: String,
                  description: List<String>,
                  val displayName: String,
+                 val permission: String?,
                  val world: World,
                  val maxPlayers: Int,
                  val centreX: Int,
