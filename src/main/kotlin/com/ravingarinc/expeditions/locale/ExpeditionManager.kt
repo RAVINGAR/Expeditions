@@ -72,6 +72,11 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 continue
             }
 
+            val spawnLocations = buildList { it.getStringList("spawn-locations").forEach { loc ->
+                parseBlockVector(loc)?.let { vec -> this.add(vec) }
+            } }
+
+
             val map = Expedition(
                 name,
                 it.getStringList("map.description"),
@@ -87,7 +92,8 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 it.getDouble("map.mob-spawn-modifier", 1.0),
                 it.getDuration("map.loot-respawn-interval") ?: -1L,
                 it.getDouble("map.loot-respawn-modifier", 1.0),
-                lootBlock, extractionTime, it.getDouble("map.loot-chest-range", 8.0)
+                lootBlock, extractionTime, it.getDouble("map.loot-chest-range", 8.0),
+                spawnLocations
             )
             for(poi in it.getMapList("points-of-interest")) {
                 loadPointOfInterest(name, poi)?.let { map.addArea(it) }

@@ -29,6 +29,10 @@ map:
   loot-respawn-modifier: 2
   # How far the glowing effect works for loot chests
   loot-chest-range: 8
+  # The available spawn locations that a player can spawn. If this is empty, then random spawn location will be used
+  spawn-locations:
+  - 29,63,30
+  - 40,63,-20
 points-of-interest:
   - name: 'Ancient Ruins' # Unique Display name of the POI
     start-location: 25,40,70 # The x,y,z coordinate of one corner of this area

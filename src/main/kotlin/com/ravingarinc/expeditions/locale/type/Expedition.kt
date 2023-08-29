@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import org.bukkit.ChatColor
 import org.bukkit.Material
 import org.bukkit.World
+import org.bukkit.util.BlockVector
 import java.awt.Color
 
 class Expedition(val identifier: String,
@@ -30,7 +31,8 @@ class Expedition(val identifier: String,
                  val lootModifier: Double,
                  val lootBlock: Material,
                  val extractionTime: Long,
-                 val lootRange: Double) {
+                 val lootRange: Double,
+                 val spawnLocations: List<BlockVector>) {
     private val areas: MutableList<Area> = ArrayList()
 
     private val formatted: String

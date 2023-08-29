@@ -42,6 +42,10 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     val mapView: MapView
 
     val renderer: ExpeditionRenderer = ExpeditionRenderer(expedition)
+
+    val availableSpawns: Queue<BlockVector> = LinkedList(expedition.spawnLocations.shuffled())
+    val spawnLock = Mutex(false)
+
     init {
         val view = Bukkit.createMap(world)
         view.centerX = expedition.centreX
@@ -205,12 +209,26 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     private fun join(player: Player) {
         // Todo, also check if they are in a party?
         plugin.launch {
-            val loc = findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
+            val loc = if(expedition.spawnLocations.isEmpty()) {
+                findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
+            } else {
+                getRandomLocation(world)
+            }
             addPlayer(player, loc)
         }
     }
 
-    private fun findSuitableLocation(
+    private suspend fun getRandomLocation(world: World) : Location {
+        spawnLock.withLock {
+            if(availableSpawns.isEmpty()) {
+                expedition.spawnLocations.shuffled().forEach { availableSpawns.add(it) }
+            }
+            val vector = availableSpawns.poll() ?: throw IllegalStateException("Available spawns should not be empty at this point! This would only occur if an expeditions spawn locations were set wrong!")
+            return Location(world, vector.x + 0.5, vector.y, vector.z + 0.5)
+        }
+    }
+
+    private suspend fun findSuitableLocation(
         world: World,
         x: Int,
         z: Int,

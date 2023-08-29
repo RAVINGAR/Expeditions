@@ -58,7 +58,7 @@ class ExpeditionRenderer(val expedition: Expedition) : MapRenderer(false) {
         PLANT(Color(31744), { it == Material.GRASS || it == Material.DANDELION || it == Material.ROSE_BUSH || it == Material.POPPY || it == Material.BLUE_ORCHID || it == org.bukkit.Material.ALLIUM
                 || it == Material.AZURE_BLUET || it == Material.OXEYE_DAISY || it == Material.LILY_PAD || it == Material.SUGAR_CANE || it.name.endsWith("SAPLING")
                 || it.name.endsWith("LEAVES") || it.name.endsWith("TULIP") || it == Material.CORNFLOWER || it == Material.BAMBOO || it.name.contains("AZALEA")
-                || it == Material.FERN || it == TALL_GRASS || it == Material.LARGE_FERN}),
+                || it == Material.FERN || it == TALL_GRASS || it == Material.LARGE_FERN || it == Material.CACTUS}),
         TERRACOTTA_WHITE(Color(13742497), { it == Material.WHITE_TERRACOTTA }),
         TERRACOTTA_CYAN(Color(5725276), { it == Material.CYAN_TERRACOTTA }),
         SNOW(Color(255, 255, 255), { it == Material.SNOW || it == Material.SNOW_BLOCK || it == Material.POWDER_SNOW || it.name.startsWith("WHITE")}),
