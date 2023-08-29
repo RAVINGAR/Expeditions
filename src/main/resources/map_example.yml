@@ -3,6 +3,8 @@ map:
   world-name: Battlegrounds # The actual name of the world.
   # The permission required to view and join this expedition. Leave blank or remove if you don't wish to restrict via perms
   permission: 'expeditions.battlegrounds'
+  # Message sent to the player when they try to join a locked expedition
+  locked-message: '&cYou are not allowed to enter this expedition!'
   description:
     - '&7Fight your way'
     - '&7through a war torn'

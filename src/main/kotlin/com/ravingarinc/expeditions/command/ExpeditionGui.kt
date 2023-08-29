@@ -12,7 +12,6 @@ import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import java.util.concurrent.ConcurrentHashMap
-import java.util.function.BiPredicate
 
 object ExpeditionGui {
     private val guis: MutableMap<Player, BaseGui> = ConcurrentHashMap()
@@ -46,14 +45,13 @@ object ExpeditionGui {
             .addNextPageIcon(17).finalise()
             .addPreviousPageIcon(9).finalise()
             .addPageFiller("type_filler") { manager.getMaps() }
-            .setPredicateProvider { it -> BiPredicate { gui, player ->
-                if(it.permission == null) return@BiPredicate true
-                return@BiPredicate player.hasPermission(it.permission)
-            } }
             .setIdentifierProvider { it -> "type_${it.identifier}" }
             .setDisplayNameProvider { it -> "${ChatColor.AQUA}${it.displayName}" }
-            .setLoreProvider { it ->
+            .setLoreProvider { gui, it ->
                 var str = it.getFormattedDescription()
+                if(it.permission != null && !gui.player.hasPermission(it.permission)) {
+                    str += "${ChatColor.RED}<Locked>"
+                }
                 handler.getInstances()[it.identifier]?.let { list ->
                     str += "\n"
                     for((i, inst) in list.withIndex()) {
@@ -64,6 +62,11 @@ object ExpeditionGui {
             }
             .setMaterialProvider { _ -> Material.FILLED_MAP }
             .addActionProvider { it -> RunnableAction { _, player ->
+                if(it.permission != null && !player.hasPermission(it.permission)) {
+                    player.sendMessage(it.lockedMessage)
+                    player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
+                    return@RunnableAction
+                }
                 if(handler.joinExpedition(it.identifier, player)) {
                     player.closeInventory()
                     player.sendMessage("${ChatColor.GREEN}You have joined the '${it.displayName}' expedition!")

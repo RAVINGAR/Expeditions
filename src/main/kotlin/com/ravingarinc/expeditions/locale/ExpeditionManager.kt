@@ -82,6 +82,7 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 it.getStringList("map.description"),
                 it.getString("map.name") ?: name,
                 if(permission != null && permission.isEmpty()) null else permission,
+                ChatColor.translateAlternateColorCodes('&',it.getString("map.locked-message") ?: ""),
                 world,
                 it.getInt("map.max-players", 1),
                 pair.first,
