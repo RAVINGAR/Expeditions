@@ -50,7 +50,7 @@ class ExpeditionRenderer(val expedition: Expedition) : MapRenderer(false) {
     }
 
     enum class MapColour(val id: Color, val predicate: (Material) -> Boolean) {
-        NONE(Color(255, 255, 255, 0), { it.isAir || it == Material.GLASS || it == Material.GLASS_PANE || it == Material.BARRIER }),
+        NONE(Color(255, 255, 255, 0), { it.isAir || it == Material.GLASS || it == Material.GLASS_PANE }),
         GRASS(Color(8368696), { it == GRASS_BLOCK || it == SLIME_BLOCK }),
         SAND(Color(16247203), { it.name.startsWith("SAND") || it.name.startsWith("BIRCH") }),
         FIRE(Color(16711680), { it == LAVA || it == Material.FIRE || it == TNT || it == Material.REDSTONE_BLOCK }),

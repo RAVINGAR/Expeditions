@@ -67,10 +67,11 @@ class Expedition(val identifier: String,
                                 val sumZ = (topLeftZ + (z / 128.0) * radius * 2).toInt()
 
                                 children.add(this.launch(Dispatchers.IO) {
-                                    val colours = Array(4) { ExpeditionRenderer.MapColour.NONE.id }
+                                    val colours = ArrayList<Color>()
                                     for(innerX in 0 until 2) {
                                         for(innerZ in 0 until 2) {
                                             val type = world.getHighestBlockAt(sumX + innerX, sumZ + innerZ).type
+                                            if(type == Material.BARRIER) continue
                                             for(colour in ExpeditionRenderer.MapColour.values()) {
                                                 if(colour.predicate.invoke(type)) {
                                                     colours[innerX + 2 * innerZ] = colour.id
@@ -79,14 +80,14 @@ class Expedition(val identifier: String,
                                             }
                                         }
                                     }
-
+                                    if(colours.isEmpty()) colours.add(ExpeditionRenderer.MapColour.STONE.id)
                                     var totalRed = 0; var totalGreen = 0; var totalBlue = 0;
                                     for(c in colours) {
                                         totalRed += c.red
                                         totalGreen += c.green
                                         totalBlue += c.blue
                                     }
-                                    val finalColour = Color(totalRed / 4, totalGreen / 4, totalBlue / 4)
+                                    val finalColour = Color(totalRed / colours.size, totalGreen / colours.size, totalBlue / colours.size)
                                     this@Expedition.colourCache[z * 128 + x] = finalColour
                                 })
 
