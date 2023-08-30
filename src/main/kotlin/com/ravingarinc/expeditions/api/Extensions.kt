@@ -120,6 +120,7 @@ fun parseCursor(cursorName: String?, default: MapCursor.Type) : MapCursor.Type {
             return c
         }
     }
+    warn("Could not find cursor type called '$cursorName'")
     return default
 }
 
