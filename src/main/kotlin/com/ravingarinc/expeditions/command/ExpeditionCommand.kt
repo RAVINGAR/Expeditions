@@ -13,6 +13,20 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
         val expeditions = plugin.getModule(ExpeditionManager::class.java)
         val handler = plugin.getModule(PlayHandler::class.java)
 
+        setFunction { sender, _ ->
+            if(sender is Player) {
+                if(handler.hasJoinedExpedition(sender)) {
+                    sender.sendMessage("${ChatColor.RED}You cannot view other expeditions whilst in an expedition!")
+                } else {
+                    ExpeditionGui.openGui(plugin,sender)
+                }
+            } else {
+                sender.sendMessage("${ChatColor.RED}This command can only be used by a player!")
+            }
+
+            return@setFunction true
+        }
+
         addOption("instance", "expeditions.admin", "- Admin command to manage instances", 1) { _, _ -> false}
             .addOption("add", null, "<type> - Create a new expedition instance.", 3) { sender, args ->
                 val type = expeditions.getMapByIdentifier(args[2])
@@ -74,21 +88,6 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                 }
                 return@addOption true
             }
-
-        addOption("view", null, "- View and join available expeditions", 1) { sender, args ->
-            if(sender is Player) {
-                if(handler.hasJoinedExpedition(sender)) {
-                    sender.sendMessage("${ChatColor.RED}You cannot view other expeditions whilst in an expedition!")
-                } else {
-                    ExpeditionGui.openGui(plugin,sender)
-                }
-
-            } else {
-                sender.sendMessage("${ChatColor.RED}This command can only be used by a player!")
-            }
-
-            return@addOption true
-        }
 
         addOption("reload", "expeditions.admin", "- Reloads the plugin", 1) { sender, args ->
             sender.sendMessage("${ChatColor.YELLOW}Attempting to reload Expeditions... this may take a while.")
