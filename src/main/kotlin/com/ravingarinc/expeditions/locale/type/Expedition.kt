@@ -75,23 +75,25 @@ class Expedition(val identifier: String,
                                             if(type == Material.BARRIER) continue
                                             for(colour in ExpeditionRenderer.MapColour.values()) {
                                                 if(colour.predicate.invoke(type)) {
-                                                    colours[innerX + 2 * innerZ] = colour.id
+                                                    //colours[innerX + 2 * innerZ] = colour.id
+                                                    colours.add(colour.id)
                                                     break
                                                 }
                                             }
                                         }
                                     }
-                                    if(colours.isEmpty()) colours.add(ExpeditionRenderer.MapColour.STONE.id)
-                                    var totalRed = 0; var totalGreen = 0; var totalBlue = 0;
-                                    for(c in colours) {
-                                        totalRed += c.red
-                                        totalGreen += c.green
-                                        totalBlue += c.blue
+                                    this@Expedition.colourCache[z * 128 + x] = if(colours.isEmpty()) {
+                                        ExpeditionRenderer.MapColour.STONE.id
+                                    } else {
+                                        var totalRed = 0; var totalGreen = 0; var totalBlue = 0;
+                                        for(c in colours) {
+                                            totalRed += c.red
+                                            totalGreen += c.green
+                                            totalBlue += c.blue
+                                        }
+                                        Color(totalRed / colours.size, totalGreen / colours.size, totalBlue / colours.size)
                                     }
-                                    val finalColour = Color(totalRed / colours.size, totalGreen / colours.size, totalBlue / colours.size)
-                                    this@Expedition.colourCache[z * 128 + x] = finalColour
                                 })
-
                             }
                         }
                         children.joinAll()
