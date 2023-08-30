@@ -67,10 +67,11 @@ dependencies {
     library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-api", "2.11.0")
     library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-core", "2.11.0")
 
-    implementation("com.ravingarinc.api:common:1.4.0")
-    implementation("com.ravingarinc.api:module:1.4.0")
-    implementation("com.ravingarinc.api:gui:1.4.0")
-    implementation("com.ravingarinc.api:version:1.4.0")
+    implementation("com.ravingarinc.api:common:1.4.1")
+    implementation("com.ravingarinc.api:module:1.4.1")
+    implementation("com.ravingarinc.api:module-kotlin:1.4.1")
+    implementation("com.ravingarinc.api:gui:1.4.1")
+    implementation("com.ravingarinc.api:version:1.4.1")
     compileOnly("org.jetbrains:annotations:23.1.0")
 
     //compileOnly("org.spigotmc:spigot:1.19.4-R0.1-SNAPSHOT:remapped-mojang")
