@@ -15,6 +15,7 @@ import com.ravingarinc.expeditions.play.mob.EmptyMobType
 import com.ravingarinc.expeditions.play.mob.MobType
 import org.bukkit.ChatColor
 import org.bukkit.Material
+import org.bukkit.map.MapCursor
 import org.bukkit.util.BlockVector
 import java.util.*
 import java.util.logging.Level
@@ -187,7 +188,6 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 }
             }
         }
-
         return PointOfInterest(
             poi["name"].toString(),
             startLoc,
@@ -211,7 +211,8 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             npcOnExtract,
             npcFollowText,
             npcRefollowText,
-            npcUnfollowText
+            npcUnfollowText,
+            parseCursor(poi["cursor-type"]?.toString(), MapCursor.Type.MANSION)
         )
     }
     
@@ -319,7 +320,8 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             npcOnExtract,
             npcFollowText,
             npcRefollowText,
-            npcUnfollowText
+            npcUnfollowText,
+            parseCursor(zone["cursor-type"]?.toString(), MapCursor.Type.BANNER_GREEN)
         )
     }
 

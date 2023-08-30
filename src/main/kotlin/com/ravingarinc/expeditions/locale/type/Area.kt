@@ -5,6 +5,7 @@ import com.ravingarinc.expeditions.api.WeightedCollection
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.MobType
 import org.bukkit.World
+import org.bukkit.map.MapCursor
 import org.bukkit.util.BlockVector
 import kotlin.math.max
 import kotlin.math.min
@@ -31,7 +32,8 @@ abstract class Area(val displayName: String,
                     val npcOnExtract: List<String>,
                     val npcFollowText: String,
                     val npcRefollowText: String,
-                    val npcUnfollowText: String) {
+                    val npcUnfollowText: String,
+                    val cursorType: MapCursor.Type) {
     abstract val displayType: String
 
     val lootCollection: WeightedCollection<LootTable> = WeightedCollection()

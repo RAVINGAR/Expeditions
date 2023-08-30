@@ -11,6 +11,7 @@ import com.ravingarinc.expeditions.play.mob.VanillaMobType
 import org.bukkit.*
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.EntityType
+import org.bukkit.map.MapCursor
 import org.bukkit.util.BlockVector
 import java.io.File
 import java.nio.file.Files
@@ -110,6 +111,16 @@ fun ConfigurationSection.getDropTable(path: String): LootTable {
             }
         }
     }
+}
+
+fun parseCursor(cursorName: String?, default: MapCursor.Type) : MapCursor.Type {
+    if(cursorName == null) return default
+    for(c in MapCursor.Type.values()) {
+        if(c.name.equals(cursorName, true)) {
+            return c
+        }
+    }
+    return default
 }
 
 fun ConfigurationSection.getWorld(path: String) : World? {

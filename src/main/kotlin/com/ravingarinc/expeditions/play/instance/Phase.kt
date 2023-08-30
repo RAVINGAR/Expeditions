@@ -96,8 +96,7 @@ class IdlePhase(expedition: Expedition) :
             val radius = instance.expedition.radius
             val byteX = (((center.first - instance.expedition.centreX) / radius.toFloat()) * 128).toInt().toByte()
             val byteZ = (((center.second - instance.expedition.centreZ) / radius.toFloat()) * 128).toInt().toByte()
-            val type = if(it.area is ExtractionZone) MapCursor.Type.BANNER_GREEN else MapCursor.Type.MANSION
-            val cursor = MapCursor(byteX, byteZ, 8, type, true, it.area.displayName)
+            val cursor = MapCursor(byteX, byteZ, 8, it.area.cursorType, true, it.area.displayName)
             instance.renderer.addCursor(cursor)
         }
         val border = instance.world.worldBorder

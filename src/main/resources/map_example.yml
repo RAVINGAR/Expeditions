@@ -40,6 +40,7 @@ points-of-interest:
   - name: 'Ancient Ruins' # Unique Display name of the POI
     start-location: 25,40,70 # The x,y,z coordinate of one corner of this area
     end-location: 80,90,-40 # The x,y,z coordinate of the second corner. These two values form a bounding box for this area
+    cursor-type: mansion # The type of cursor to use on the map, see https://hub.spigotmc.org/javadocs/spigot/org/bukkit/map/MapCursor.Type.html
     # Every POI tick, the percentage of chests can exist at any given time. This is a number ranging from 0 to 1
     # Decrease this value if you wish for all possible chest locations to be filled.
     # A value of 1 would mean that once spawned, all chests must be destroyed before more chests can spawn

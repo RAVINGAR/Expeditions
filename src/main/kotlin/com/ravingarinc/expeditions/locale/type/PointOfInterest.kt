@@ -4,6 +4,7 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.MobType
 import org.bukkit.World
+import org.bukkit.map.MapCursor
 import org.bukkit.util.BlockVector
 
 class PointOfInterest(displayName: String,
@@ -28,8 +29,9 @@ class PointOfInterest(displayName: String,
                       npcOnExtract: List<String>,
                       npcFollowText: String,
                       npcRefollowText: String,
-                      npcUnfollowText: String
-) : Area(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown, npcIdentifier, npcSpawnLoc, npcOnSpawn, npcOnExtract, npcFollowText, npcRefollowText, npcUnfollowText) {
+                      npcUnfollowText: String,
+                      cursorType: MapCursor.Type
+) : Area(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown, npcIdentifier, npcSpawnLoc, npcOnSpawn, npcOnExtract, npcFollowText, npcRefollowText, npcUnfollowText, cursorType) {
     override val displayType: String = "Point of Interest"
     override fun initialise(plugin: RavinPlugin, world: World) {
 

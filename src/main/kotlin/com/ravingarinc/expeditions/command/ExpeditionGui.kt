@@ -46,11 +46,17 @@ object ExpeditionGui {
             .addPreviousPageIcon(9).finalise()
             .addPageFiller("type_filler") { manager.getMaps() }
             .setIdentifierProvider { it -> "type_${it.identifier}" }
-            .setDisplayNameProvider { it -> "${ChatColor.AQUA}${it.displayName}" }
+            .setDisplayNameProvider { gui, it ->
+                var str = "${ChatColor.AQUA}${it.displayName}"
+                if(it.permission != null && !gui.player.hasPermission(it.permission)) {
+                    str += " ${ChatColor.RED}\uD83D\uDD12"
+                }
+                return@setDisplayNameProvider str
+            }
             .setLoreProvider { gui, it ->
                 var str = it.getFormattedDescription()
                 if(it.permission != null && !gui.player.hasPermission(it.permission)) {
-                    str += "${ChatColor.RED}<Locked>"
+                    str += "\n${ChatColor.RED}<Locked>"
                 }
                 handler.getInstances()[it.identifier]?.let { list ->
                     str += "\n"
