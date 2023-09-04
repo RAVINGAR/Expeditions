@@ -2,8 +2,10 @@ package com.ravingarinc.expeditions.locale.type
 
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
+import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
-import com.ravingarinc.expeditions.play.instance.ExpeditionRenderer
+import com.ravingarinc.api.module.warn
+import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
@@ -13,6 +15,8 @@ import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.util.BlockVector
 import java.awt.Color
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.logging.Level
 
 class Expedition(val identifier: String,
                  description: List<String>,
@@ -41,6 +45,9 @@ class Expedition(val identifier: String,
 
     val colourCache: Array<Color> = Array(16384) { ExpeditionRenderer.MapColour.STONE.id }
 
+    private var mapJob: Job? = null
+    private var isMapDone = AtomicBoolean(false)
+
     init {
         val builder = StringBuilder()
         for((i, line) in description.withIndex()) {
@@ -52,11 +59,16 @@ class Expedition(val identifier: String,
         formatted = builder.toString()
     }
 
-    fun render(plugin: RavinPlugin) : Job {
+    suspend fun render(plugin: RavinPlugin) {
+        if(mapJob != null) {
+            warn("Cannot render expedition '$displayName' as it is already being rendered!")
+            return
+        }
+        val startTime = System.currentTimeMillis()
         val topLeftX = centreX - radius
         val topLeftZ = centreZ - radius
 
-        return plugin.launch(Dispatchers.IO) {
+        mapJob = plugin.launch(Dispatchers.IO) {
             val jobs = ArrayList<Job>()
             for(xF in 1 .. 4) {
                 for(xZ in 1 .. 4) {
@@ -102,6 +114,19 @@ class Expedition(val identifier: String,
             }
             jobs.joinAll()
         }
+        mapJob?.invokeOnCompletion {
+            if(it == null) {
+                I.log(Level.INFO, "Successfully rendered map for '${displayName}' expedition, taking ${System.currentTimeMillis() - startTime} ms!")
+                isMapDone.set(true)
+            } else {
+                I.log(Level.WARNING, "Encountered exception rendering map for '${displayName}' expedition!", it)
+            }
+            mapJob = null
+        }
+    }
+
+    fun isMapRendered() : Boolean {
+        return isMapDone.get()
     }
 
     fun addArea(area: Area) {

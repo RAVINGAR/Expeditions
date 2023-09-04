@@ -7,6 +7,7 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
+import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

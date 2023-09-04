@@ -1,4 +1,4 @@
-package com.ravingarinc.expeditions.play.instance
+package com.ravingarinc.expeditions.play.render
 
 import com.ravingarinc.expeditions.locale.type.Expedition
 import org.bukkit.Material
@@ -26,15 +26,16 @@ class ExpeditionRenderer(val expedition: Expedition) : MapRenderer(false) {
     }
 
     override fun render(view: MapView, canvas: MapCanvas, player: Player) {
-        if(!players.contains(player.uniqueId)) {
-            for(x in 0 until 128) {
-                for(z in 0 until 128) {
-                    canvas.setPixelColor(x, z, expedition.colourCache[z * 128 + x])
+        if(expedition.isMapRendered()) {
+            if(!players.contains(player.uniqueId)) {
+                for(x in 0 until 128) {
+                    for(z in 0 until 128) {
+                        canvas.setPixelColor(x, z, expedition.colourCache[z * 128 + x])
+                    }
                 }
+                players.add(player.uniqueId)
             }
-            players.add(player.uniqueId)
         }
-
         val cursors = canvas.cursors
         while(cursors.size() > 0) {
             cursors.removeCursor(cursors.getCursor(0))
@@ -54,7 +55,7 @@ class ExpeditionRenderer(val expedition: Expedition) : MapRenderer(false) {
         GRASS(Color(8368696), { it == GRASS_BLOCK || it == SLIME_BLOCK }),
         SAND(Color(16247203), { it.name.startsWith("SAND") || it.name.startsWith("BIRCH") }),
         FIRE(Color(16711680), { it == LAVA || it == Material.FIRE || it == TNT || it == Material.REDSTONE_BLOCK }),
-        ICE(Color(10526975), { it.name.endsWith("ICE") || it.name.startsWith("SNOW") }),
+        ICE(Color(10526975), { it.name.contains("ICE") }),
         PLANT(Color(31744), { it == Material.GRASS || it == Material.DANDELION || it == Material.ROSE_BUSH || it == Material.POPPY || it == Material.BLUE_ORCHID || it == org.bukkit.Material.ALLIUM
                 || it == Material.AZURE_BLUET || it == Material.OXEYE_DAISY || it == Material.LILY_PAD || it == Material.SUGAR_CANE || it.name.endsWith("SAPLING")
                 || it.name.endsWith("LEAVES") || it.name.endsWith("TULIP") || it == Material.CORNFLOWER || it == Material.BAMBOO || it.name.contains("AZALEA")

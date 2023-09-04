@@ -13,7 +13,7 @@ import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
 
 class NPCHandler(plugin: RavinPlugin) : SuspendingModule(NPCHandler::class.java, plugin, isRequired = false) {
-    private lateinit var provider: (String) -> ExpeditionNPC?
+    private var provider: (String) -> ExpeditionNPC? = { null }
 
     private var listener: CitizensListener? = null
     override suspend fun suspendLoad() {
@@ -22,9 +22,7 @@ class NPCHandler(plugin: RavinPlugin) : SuspendingModule(NPCHandler::class.java,
             listener = CitizensListener(plugin)
             CitizensAPI.createNamedNPCRegistry("expeditions", MemoryNPCDataStore())
             plugin.server.pluginManager.registerEvents(listener!!, plugin)
-            return
         }
-        provider = { null }
     }
 
     fun createNPC(id: String) : ExpeditionNPC? {
@@ -39,7 +37,7 @@ class NPCHandler(plugin: RavinPlugin) : SuspendingModule(NPCHandler::class.java,
 }
 
 class CitizensListener(val plugin: RavinPlugin) : Listener {
-    val playHandler: PlayHandler = plugin.getModule(PlayHandler::class.java)
+    private val playHandler: PlayHandler = plugin.getModule(PlayHandler::class.java)
     @EventHandler
     fun onNPCRightClick(event: NPCRightClickEvent) {
         val player = event.clicker

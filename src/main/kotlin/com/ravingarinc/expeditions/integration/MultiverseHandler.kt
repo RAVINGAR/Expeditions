@@ -59,6 +59,7 @@ class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(Multiver
             mvWorld.setKeepSpawnInMemory(false)
             mvWorld.allowPortalMaking(AllowedPortalType.NONE)
             mvWorld.cbWorld.setGameRule(GameRule.KEEP_INVENTORY, false)
+            mvWorld.autoLoad = true
             //mvWorld.setRespawnToWorld()
             return mvWorld.cbWorld
         } else {
