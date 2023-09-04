@@ -79,9 +79,9 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
             for(type in expeditions.getMaps()) {
                 type.render(plugin)
             }
+            capacityJob.start(tickInterval)
         }
         ticker.start()
-        capacityJob.start(tickInterval)
 
         manager.getRespawningPlayers().forEach {
             respawningPlayers[it.player.uniqueId] = it
@@ -221,9 +221,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     fun createInstance(expedition: Expedition): ExpeditionInstance? {
         val instanceWorld = multiverse.cloneWorld(expedition.world) ?: return null
         val instance = ExpeditionInstance(plugin, expedition, instanceWorld)
-        plugin.launch {
-            instance.start()
-        }
+        plugin.launch { instance.start() }
         return instance
     }
 
