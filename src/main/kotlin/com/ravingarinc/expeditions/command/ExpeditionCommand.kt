@@ -8,11 +8,10 @@ import com.ravingarinc.expeditions.play.instance.RemoveReason
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
 
-class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions", null) {
+class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions", null, "", 0, { _, _ -> true }) {
     init {
         val expeditions = plugin.getModule(ExpeditionManager::class.java)
         val handler = plugin.getModule(PlayHandler::class.java)
-
         setFunction { sender, _ ->
             if(sender is Player) {
                 if(handler.hasJoinedExpedition(sender)) {
@@ -23,7 +22,6 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
             } else {
                 sender.sendMessage("${ChatColor.RED}This command can only be used by a player!")
             }
-
             return@setFunction true
         }
 
