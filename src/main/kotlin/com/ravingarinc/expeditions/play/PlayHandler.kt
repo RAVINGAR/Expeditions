@@ -32,7 +32,6 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     private var initialInstances = 1
     private var maxInstances: Int = 4
     private var tickInterval: Int = 1200
-    private val joinCommands: MutableList<String> = ArrayList()
 
     private val instances: MutableMap<String, MutableList<ExpeditionInstance>> = ConcurrentHashMap()
     private lateinit var ticker: PlayTicker
@@ -50,9 +49,6 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
             tickInterval = (it.getDuration("tick-interval") ?: 1200).toInt()
             initialInstances = it.getInt("initial-instances", 1)
             maxInstances = it.getInt("max-instances", 4)
-            it.getStringList("on-join-expedition-commands").forEach { str ->
-                joinCommands.add(str)
-            }
             it.getMaterialList("overhanging-blocks").forEach { mat ->
                 overhangingBlocks.add(mat)
             }
@@ -98,7 +94,6 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         abandonedPlayers.clear()
         respawningPlayers.clear()
         expeditionPlayers.clear()
-        joinCommands.clear()
         overhangingBlocks.clear()
     }
 
@@ -147,9 +142,6 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         randomList.shuffle()
         for(i in randomList) {
             if(i.canJoin() && i.participate(player)) {
-                joinCommands.forEach {
-                    plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name))
-                }
                 return true
             }
         }

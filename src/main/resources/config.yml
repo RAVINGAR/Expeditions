@@ -23,10 +23,6 @@ general:
     - deepslate_lapis_ore
     - deepslate_diamond_ore
   overhanging-blocks: ["oak_leaves", "spruce_leaves", "acacia_leaves", "birch_leaves", "jungle_leaves", "dark_oak_leaves"]
-  # Commands executed for each player joining the event. Use the @player tag to replace it
-  # with the player's name.
-  on-join-expedition-commands:
-    - 'tellraw @player {"text":"Information about the event; You have only so much time to gather resources and loot before the second phase. Once the second phase begins you must make your way to an extraction zone before time runs out!","color":"gray"}'
   # How much time does it take to extract once started.
   extraction-time: 10s
   # The block to use for loot chests

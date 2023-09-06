@@ -78,6 +78,17 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             } }
             val permission: String? = it.getString("map.permission")
 
+            val onJoin = buildList {
+                it.getStringList("map.on-join-commands").forEach { line ->
+                    this.add(if(line.startsWith("/")) line.substring(1) else line)
+                }
+            }
+            val onExtract = buildList {
+                it.getStringList("map.on-extract-commands").forEach { line ->
+                    this.add(if(line.startsWith("/")) line.substring(1) else line)
+                }
+            }
+
             val map = Expedition(
                 name,
                 it.getStringList("map.description"),
@@ -96,7 +107,7 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 it.getDuration("map.loot-respawn-interval") ?: -1L,
                 it.getDouble("map.loot-respawn-modifier", 1.0),
                 lootBlock, extractionTime, it.getDouble("map.loot-chest-range", 8.0),
-                spawnLocations
+                spawnLocations, onJoin, onExtract
             )
             for(poi in it.getMapList("points-of-interest")) {
                 loadPointOfInterest(name, poi)?.let { map.addArea(it) }

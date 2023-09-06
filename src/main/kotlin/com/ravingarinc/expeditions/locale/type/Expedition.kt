@@ -38,7 +38,9 @@ class Expedition(val identifier: String,
                  val lootBlock: Material,
                  val extractionTime: Long,
                  val lootRange: Double,
-                 val spawnLocations: List<BlockVector>) {
+                 val spawnLocations: List<BlockVector>,
+                 val onJoinCommands: List<String>,
+                 val onExtractCommands: List<String>) {
     private val areas: MutableList<Area> = ArrayList()
 
     private val formatted: String

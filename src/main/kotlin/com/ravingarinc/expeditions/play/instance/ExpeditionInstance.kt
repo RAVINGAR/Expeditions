@@ -216,6 +216,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                 getRandomLocation(world)
             }
             addPlayer(player, loc)
+            expedition.onJoinCommands.forEach {
+                plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name))
+            }
         }
     }
 
@@ -348,6 +351,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                             }
                             it.destroyNPC()
                         }
+                    }
+                    expedition.onExtractCommands.forEach { command ->
+                        plugin.server.dispatchCommand(plugin.server.consoleSender, command.replace("@player", player.name))
                     }
                     player.teleport(cache.previousLocale)
                 }
