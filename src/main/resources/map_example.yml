@@ -42,7 +42,7 @@ map:
     - 'tellraw @player {"text":"Information about the event; You have only so much time to gather resources and loot before the second phase. Once the second phase begins you must make your way to an extraction zone before time runs out!","color":"gray"}'
   # Commands executed when a player successfully extracts
   on-extract-commands:
-    - 'say @player You escaped the expedition!'
+    - 'tellraw @player {"text":"You successfully extracted!","color":"yellow"}'
 points-of-interest:
   - name: 'Ancient Ruins' # Unique Display name of the POI
     start-location: 25,40,70 # The x,y,z coordinate of one corner of this area

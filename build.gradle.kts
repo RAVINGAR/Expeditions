@@ -159,7 +159,7 @@ bukkit {
 
     commands {
         register("expeditions") {
-            aliases = listOf("e", "expedition")
+            aliases = listOf("e")
             description = "Expeditions Admin Command"
             usage = "Unknown argument. Try /expeditions ?"
         }

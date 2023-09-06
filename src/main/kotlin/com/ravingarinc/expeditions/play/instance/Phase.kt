@@ -300,7 +300,6 @@ fun tickExtractions(instance: ExpeditionInstance) {
             if(progress >= 1.0) {
                 instance.sneakingPlayers.remove(player)
                 instance.plugin.launch {
-                    player.sendMessage("${ChatColor.YELLOW}You successfully extracted!")
                     player.playSound(player, Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8F, 0.8F)
                     player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)
                     instance.removePlayer(player, RemoveReason.EXTRACTION)
