@@ -159,7 +159,7 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         handler.getJoinedExpedition(player)?.let { instance ->
             val target = player.getTargetEntity(4, false)
             if(target == null) {
-                player.getTargetBlock(null, 4).let {
+                player.getTargetBlockExact(4)?.let {
                     instance.onBlockInteract(it, player)
                 }
             } else {
