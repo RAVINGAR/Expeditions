@@ -1,5 +1,6 @@
 package com.ravingarinc.expeditions.locale
 
+import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.module.RavinPlugin
@@ -251,5 +252,12 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
                 handler.getJoinedExpedition(player)?.onMoveEvent(player)
             }
         }
+    }
+
+    @EventHandler
+    fun onEntityDespawn(event: EntityRemoveFromWorldEvent) {
+        val entity = event.entity
+        val loc = entity.location
+        handler.getInstance(loc.world)?.decrementMobSpawns(entity.uniqueId)
     }
 }

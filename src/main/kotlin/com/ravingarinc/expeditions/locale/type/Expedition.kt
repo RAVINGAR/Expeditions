@@ -5,6 +5,8 @@ import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
+import com.ravingarinc.expeditions.api.WeightedCollection
+import com.ravingarinc.expeditions.play.mob.MobType
 import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -40,7 +42,11 @@ class Expedition(val identifier: String,
                  val lootRange: Double,
                  val spawnLocations: List<BlockVector>,
                  val onJoinCommands: List<String>,
-                 val onExtractCommands: List<String>) {
+                 val onExtractCommands: List<String>,
+                 randomMobs: List<Triple<MobType, Double, IntRange>>,
+                 val randomSpawnsAmount: Int,
+                 val randomSpawnChance: Double,
+                 val maxMobsPerChunk: Int) {
     private val areas: MutableList<Area> = ArrayList()
 
     private val formatted: String
@@ -49,6 +55,14 @@ class Expedition(val identifier: String,
 
     private var mapJob: Job? = null
     private var isMapDone = AtomicBoolean(false)
+
+    val randomMobCollection: WeightedCollection<Pair<MobType, IntRange>> = WeightedCollection()
+
+    init {
+        randomMobs.forEach {
+            randomMobCollection.add(Pair(it.first, it.third), it.second)
+        }
+    }
 
     init {
         val builder = StringBuilder()

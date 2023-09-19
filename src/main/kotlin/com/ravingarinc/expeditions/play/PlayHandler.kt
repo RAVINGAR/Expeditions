@@ -52,6 +52,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
             it.getMaterialList("overhanging-blocks").forEach { mat ->
                 overhangingBlocks.add(mat)
             }
+            overhangingBlocks.add(Material.AIR) // Should always have air
         }
         manager.data.config.getStringList("abandoned-players").forEach {
             val uuid = UUID.fromString(it)
@@ -192,14 +193,18 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     }
 
     fun isExpeditionWorld(world: World) : Boolean {
+        return getInstance(world) != null
+    }
+
+    fun getInstance(world: World) : ExpeditionInstance? {
         instances.values.forEach { list ->
             list.forEach {
                 if(it.world == world) {
-                    return true
+                    return it
                 }
             }
         }
-        return false
+        return null
     }
 
     fun addInstance(instance: ExpeditionInstance) {

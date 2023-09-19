@@ -4,6 +4,7 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
+import com.ravingarinc.expeditions.api.roll
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
@@ -26,6 +27,7 @@ import org.bukkit.util.Vector
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
+import kotlin.math.abs
 import kotlin.random.Random
 
 class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, val world: World) {
@@ -43,6 +45,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     val mapView: MapView
 
     val renderer: ExpeditionRenderer = ExpeditionRenderer(expedition)
+
+    private val spawnedMobs: MutableMap<String,Int> = HashMap()
+    private val trackedMobs: MutableMap<UUID, String> = HashMap()
 
     val availableSpawns: Queue<BlockVector> = LinkedList(expedition.spawnLocations.shuffled())
     val spawnLock = Mutex(false)
@@ -170,7 +175,19 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     fun tickMobs(random: Random) {
         areaInstances.forEach {
-            it.tickMobs(random, world)
+            it.tickMobs(random, this)
+        }
+        joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
+            val loc = player.location
+            for(i in 0 until expedition.randomSpawnsAmount) {
+                if(!expedition.randomSpawnChance.roll()) continue
+                val mobLoc = findSuitableLocation(world, loc.blockX, loc.blockZ, 32, handler.getOverhangingBlocks(), 24)
+                if(getMobSpawns(mobLoc.blockX, mobLoc.blockZ) > expedition.maxMobsPerChunk) continue
+                val mob = expedition.randomMobCollection.random()
+                mob.first.spawn(mob.second.random(), BlockVector(mobLoc.blockX, mobLoc.blockY, mobLoc.blockZ), world)?.let {
+                    incrementMobSpawns(it.uniqueId, mobLoc.blockX, mobLoc.blockZ)
+                }
+            }
         }
     }
 
@@ -188,6 +205,31 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     fun breakBlock(block: Block, material: Material) {
         brokenBlocks[BlockVector(block.x, block.y, block.z)] = Pair(block, material)
+    }
+
+    fun incrementMobSpawns(mob: UUID, x: Int, z: Int) {
+        val hash = "${x shr 4}|${z shr 4}"
+        val amount = spawnedMobs[hash] ?: 0
+        spawnedMobs[hash] = amount + 1
+        trackedMobs[mob] = hash
+    }
+
+    fun decrementMobSpawns(mob: UUID) {
+        val hash = trackedMobs[mob] ?: return
+        val amount = spawnedMobs[hash] ?: 0
+        if(amount > 0) {
+            spawnedMobs[hash] = amount - 1
+        }
+    }
+
+    fun getMobSpawns(x: Int, z: Int) : Int {
+        val hash = "${x shr 4}|${z shr 4}"
+        return spawnedMobs[hash] ?: 0
+    }
+
+    fun clearMobSpawns() {
+        spawnedMobs.clear()
+        trackedMobs.clear()
     }
 
     /**
@@ -232,18 +274,28 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
-    private suspend fun findSuitableLocation(
+    private fun findSuitableLocation(
         world: World,
         x: Int,
         z: Int,
         radius: Int,
-        overhanging: Set<Material>
+        overhanging: Set<Material>,
+        minimumDistance: Int = 0
     ): Location {
         for (i in 0..7) {
             val randomX = Random.nextInt(-radius, radius)
             val randomZ = Random.nextInt(-radius, radius)
-            val nextX = x + randomX
-            val nextZ = z + randomZ
+            val nextX = if(minimumDistance > 0 && ((-minimumDistance)..minimumDistance).contains(randomX)) {
+                x + randomX + (minimumDistance * (randomX / abs(randomX)))
+            } else {
+                x + randomX
+            }
+            val nextZ = if(minimumDistance > 0 && ((-minimumDistance)..minimumDistance).contains(randomZ)) {
+                z + randomZ + (minimumDistance * (randomZ / abs(randomZ)))
+            } else {
+                z + randomZ
+            }
+
             val block = world.getHighestBlockAt(nextX, nextZ)
             val location = block.location
             val type = block.type
@@ -252,8 +304,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             }
             var isValid = false
             for (y in block.y downTo 64) {
-                val b = world.getBlockAt(nextX, y, nextZ).type
-                if (!overhanging.contains(b)) {
+                if (!overhanging.contains(world.getBlockAt(nextX, y, nextZ).type)) {
                     isValid = true
                     break
                 }
@@ -265,8 +316,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             val newX = location.blockX
             val newY = location.blockY
             val newZ = location.blockZ
-            for (dX in -2..1) {
-                for (dZ in -2..1) {
+            for (dX in -2 until 2) {
+                for (dZ in -2 until 2) {
                     if (!world.getBlockAt(Location(world, newX.toDouble(), newY.toDouble(), newZ.toDouble())).type.isAir) {
                         isValid = false
                         break

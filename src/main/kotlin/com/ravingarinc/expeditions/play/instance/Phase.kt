@@ -246,6 +246,7 @@ class RestorationPhase(expedition: Expedition) :
                     }
                 }
             }
+            instance.clearMobSpawns()
         }
     }
 

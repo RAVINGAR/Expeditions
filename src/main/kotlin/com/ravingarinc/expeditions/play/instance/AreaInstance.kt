@@ -148,7 +148,8 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         }
     }
 
-    fun tickMobs(random: Random, world: World) {
+    fun tickMobs(random: Random, expeditionInstance: ExpeditionInstance) {
+        val world = expeditionInstance.world
         if(boss == null) {
             if(bossCooldown > 0L) {
                 bossCooldown -= 20L
@@ -177,7 +178,10 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
             world.blockWithChunk(plugin, loc.blockX shr 4, loc.blockZ shr 4) {
                 val pair = area.mobCollection.random()
                 area.mobLocations.randomOrNull(random)?.let { vector ->
-                    pair.first.spawn(pair.second.random(random), vector, world)?.let { spawnedMobs.add(it) }
+                    pair.first.spawn(pair.second.random(random), vector, world)?.let {
+                        expeditionInstance.incrementMobSpawns(it.uniqueId, loc.blockX, loc.blockZ)
+                        spawnedMobs.add(it)
+                    }
                 }
             }
         }

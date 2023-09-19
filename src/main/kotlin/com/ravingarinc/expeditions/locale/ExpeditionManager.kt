@@ -88,6 +88,22 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                     this.add(if(line.startsWith("/")) line.substring(1) else line)
                 }
             }
+            /*
+            val mobList = buildList {
+            (poi["mobs"] as? List<*>)?.let { list ->
+                for (i in list) {
+                    parseMob(i as String)?.let {
+                        this.add(Triple(registerMobType(it.first), it.second, it.third))
+                    }
+                }
+            }
+        }
+             */
+            val mobList = buildList {
+                it.getStringList("map.random-mobs").forEach { i ->
+                    parseMob(i)?.let { this.add(Triple(registerMobType(it.first), it.second, it.third))}
+                }
+            }
 
             val map = Expedition(
                 name,
@@ -107,7 +123,10 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 it.getDuration("map.loot-respawn-interval") ?: -1L,
                 it.getDouble("map.loot-respawn-modifier", 1.0),
                 lootBlock, extractionTime, it.getDouble("map.loot-chest-range", 8.0),
-                spawnLocations, onJoin, onExtract
+                spawnLocations, onJoin, onExtract, mobList,
+                it.getInt("map.spawns-per-interval-per-player", 0),
+                it.getPercentage("map.random-mob-spawn-chance"),
+                it.getInt("map.max-mobs-per-chunk", 0)
             )
             for(poi in it.getMapList("points-of-interest")) {
                 loadPointOfInterest(name, poi)?.let { map.addArea(it) }
