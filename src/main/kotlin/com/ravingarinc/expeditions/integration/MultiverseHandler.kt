@@ -12,6 +12,7 @@ import org.bukkit.Difficulty
 import org.bukkit.GameRule
 import org.bukkit.World
 import org.bukkit.event.EventHandler
+import java.io.File
 import java.util.logging.Level
 
 class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(MultiverseHandler::class.java, plugin) {
@@ -46,6 +47,7 @@ class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(Multiver
                     "This should not have occurred. Please stop the server, delete that world then try again!")
             return null
         }
+        copyWorldGuardFiles(name, newName)
         if(multiverse.mvWorldManager.cloneWorld(name, newName)) {
             clonedWorldNames.add(newName)
             val mvWorld = multiverse.mvWorldManager.getMVWorld(newName)
@@ -65,6 +67,17 @@ class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(Multiver
         } else {
             warn("Could not clone world '${name}' for unknown reason!")
             return null
+        }
+    }
+
+    fun copyWorldGuardFiles(name: String, newName: String) {
+        val parent = File("${plugin.dataFolder.parent}\\WorldGuard\\worlds")
+        if(!parent.exists()) return
+        val origin = File(parent, name)
+        if(!origin.exists()) return
+        origin.copyRecursively(File(parent, newName), overwrite = true) { _, exception ->
+            I.log(Level.SEVERE, "Encountered exception whilst copying WorldGuard files for expedition world '$name'", exception)
+            return@copyRecursively OnErrorAction.TERMINATE
         }
     }
 
