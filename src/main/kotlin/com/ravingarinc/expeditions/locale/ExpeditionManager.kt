@@ -126,7 +126,9 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 spawnLocations, onJoin, onExtract, mobList,
                 it.getInt("map.spawns-per-interval-per-player", 0),
                 it.getPercentage("map.random-mob-spawn-chance"),
-                it.getInt("map.max-mobs-per-chunk", 0)
+                it.getInt("map.max-mobs-per-chunk", 0),
+                it.getInt("map.lowest-y", 0),
+                it.getInt("map.highest-y", 324)
             )
             for(poi in it.getMapList("points-of-interest")) {
                 loadPointOfInterest(name, poi)?.let { map.addArea(it) }

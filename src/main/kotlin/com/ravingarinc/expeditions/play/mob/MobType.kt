@@ -25,7 +25,7 @@ class MythicMobType(private val identifier: String) : MobType {
 
     override fun spawn(level: Int, vector: BlockVector, world: World) : Entity? {
         getMythicMob()?.let {
-            val spawned = it.spawn(AbstractLocation(BukkitAdapter.adapt(world), vector.x, vector.y, vector.z), level.toDouble())
+            val spawned = it.spawn(AbstractLocation(BukkitAdapter.adapt(world), vector.x + 0.5, vector.y, vector.z + 0.5), level.toDouble())
             val bukkitEntity = spawned.entity.bukkitEntity
             bukkitEntity.isPersistent = true
             if(bukkitEntity is LivingEntity) {
@@ -57,7 +57,7 @@ class MythicMobType(private val identifier: String) : MobType {
 
 class VanillaMobType(private val type: EntityType) : MobType {
     override fun spawn(level: Int, vector: BlockVector, world: World): Entity {
-        val entity = world.spawnEntity(Location(world, vector.x, vector.y, vector.z), type, true)
+        val entity = world.spawnEntity(Location(world, vector.x + 0.5, vector.y, vector.z + 0.5), type, true)
         entity.isPersistent = true
         if(entity is LivingEntity) {
             entity.removeWhenFarAway = false

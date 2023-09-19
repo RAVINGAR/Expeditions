@@ -283,8 +283,10 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         minimumDistance: Int = 0
     ): Location {
         for (i in 0..7) {
-            val randomX = Random.nextInt(-radius, radius)
-            val randomZ = Random.nextInt(-radius, radius)
+            var randomX = Random.nextInt(-radius, radius)
+            var randomZ = Random.nextInt(-radius, radius)
+            if(randomX == 0) randomX = 1
+            if(randomZ == 0) randomZ = 1
             val nextX = if(minimumDistance > 0 && ((-minimumDistance)..minimumDistance).contains(randomX)) {
                 x + randomX + (minimumDistance * (randomX / abs(randomX)))
             } else {
@@ -303,16 +305,20 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                 continue
             }
             var isValid = false
-            for (y in block.y downTo 64) {
-                if (!overhanging.contains(world.getBlockAt(nextX, y, nextZ).type)) {
-                    isValid = true
-                    break
-                }
+            val chosenY = if(block.y > expedition.highestY) expedition.highestY else block.y
+            for (y in chosenY downTo expedition.lowestY) {
+                val b = world.getBlockAt(nextX, y, nextZ).type
+                if(!block.isCollidable) continue
+                if(overhanging.contains(b)) continue
+
+                location.y = y.toDouble()
+                isValid = true
+                break
             }
             if (!isValid) {
                 continue
             }
-            location.add(0.0, 1.0, 0.0)
+            location.add(0.5, 1.0, 0.5)
             val newX = location.blockX
             val newY = location.blockY
             val newZ = location.blockZ

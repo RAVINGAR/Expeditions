@@ -7,7 +7,7 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.WeightedCollection
 import com.ravingarinc.expeditions.play.mob.MobType
-import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
+import com.ravingarinc.expeditions.play.render.RenderColour
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
@@ -46,12 +46,14 @@ class Expedition(val identifier: String,
                  randomMobs: List<Triple<MobType, Double, IntRange>>,
                  val randomSpawnsAmount: Int,
                  val randomSpawnChance: Double,
-                 val maxMobsPerChunk: Int) {
+                 val maxMobsPerChunk: Int,
+                 val lowestY: Int,
+                 val highestY: Int) {
     private val areas: MutableList<Area> = ArrayList()
 
     private val formatted: String
 
-    val colourCache: Array<Color> = Array(16384) { ExpeditionRenderer.MapColour.STONE.id }
+    val colourCache: Array<Color> = Array(16384) { RenderColour.STONE.id }
 
     private var mapJob: Job? = null
     private var isMapDone = AtomicBoolean(false)
@@ -101,7 +103,7 @@ class Expedition(val identifier: String,
                                         for(innerZ in 0 until 2) {
                                             val type = world.getHighestBlockAt(sumX + innerX, sumZ + innerZ).type
                                             if(type == Material.BARRIER) continue
-                                            for(colour in ExpeditionRenderer.MapColour.values()) {
+                                            for(colour in RenderColour.values()) {
                                                 if(colour.predicate.invoke(type)) {
                                                     //colours[innerX + 2 * innerZ] = colour.id
                                                     colours.add(colour.id)
@@ -111,7 +113,7 @@ class Expedition(val identifier: String,
                                         }
                                     }
                                     this@Expedition.colourCache[z * 128 + x] = if(colours.isEmpty()) {
-                                        ExpeditionRenderer.MapColour.STONE.id
+                                        RenderColour.STONE.id
                                     } else {
                                         var totalRed = 0; var totalGreen = 0; var totalBlue = 0;
                                         for(c in colours) {

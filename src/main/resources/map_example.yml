@@ -52,6 +52,10 @@ map:
   # This will essentially pick a random chunk within 3 x 3 chunks around the player and attempt to spawn a mob
   spawns-per-interval-per-player: 2
   max-mobs-per-chunk: 2
+  # The lowest allowed y coordinate for random spawns
+  lowest-y: 64
+  # The highest allowed y coordinate for random spawns for both players and mobs
+  highest-y: 324
 points-of-interest:
   - name: 'Ancient Ruins' # Unique Display name of the POI
     start-location: 25,40,70 # The x,y,z coordinate of one corner of this area
