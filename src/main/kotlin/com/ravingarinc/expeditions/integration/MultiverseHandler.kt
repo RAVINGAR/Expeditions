@@ -71,7 +71,7 @@ class MultiverseHandler(plugin: RavinPlugin) : SuspendingModuleListener(Multiver
     }
 
     fun copyWorldGuardFiles(name: String, newName: String) {
-        val parent = File("${plugin.dataFolder.parent}\\WorldGuard\\worlds")
+        val parent = File("${plugin.dataFolder.parent}${File.separator}WorldGuard${File.separator}worlds")
         if(!parent.exists()) return
         val origin = File(parent, name)
         if(!origin.exists()) return
