@@ -40,19 +40,21 @@ map:
   # Commands executed for each player joining the event. Use the @player tag to replace it
   # with the player's name.
   on-join-commands:
+    - 'tellraw @player {"text":"You have joined the Battlegrounds expedition!","color":"green"}'
     - 'tellraw @player {"text":"Information about the event; You have only so much time to gather resources and loot before the second phase. Once the second phase begins you must make your way to an extraction zone before time runs out!","color":"gray"}'
   # Commands executed when a player successfully extracts
   on-extract-commands:
     - 'tellraw @player {"text":"You successfully extracted!","color":"yellow"}'
+  # List of random mobs, uses same format as POIs.
   random-mobs:
     - 'mythic:ancient_zombie,1.0,3'
-  # The chance per spawn for a mob to be spawned
+  # The chance per spawn for a mob to be spawned every interval
   random-mob-spawn-chance: 50%
-  # How many mobs are spawned randomly per interval for every player in the expedition.
-  # This will essentially pick a random chunk within 3 x 3 chunks around the player and attempt to spawn a mob
+  # How many attempts to spawn a mob are made per player every interval
   spawns-per-interval-per-player: 2
+  # Max mobs allowed to be spawned in a chunk.
   max-mobs-per-chunk: 2
-  # The lowest allowed y coordinate for random spawns
+  # The lowest allowed y coordinate for random spawns for both players and mobs
   lowest-y: 64
   # The highest allowed y coordinate for random spawns for both players and mobs
   highest-y: 324

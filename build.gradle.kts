@@ -1,3 +1,4 @@
+import org.gradle.internal.impldep.org.eclipse.jgit.lib.ObjectChecker.author
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -48,6 +49,12 @@ repositories {
         }
     }
 
+    maven("https://repo.alessiodp.com/releases/") {
+        content {
+            includeGroup("com.alessiodp.parties")
+        }
+    }
+
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://oss.sonatype.org/content/groups/public/")
@@ -82,6 +89,8 @@ dependencies {
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.2")
+
+    compileOnly("com.alessiodp.parties:parties-api:3.2.13")
 
     compileOnly("net.citizensnpcs:citizens-main:2.0.30-SNAPSHOT")
 
@@ -155,7 +164,7 @@ bukkit {
     // Other possible properties from plugin.yml (optional)
     author = "RAVINGAR"
     depend = listOf("Multiverse-Core", "ProtocolLib")
-    softDepend = listOf("MMOItems", "MythicMobs", "MythicCrucible", "PlaceholderAPI", "Citizens")
+    softDepend = listOf("MMOItems", "MythicMobs", "MythicCrucible", "PlaceholderAPI", "Citizens", "Parties")
 
     commands {
         register("expeditions") {

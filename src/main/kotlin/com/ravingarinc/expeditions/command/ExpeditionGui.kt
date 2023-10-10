@@ -73,17 +73,14 @@ object ExpeditionGui {
                     player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
                     return@RunnableAction
                 }
-                if(handler.joinExpedition(it.identifier, player)) {
+                if(handler.tryJoinExpedition(it.identifier, player)) {
                     player.closeInventory()
-                    player.sendMessage("${ChatColor.GREEN}You have joined the '${it.displayName}' expedition!")
-                    player.playSound(player, Sound.BLOCK_NOTE_BLOCK_CHIME, 0.8F, 0.8F)
                 } else {
                     player.sendMessage("${ChatColor.RED}Could not join that expedition at this time! Please try again later!")
                     player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
                 }
                 return@RunnableAction
             } }
-
         builder.runOnDestroy {
             guis.remove(player)
         }

@@ -12,13 +12,16 @@ import com.ravingarinc.expeditions.command.ExpeditionGui
 import com.ravingarinc.expeditions.integration.MultiverseHandler
 import com.ravingarinc.expeditions.locale.ExpeditionManager
 import com.ravingarinc.expeditions.locale.type.Expedition
+import com.ravingarinc.expeditions.party.PartyManager
 import com.ravingarinc.expeditions.persistent.ConfigManager
 import com.ravingarinc.expeditions.play.instance.CachedPlayer
 import com.ravingarinc.expeditions.play.instance.ExpeditionInstance
 import com.ravingarinc.expeditions.play.instance.IdlePhase
 import com.ravingarinc.expeditions.play.instance.PlayPhase
 import kotlinx.coroutines.CoroutineScope
+import org.bukkit.ChatColor
 import org.bukkit.Material
+import org.bukkit.Sound
 import org.bukkit.World
 import org.bukkit.entity.Player
 import java.util.*
@@ -28,6 +31,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     private lateinit var expeditions: ExpeditionManager
     private lateinit var multiverse: MultiverseHandler
     private lateinit var manager: ConfigManager
+    private lateinit var parties: PartyManager
 
     private var initialInstances = 1
     private var maxInstances: Int = 4
@@ -43,8 +47,11 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
 
     private lateinit var capacityJob: CapacityTicker
 
+    // Todo might be worthwhile adding a 'join-queue' such that join requests aren't overloaded for specific expeditions
+
     override suspend fun suspendLoad() {
         manager = plugin.getModule(ConfigManager::class.java)
+        parties = plugin.getModule(PartyManager::class.java)
         manager.config.consume("general") {
             tickInterval = (it.getDuration("tick-interval") ?: 1200).toInt()
             initialInstances = it.getInt("initial-instances", 1)
@@ -137,12 +144,65 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         manager.saveData()
     }
 
+    fun tryJoinExpedition(identifier: String, player: Player) : Boolean {
+        val expedition = expeditions.getMapByIdentifier(identifier) ?: return false
+        val provider = parties.getProvider() ?: return tryJoinExpedition(identifier, player)
+        with(provider) {
+            if(player.isInParty()) {
+                if(player.isPartyLeader()) {
+                    val members = player.getPartyMembers()
+                    if(members.size > expedition.maxPlayers) {
+                        player.sendMessage("${ChatColor.RED}Your party is too big for this expedition!")
+                        player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
+                        return false
+                    }
+                    for(member in members) {
+                        if(expedition.permission != null && !member.hasPermission(expedition.permission)) {
+                            player.sendMessage("${ChatColor.RED}You cannot join this expedition as not all party members have the required permissions!")
+                            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
+                            return false
+                        }
+                        if(getJoinedExpedition(member) != null) {
+                            player.sendMessage("${ChatColor.RED}You cannot join a new expedition whilst one of your party members is still in an expedition!")
+                            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
+                            return false
+                        }
+                    }
+                    val list = instances[identifier]!!
+                    val randomList = ArrayList(list)
+                    randomList.shuffle()
+                    for(i in randomList) {
+                        if(i.canJoin() && i.getJoinedPlayers().size + members.size <= expedition.maxPlayers) {
+                            for(member in members) i.participate(member)
+                            return true
+                        }
+                    }
+                    player.sendMessage("${ChatColor.RED}Could not find any expedition instances that have enough free slots for your party! Please try again later.")
+                    player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
+                    return false
+                } else {
+                    player.sendMessage("${ChatColor.RED}Only the party leader can perform this action!")
+                    player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
+                    return false
+                }
+            } else {
+                tryJoinExpedition(identifier, player)
+            }
+        }
+        return true
+    }
+
+
+    /**
+     * Try and join an expedition for a singular player, when handling parties a different method must be used.
+     */
     fun joinExpedition(identifier: String, player: Player) : Boolean {
         val list = instances[identifier] ?: return false
         val randomList = ArrayList(list)
         randomList.shuffle()
         for(i in randomList) {
-            if(i.canJoin() && i.participate(player)) {
+            if(i.canJoin()) {
+                i.participate(player)
                 return true
             }
         }

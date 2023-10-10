@@ -7,6 +7,7 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.roll
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
+import com.ravingarinc.expeditions.party.PartyManager
 import com.ravingarinc.expeditions.play.PlayHandler
 import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
@@ -32,6 +33,7 @@ import kotlin.random.Random
 
 class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, val world: World) {
     private val handler = plugin.getModule(PlayHandler::class.java)
+    private val parties = plugin.getModule(PartyManager::class.java)
     private var phase: Phase = IdlePhase(expedition)
     val bossBar = plugin.server.createBossBar(
         NamespacedKey(plugin, "${world.name}_bossbar"),
@@ -236,21 +238,19 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
      * Try to join this player to this expedition instance. Returns true if successful, or false
      * if not.
      */
-    fun participate(player: Player) : Boolean {
-        if(!phase.isActive()) {
-            return false
-        }
+    fun participate(player: Player) {
         if(phase is IdlePhase) {
             phase.next(this)
             join(player)
         } else if(phase is PlayPhase) {
             join(player)
         }
-        return true
     }
 
+    /**
+     * Join the specific player, does not consider parties.
+     */
     private fun join(player: Player) {
-        // Todo, also check if they are in a party?
         plugin.launch {
             val loc = if(expedition.spawnLocations.isEmpty()) {
                 findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
@@ -261,6 +261,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             expedition.onJoinCommands.forEach {
                 plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name))
             }
+            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_CHIME, 0.8F, 0.8F)
         }
     }
 
@@ -564,6 +565,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     }
 
     fun canJoin() : Boolean {
+        if(!phase.isActive()) return false
         if(phase is IdlePhase || phase is PlayPhase) {
             return joinedPlayers.size < expedition.maxPlayers
         }
