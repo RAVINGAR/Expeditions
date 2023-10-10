@@ -248,22 +248,44 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
+    fun participate(collection: Collection<Player>) {
+        if(phase is IdlePhase) {
+            phase.next(this)
+            join(collection)
+        } else if(phase is PlayPhase) {
+            join(collection)
+        }
+    }
+
+    private fun join(collection: Collection<Player>) = plugin.launch {
+        val loc = if(expedition.spawnLocations.isEmpty()) {
+            findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
+        } else {
+            getRandomLocation(world)
+        }
+        val locations = LinkedList<Location>()
+        locations.add(loc)
+        for(i in 1 until collection.size) {
+            locations.add(findSuitableLocation(world, loc.blockX, loc.blockZ, 8, handler.getOverhangingBlocks(), 1))
+        }
+        for(player in collection) {
+            val playerLoc = locations.poll() ?: throw IllegalStateException("Something went wrong getting player locations. Off-By-One Error?")
+            addPlayer(player, playerLoc)
+            expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
+        }
+    }
+
     /**
      * Join the specific player, does not consider parties.
      */
-    private fun join(player: Player) {
-        plugin.launch {
-            val loc = if(expedition.spawnLocations.isEmpty()) {
-                findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
-            } else {
-                getRandomLocation(world)
-            }
-            addPlayer(player, loc)
-            expedition.onJoinCommands.forEach {
-                plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name))
-            }
-            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_CHIME, 0.8F, 0.8F)
+    private fun join(player: Player) = plugin.launch {
+        val loc = if(expedition.spawnLocations.isEmpty()) {
+            findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
+        } else {
+            getRandomLocation(world)
         }
+        addPlayer(player, loc)
+        expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
     }
 
     private suspend fun getRandomLocation(world: World) : Location {

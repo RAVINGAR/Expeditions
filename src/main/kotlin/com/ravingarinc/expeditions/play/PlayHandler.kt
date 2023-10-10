@@ -21,7 +21,6 @@ import com.ravingarinc.expeditions.play.instance.PlayPhase
 import kotlinx.coroutines.CoroutineScope
 import org.bukkit.ChatColor
 import org.bukkit.Material
-import org.bukkit.Sound
 import org.bukkit.World
 import org.bukkit.entity.Player
 import java.util.*
@@ -153,18 +152,15 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                     val members = player.getPartyMembers()
                     if(members.size > expedition.maxPlayers) {
                         player.sendMessage("${ChatColor.RED}Your party is too big for this expedition!")
-                        player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
                         return false
                     }
                     for(member in members) {
                         if(expedition.permission != null && !member.hasPermission(expedition.permission)) {
                             player.sendMessage("${ChatColor.RED}You cannot join this expedition as not all party members have the required permissions!")
-                            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
                             return false
                         }
                         if(getJoinedExpedition(member) != null) {
                             player.sendMessage("${ChatColor.RED}You cannot join a new expedition whilst one of your party members is still in an expedition!")
-                            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
                             return false
                         }
                     }
@@ -173,16 +169,14 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                     randomList.shuffle()
                     for(i in randomList) {
                         if(i.canJoin() && i.getJoinedPlayers().size + members.size <= expedition.maxPlayers) {
-                            for(member in members) i.participate(member)
+                            i.participate(members)
                             return true
                         }
                     }
                     player.sendMessage("${ChatColor.RED}Could not find any expedition instances that have enough free slots for your party! Please try again later.")
-                    player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
                     return false
                 } else {
                     player.sendMessage("${ChatColor.RED}Only the party leader can perform this action!")
-                    player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
                     return false
                 }
             } else {
@@ -206,6 +200,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                 return true
             }
         }
+        player.sendMessage("${ChatColor.RED}Could not join any instances for this expedition at this time! Please try again later.")
         return false
     }
 
