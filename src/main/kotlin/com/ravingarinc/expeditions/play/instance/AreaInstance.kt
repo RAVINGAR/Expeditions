@@ -16,6 +16,7 @@ import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.World
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
+import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.util.BlockVector
 import org.bukkit.util.Vector
@@ -157,6 +158,12 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
                 area.bossSpawnLocation?.let {
                     world.blockWithChunk(plugin, it.blockX shr 4, it.blockZ shr 4) { _ ->
                         boss = area.bossType.spawn(area.bossLevel, it, world)
+                        boss?.let { e ->
+                            e.isPersistent = true
+                            if(e is LivingEntity) {
+                                e.removeWhenFarAway = false
+                            }
+                        }
                     }
                 }
             }
@@ -181,6 +188,10 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
                     pair.first.spawn(pair.second.random(random), vector, world)?.let {
                         expeditionInstance.incrementMobSpawns(it.uniqueId, loc.blockX, loc.blockZ)
                         spawnedMobs.add(it)
+                        it.isPersistent = true
+                        if(it is LivingEntity) {
+                            it.removeWhenFarAway = false
+                        }
                     }
                 }
             }

@@ -20,7 +20,6 @@ map:
   # The duration of the storm phase. After this phase is over any remaining players will be killed
   storm-duration: 15m
   # During an event, the interval of how regularly a POI is 'ticked' (see map_example.yml)
-  # Random mobs are also ticked for every interval.
   mob-spawn-interval: 5min
   # When a map has entered the final storm stage, the mob-spawn-interval is divided by this number.
   # A value of 2 would effectively double the chance of a mob spawning
@@ -48,6 +47,8 @@ map:
   # List of random mobs, uses same format as POIs.
   random-mobs:
     - 'mythic:ancient_zombie,1.0,3'
+  # How often random spawns are ticked. During the storm phase, this interval is divided by the mob-spawn-modifier setting.
+  random-mob-spawn-interval: 2min
   # The chance per spawn for a mob to be spawned every interval
   random-mob-spawn-chance: 50%
   # How many attempts to spawn a mob are made per player every interval

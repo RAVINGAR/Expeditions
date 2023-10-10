@@ -9,7 +9,6 @@ import org.bukkit.Location
 import org.bukkit.World
 import org.bukkit.entity.Entity
 import org.bukkit.entity.EntityType
-import org.bukkit.entity.LivingEntity
 import org.bukkit.util.BlockVector
 
 sealed interface MobType {
@@ -25,13 +24,11 @@ class MythicMobType(private val identifier: String) : MobType {
 
     override fun spawn(level: Int, vector: BlockVector, world: World) : Entity? {
         getMythicMob()?.let {
-            val spawned = it.spawn(AbstractLocation(BukkitAdapter.adapt(world), vector.x + 0.5, vector.y, vector.z + 0.5), level.toDouble())
-            val bukkitEntity = spawned.entity.bukkitEntity
-            bukkitEntity.isPersistent = true
-            if(bukkitEntity is LivingEntity) {
-                bukkitEntity.removeWhenFarAway = false
-            }
-            return bukkitEntity
+            val spawned = it.spawn(
+                AbstractLocation(BukkitAdapter.adapt(world), vector.x + 0.5, vector.y, vector.z + 0.5),
+                level.toDouble()
+            )
+            return spawned.entity.bukkitEntity
         }
         return null
     }
@@ -57,12 +54,7 @@ class MythicMobType(private val identifier: String) : MobType {
 
 class VanillaMobType(private val type: EntityType) : MobType {
     override fun spawn(level: Int, vector: BlockVector, world: World): Entity {
-        val entity = world.spawnEntity(Location(world, vector.x + 0.5, vector.y, vector.z + 0.5), type, true)
-        entity.isPersistent = true
-        if(entity is LivingEntity) {
-            entity.removeWhenFarAway = false
-        }
-        return entity
+        return world.spawnEntity(Location(world, vector.x + 0.5, vector.y, vector.z + 0.5), type, true)
     }
 
     override fun reload() {}

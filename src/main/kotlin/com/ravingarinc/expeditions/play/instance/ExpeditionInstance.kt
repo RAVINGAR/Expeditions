@@ -7,7 +7,6 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.roll
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
-import com.ravingarinc.expeditions.party.PartyManager
 import com.ravingarinc.expeditions.play.PlayHandler
 import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
@@ -33,7 +32,6 @@ import kotlin.random.Random
 
 class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, val world: World) {
     private val handler = plugin.getModule(PlayHandler::class.java)
-    private val parties = plugin.getModule(PartyManager::class.java)
     private var phase: Phase = IdlePhase(expedition)
     val bossBar = plugin.server.createBossBar(
         NamespacedKey(plugin, "${world.name}_bossbar"),
@@ -179,6 +177,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         areaInstances.forEach {
             it.tickMobs(random, this)
         }
+    }
+
+    fun tickRandomMobs(random: Random) {
         joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
             val loc = player.location
             for(i in 0 until expedition.randomSpawnsAmount) {

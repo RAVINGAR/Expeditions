@@ -146,7 +146,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
 
     fun tryJoinExpedition(identifier: String, player: Player) : Boolean {
         val expedition = expeditions.getMapByIdentifier(identifier) ?: return false
-        val provider = parties.getProvider() ?: return tryJoinExpedition(identifier, player)
+        val provider = parties.getProvider() ?: return joinExpedition(identifier, player)
         with(provider) {
             if(player.isInParty()) {
                 if(player.isPartyLeader()) {
@@ -186,7 +186,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                     return false
                 }
             } else {
-                tryJoinExpedition(identifier, player)
+                joinExpedition(identifier, player)
             }
         }
         return true

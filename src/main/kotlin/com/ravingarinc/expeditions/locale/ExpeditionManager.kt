@@ -124,6 +124,7 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 it.getDouble("map.loot-respawn-modifier", 1.0),
                 lootBlock, extractionTime, it.getDouble("map.loot-chest-range", 8.0),
                 spawnLocations, onJoin, onExtract, mobList,
+                it.getDuration("map.random-mob-spawn-interval") ?: -1L,
                 it.getInt("map.spawns-per-interval-per-player", 0),
                 it.getPercentage("map.random-mob-spawn-chance"),
                 it.getInt("map.max-mobs-per-chunk", 0),

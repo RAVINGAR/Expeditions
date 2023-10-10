@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 
-sealed class Phase(val name: String, private val mobInterval: Long, private val lootInterval: Long, val durationTicks: Long, private val nextPhase: () -> Phase) {
+sealed class Phase(val name: String, private val mobInterval: Long, private val randomMobInterval: Long, private val lootInterval: Long, val durationTicks: Long, private val nextPhase: () -> Phase) {
     protected var ticks = 0L
     protected var isActive: AtomicBoolean = AtomicBoolean(false)
 
@@ -64,6 +64,9 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
         if(lootInterval != -1L && ticks % lootInterval == 0L) {
             instance.tickLoot(random)
         }
+        if(randomMobInterval != -1L && ticks % randomMobInterval == 0L) {
+            instance.tickRandomMobs(random)
+        }
         instance.tickNPC()
     }
 
@@ -77,7 +80,7 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
 }
 
 class IdlePhase(expedition: Expedition) :
-    Phase("${ChatColor.GRAY}Idle ✓", -1, -1, -1, {
+    Phase("${ChatColor.GRAY}Idle ✓", -1, -1, -1, -1, {
         PlayPhase(expedition)
 }) {
     override fun onStart(instance: ExpeditionInstance) {
@@ -117,7 +120,7 @@ class IdlePhase(expedition: Expedition) :
 }
 
 class PlayPhase(expedition: Expedition) :
-    Phase("${ChatColor.GREEN}Peaceful ✓", expedition.mobInterval, expedition.lootInterval, expedition.calmPhaseDuration, {
+    Phase("${ChatColor.GREEN}Peaceful ✓", expedition.mobInterval, expedition.randomMobInterval, expedition.lootInterval, expedition.calmPhaseDuration, {
     StormPhase(expedition)
 }) {
         private val totalTime = expedition.calmPhaseDuration + expedition.stormPhaseDuration
@@ -138,7 +141,7 @@ class PlayPhase(expedition: Expedition) :
 }
 
 class StormPhase(expedition: Expedition) :
-    Phase("${ChatColor.RED}Storm ❌", (expedition.mobInterval / expedition.mobModifier).toLong(), (expedition.lootInterval / expedition.lootModifier).toLong(), expedition.stormPhaseDuration, {
+    Phase("${ChatColor.RED}Storm ❌", (expedition.mobInterval / expedition.mobModifier).toLong(), (expedition.randomMobInterval / expedition.mobModifier).toLong(), (expedition.lootInterval / expedition.lootModifier).toLong(), expedition.stormPhaseDuration, {
     RestorationPhase(expedition)
 }) {
     private val totalTime = expedition.calmPhaseDuration + expedition.stormPhaseDuration
@@ -218,7 +221,7 @@ class StormPhase(expedition: Expedition) :
 }
 
 class RestorationPhase(expedition: Expedition) :
-    Phase("${ChatColor.YELLOW}Restoring ❌", -1, -1, 0L, {
+    Phase("${ChatColor.YELLOW}Restoring ❌", -1, -1, -1, 0L, {
     IdlePhase(expedition)
 }) {
         private val jobs : MutableSet<Job> = ConcurrentHashMap.newKeySet()
