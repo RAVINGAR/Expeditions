@@ -306,7 +306,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         overhanging: Set<Material>,
         minimumDistance: Int = 0
     ): Location {
-        for (i in 0..7) {
+        for (i in 0..15) {
             var randomX = Random.nextInt(-radius, radius)
             var randomZ = Random.nextInt(-radius, radius)
             if(randomX == 0) randomX = 1

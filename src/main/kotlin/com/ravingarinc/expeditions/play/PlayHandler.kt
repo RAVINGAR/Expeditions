@@ -83,9 +83,8 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                 type.render(plugin)
             }
             capacityJob.start(tickInterval)
+            ticker.start()
         }
-        ticker.start()
-
         manager.getRespawningPlayers().forEach {
             respawningPlayers[it.player.uniqueId] = it
         }
