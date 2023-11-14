@@ -53,8 +53,8 @@ object ExpeditionGui {
             .addPage("expedition_locked_page", 10, 11, 12, 13, 14, 15, 16)
             .addPageFiller("lock_filler") { listOf(10, 11, 12, 13, 14, 15, 16) }
             .setIdentifierProvider { it -> "type_$it"}
-            .setDisplayNameProvider { _ -> "" }
-            .setLoreProvider { _ -> "&7No expeditions available..."}
+            .setDisplayNameProvider { _ -> "${ChatColor.RED}Locked" }
+            .setLoreProvider { _ -> ""}
             .setMaterialProvider { _ -> Material.IRON_BARS }
             .setPredicateProvider { _ -> return@setPredicateProvider BiPredicate { _, _ -> handler.areExpeditionsLocked() } }
             .finalise().finalise()
