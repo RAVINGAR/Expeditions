@@ -4,6 +4,7 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.blockWithChunk
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.MobType
+import net.kyori.adventure.text.ComponentLike
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.map.MapCursor
@@ -34,8 +35,9 @@ class ExtractionZone(val chance: Double,
                      npcFollowText: String,
                      npcRefollowText: String,
                      npcUnfollowText: String,
-                     cursorType: MapCursor.Type
-) : Area(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown, npcIdentifier, npcSpawnLoc, npcOnSpawn, npcOnExtract, npcFollowText, npcRefollowText, npcUnfollowText, cursorType) {
+                     cursorType: MapCursor.Type,
+                     enterMessage: ComponentLike
+) : Area(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown, npcIdentifier, npcSpawnLoc, npcOnSpawn, npcOnExtract, npcFollowText, npcRefollowText, npcUnfollowText, cursorType, enterMessage) {
 
     override val displayType: String = "Extraction Zone"
     override fun initialise(plugin: RavinPlugin, world: World) {

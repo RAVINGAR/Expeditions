@@ -4,6 +4,7 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.WeightedCollection
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.MobType
+import net.kyori.adventure.text.ComponentLike
 import org.bukkit.World
 import org.bukkit.map.MapCursor
 import org.bukkit.util.BlockVector
@@ -33,7 +34,8 @@ abstract class Area(val displayName: String,
                     val npcFollowText: String,
                     val npcRefollowText: String,
                     val npcUnfollowText: String,
-                    val cursorType: MapCursor.Type) {
+                    val cursorType: MapCursor.Type,
+                    val enterMessage: ComponentLike) {
     abstract val displayType: String
 
     val lootCollection: WeightedCollection<LootTable> = WeightedCollection()

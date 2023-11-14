@@ -13,6 +13,8 @@ import com.ravingarinc.expeditions.persistent.ConfigManager
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.EmptyMobType
 import com.ravingarinc.expeditions.play.mob.MobType
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.ComponentLike
 import org.bukkit.ChatColor
 import org.bukkit.Material
 import org.bukkit.map.MapCursor
@@ -221,8 +223,11 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 }
             }
         }
+        val name = poi["name"].toString();
+        val rawMessage = parseMessage(name, poi.getOrDefault("enter-message","&6&l{name}&r&7 | &ePoint of Interest").toString());
+
         return PointOfInterest(
-            poi["name"].toString(),
+            name,
             startLoc,
             endLoc,
             poi["loot-chest-limit"].toString().toDoubleOrNull() ?: 0.0,
@@ -245,8 +250,13 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             npcFollowText,
             npcRefollowText,
             npcUnfollowText,
-            parseCursor(poi["cursor-type"]?.toString(), MapCursor.Type.MANSION)
+            parseCursor(poi["cursor-type"]?.toString(), MapCursor.Type.MANSION),
+            rawMessage
         )
+    }
+
+    private fun parseMessage(areaName: String, message: String) : ComponentLike {
+        return Component.text(ChatColor.translateAlternateColorCodes('&', message.replace("{name}", areaName)))
     }
     
     private fun loadExtractionZone(mapName: String, zone: MutableMap<*, *>) : ExtractionZone? {
@@ -328,10 +338,13 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             }
         }
 
+        val name = zone["name"].toString();
+        val rawMessage = parseMessage(name, zone.getOrDefault("enter-message","&6&l{name}&r&7 | &eExtraction Zone").toString());
+
         return ExtractionZone(
             parsePercentage(zone["chance"].toString()),
             parseBlockVector(zone["beacon-loc"].toString()),
-            zone["name"].toString(),
+            name,
             startLoc,
             endLoc,
             zone["loot-chest-limit"].toString().toDoubleOrNull() ?: 0.0,
@@ -354,7 +367,8 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             npcFollowText,
             npcRefollowText,
             npcUnfollowText,
-            parseCursor(zone["cursor-type"]?.toString(), MapCursor.Type.BANNER_GREEN)
+            parseCursor(zone["cursor-type"]?.toString(), MapCursor.Type.BANNER_GREEN),
+            rawMessage
         )
     }
 

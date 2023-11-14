@@ -10,9 +10,6 @@ import com.ravingarinc.expeditions.integration.npc.ExpeditionNPC
 import com.ravingarinc.expeditions.locale.type.Area
 import com.ravingarinc.expeditions.locale.type.Expedition
 import kotlinx.coroutines.delay
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.World
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
@@ -244,13 +241,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
     fun onMove(player: Player) : Boolean {
         val loc = player.location.toVector()
         return if(area.isInArea(loc.x.toInt(), loc.y.toInt(), loc.z.toInt())) {
-            if(inArea.add(player)) {
-                val component = Component.text().append(Component
-                    .text(area.displayName).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
-                    .append(Component.text(" | ").color(NamedTextColor.GRAY))
-                    .append(Component.text(area.displayType).color(NamedTextColor.YELLOW)))
-                player.sendActionBar(component)
-            }
+            if(inArea.add(player)) player.sendActionBar(area.enterMessage)
             val radSquared = expedition.lootRange * expedition.lootRange
             spawnedChests.forEach {
                 if(it.key.distanceSquared(loc) < radSquared) {
