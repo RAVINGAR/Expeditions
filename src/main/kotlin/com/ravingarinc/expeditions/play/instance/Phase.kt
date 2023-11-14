@@ -10,15 +10,17 @@ import com.ravingarinc.expeditions.play.PlayHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.Location
 import org.bukkit.Sound
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarFlag
 import org.bukkit.map.MapCursor
+import org.bukkit.potion.PotionEffect
+import org.bukkit.potion.PotionEffectType
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
@@ -105,7 +107,8 @@ class IdlePhase(expedition: Expedition) :
         instance.bossBar.progress = 1.0
 
         instance.expedition.onCreateCommands.forEach { command ->
-            instance.plugin.server.dispatchCommand(Bukkit.getConsoleSender(), command.replace("{world}", instance.world.name))
+            warn("Debug -> executing command '$command'")
+            instance.plugin.server.dispatchCommand(instance.plugin.server.consoleSender, command.replace("{world}", instance.world.name))
         }
     }
 
@@ -134,9 +137,9 @@ class PlayPhase(expedition: Expedition) :
         super.onTick(random, instance)
         instance.bossBar.progress = 1.0 - (ticks / totalTime.toDouble())
         tickExtractions(instance)
-        if(!rainStarted && this.durationTicks - ticks <= 100) {
+        if(!rainStarted && this.durationTicks - ticks <= 200) {
             val world = instance.world
-            val duration = instance.expedition.stormPhaseDuration.toInt() + 100
+            val duration = instance.expedition.stormPhaseDuration.toInt() + 200
             world.setStorm(true)
             world.isThundering = true
             world.thunderDuration = duration
@@ -302,7 +305,7 @@ fun tickExtractions(instance: ExpeditionInstance) {
             player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 0.8F)
             val progress = diff / (instance.expedition.extractionTime * 50.0)
             val builder = Component.text()
-                .content("Extraction")
+                .content("Extracting . . .")
                 .color(NamedTextColor.GOLD)
                 .append(Component.text(" | ").color(NamedTextColor.GRAY))
                 .append(Component.text("[").color(NamedTextColor.GRAY));
@@ -317,9 +320,11 @@ fun tickExtractions(instance: ExpeditionInstance) {
             if(progress >= 1.0) {
                 instance.sneakingPlayers.remove(player)
                 instance.plugin.launch {
+                    player.addPotionEffect(PotionEffect(PotionEffectType.BLINDNESS, 20, 1, true))
                     player.playSound(player, Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8F, 0.8F)
-                    player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)
+                    delay(20)
                     instance.removePlayer(player, RemoveReason.EXTRACTION)
+                    player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)
                 }
             }
         } else {
