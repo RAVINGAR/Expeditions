@@ -251,10 +251,11 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     private fun join(collection: Collection<Player>) = plugin.launch {
         val loc = if(expedition.spawnLocations.isEmpty()) {
-            findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
+            findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks(), 0, 32)
         } else {
             getRandomLocation(world)
         }
+        lastSpawn.setRelease(BlockVector(loc.blockX, loc.blockY, loc.blockZ))
         val locations = LinkedList<Location>()
         locations.add(loc)
         for(i in 1 until collection.size) {
