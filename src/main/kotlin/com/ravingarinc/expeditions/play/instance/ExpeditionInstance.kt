@@ -4,6 +4,7 @@ import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
+import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.roll
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
@@ -26,6 +27,7 @@ import org.bukkit.util.BlockVector
 import org.bukkit.util.Vector
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 import kotlin.math.abs
 import kotlin.random.Random
@@ -49,8 +51,10 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     private val spawnedMobs: MutableMap<String,Int> = HashMap()
     private val trackedMobs: MutableMap<UUID, String> = HashMap()
 
-    val availableSpawns: Queue<BlockVector> = LinkedList(expedition.spawnLocations.shuffled())
-    val spawnLock = Mutex(false)
+    private var lastSpawn: AtomicReference<BlockVector?> = AtomicReference(null)
+
+    private val availableSpawns: Queue<BlockVector> = LinkedList(expedition.spawnLocations.shuffled())
+    private val spawnLock = Mutex(false)
 
     init {
         val view = Bukkit.createMap(world)
@@ -268,20 +272,28 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
      */
     private fun join(player: Player) = plugin.launch {
         val loc = if(expedition.spawnLocations.isEmpty()) {
-            findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks())
+            findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks(), 0, 32)
         } else {
             getRandomLocation(world)
         }
+        lastSpawn.setRelease(BlockVector(loc.blockX, loc.blockY, loc.blockZ))
         addPlayer(player, loc)
         expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
     }
 
     private suspend fun getRandomLocation(world: World) : Location {
         spawnLock.withLock {
-            if(availableSpawns.isEmpty()) {
-                expedition.spawnLocations.shuffled().forEach { availableSpawns.add(it) }
+            var vector : BlockVector? = null
+            while(vector == null) {
+                if(availableSpawns.isEmpty()) {
+                    expedition.spawnLocations.shuffled().forEach { availableSpawns.add(it) }
+                }
+                val nextVec = availableSpawns.poll()!!
+                val lastVec = lastSpawn.acquire
+                if(lastVec == null || nextVec.distanceSquared(lastVec) > 1024) {
+                    vector = nextVec
+                }
             }
-            val vector = availableSpawns.poll()!!
             return Location(world, vector.x + 0.5, vector.y + 0.1, vector.z + 0.5)
         }
     }
@@ -292,7 +304,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         z: Int,
         radius: Int,
         overhanging: Set<Material>,
-        minimumDistance: Int = 0
+        minimumDistance: Int = 0,
+        minimumDifference: Int = 0
     ): Location {
         for (i in 0..15) {
             var randomX = Random.nextInt(-radius, radius)
@@ -316,6 +329,11 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             if (type == Material.WATER || type == Material.LAVA) {
                 continue
             }
+            val vec = lastSpawn.acquire
+            if(minimumDifference > 0 && vec != null && vec.distanceSquared(BlockVector(nextX, block.y, nextZ)) < (minimumDifference * minimumDifference)) {
+                continue
+            }
+
             var isValid = false
             val chosenY = if(block.y > expedition.highestY) expedition.highestY else block.y
             for (y in chosenY downTo expedition.lowestY) {
@@ -346,6 +364,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                 return Location(world, location.x, location.y, location.z)
             }
         }
+        warn("Warning! Random location was unable to find a suitable location, using next immediately available coordinates for spawning!")
         val randomX = Random.nextInt(-radius, radius)
         val randomZ = Random.nextInt(-radius, radius)
         val nextX = x + randomX
