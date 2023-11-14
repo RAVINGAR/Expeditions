@@ -122,7 +122,9 @@ class PlayPhase(expedition: Expedition) :
     Phase("${ChatColor.GREEN}Peaceful ✓", expedition.mobInterval, expedition.randomMobInterval, expedition.lootInterval, expedition.calmPhaseDuration, {
     StormPhase(expedition)
 }) {
-        private val totalTime = expedition.calmPhaseDuration + expedition.stormPhaseDuration
+
+    private val totalTime = expedition.calmPhaseDuration + expedition.stormPhaseDuration
+    private var rainStarted = false
 
     override fun onStart(instance: ExpeditionInstance) {
         // Initialise world border
@@ -132,6 +134,14 @@ class PlayPhase(expedition: Expedition) :
         super.onTick(random, instance)
         instance.bossBar.progress = 1.0 - (ticks / totalTime.toDouble())
         tickExtractions(instance)
+        if(!rainStarted && this.durationTicks - ticks <= 100) {
+            val world = instance.world
+            val duration = instance.expedition.stormPhaseDuration.toInt() + 100
+            world.setStorm(true)
+            world.isThundering = true
+            world.thunderDuration = duration
+            world.weatherDuration = duration
+        }
     }
 
     override fun onEnd(instance: ExpeditionInstance) {
@@ -250,6 +260,10 @@ class RestorationPhase(expedition: Expedition) :
             }
             instance.clearMobSpawns()
         }
+        val world = instance.world
+        world.isThundering = false
+        world.setStorm(false)
+        world.thunderDuration = 0
     }
 
     private fun queueJob(plugin: RavinPlugin, block: suspend CoroutineScope.() -> Unit) {
