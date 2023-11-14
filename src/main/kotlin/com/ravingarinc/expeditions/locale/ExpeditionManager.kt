@@ -90,6 +90,11 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                     this.add(if(line.startsWith("/")) line.substring(1) else line)
                 }
             }
+            val onCreate = buildList {
+                it.getStringList("map.on-create-commands").forEach { line ->
+                    this.add(if(line.startsWith("/")) line.substring(1) else line)
+                }
+            }
             /*
             val mobList = buildList {
             (poi["mobs"] as? List<*>)?.let { list ->
@@ -131,7 +136,8 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 it.getPercentage("map.random-mob-spawn-chance"),
                 it.getInt("map.max-mobs-per-chunk", 0),
                 it.getInt("map.lowest-y", 0),
-                it.getInt("map.highest-y", 324)
+                it.getInt("map.highest-y", 324),
+                onCreate
             )
             for(poi in it.getMapList("points-of-interest")) {
                 loadPointOfInterest(name, poi)?.let { map.addArea(it) }

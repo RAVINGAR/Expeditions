@@ -329,13 +329,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             if (type == Material.WATER || type == Material.LAVA) {
                 continue
             }
-            val vec = lastSpawn.acquire
-            if(minimumDifference > 0 && vec != null && vec.distanceSquared(BlockVector(nextX, block.y, nextZ)) < (minimumDifference * minimumDifference)) {
-                continue
-            }
-
             var isValid = false
             val chosenY = if(block.y > expedition.highestY) expedition.highestY else block.y
+            val vec = lastSpawn.acquire
+            if(minimumDifference > 0 && vec != null && vec.distanceSquared(BlockVector(nextX, chosenY, nextZ)) < (minimumDifference * minimumDifference)) {
+                continue
+            }
             for (y in chosenY downTo expedition.lowestY) {
                 val b = world.getBlockAt(nextX, y, nextZ).type
                 if(!block.isCollidable) continue

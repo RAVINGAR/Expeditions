@@ -59,6 +59,9 @@ map:
   lowest-y: 64
   # The highest allowed y coordinate for random spawns for both players and mobs
   highest-y: 324
+  # These commands are executed when an expedition is created. The placeholder {world} is replaced with the world name
+  on-create-commands:
+    - 'spawn vfx {world}'
 points-of-interest:
   - name: 'Ancient Ruins' # Unique Display name of the POI
     start-location: 25,40,70 # The x,y,z coordinate of one corner of this area

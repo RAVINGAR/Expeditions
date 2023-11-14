@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.Location
 import org.bukkit.Sound
@@ -102,6 +103,10 @@ class IdlePhase(expedition: Expedition) :
         border.damageBuffer = 0.0
         border.damageAmount = 1.0
         instance.bossBar.progress = 1.0
+
+        instance.expedition.onCreateCommands.forEach { command ->
+            instance.plugin.server.dispatchCommand(Bukkit.getConsoleSender(), command.replace("{world}", instance.world.name))
+        }
     }
 
     override fun onTick(random: Random, instance: ExpeditionInstance) {

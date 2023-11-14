@@ -49,7 +49,8 @@ class Expedition(val identifier: String,
                  val randomSpawnChance: Double,
                  val maxMobsPerChunk: Int,
                  val lowestY: Int,
-                 val highestY: Int) {
+                 val highestY: Int,
+                 val onCreateCommands: List<String>) {
     private val areas: MutableList<Area> = ArrayList()
 
     private val formatted: String
