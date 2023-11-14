@@ -85,14 +85,34 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                     }
                 }
                 return@addOption true
-            }
-
-        addOption("reload", "expeditions.admin", "- Reloads the plugin", 1) { sender, args ->
-            sender.sendMessage("${ChatColor.YELLOW}Attempting to reload Expeditions... this may take a while.")
-            plugin.reload()
-            sender.sendMessage("${ChatColor.GREEN}Successfully reloaded Expeditions!")
+            }.parent.addOption("reload", "expeditions.admin", "- Reloads the plugin", 2) { sender, _ ->
+                sender.sendMessage("${ChatColor.YELLOW}Attempting to reload Expeditions... this may take a while.")
+                plugin.reload()
+                sender.sendMessage("${ChatColor.GREEN}Successfully reloaded Expeditions!")
             return@addOption true
-        }
+            }.parent.addOption("lock", "expeditions.admin", "<on|off> - Set if joining expeditions should be locked", 2) { sender, args ->
+                val intendedState : String = (if(args.size > 2) args[2] else if(handler.areExpeditionsLocked()) "off" else "on").lowercase()
+                val state = when(intendedState) {
+                    "on" -> true
+                    "off" -> false
+                    else -> {
+                        sender.sendMessage("${ChatColor.RED}Unknown argument! Please specify either 'on' or 'off', or no argument to toggle!")
+                        return@addOption true
+                    }
+                }
+                if(state == handler.areExpeditionsLocked()) {
+                    sender.sendMessage("${ChatColor.RED}You cannot set expedition lock to $intendedState as that value is already set!")
+                    return@addOption true
+                }
+                handler.lockExpeditions(state)
+                sender.sendMessage("${ChatColor.GREEN}Successfully set expeditions lock to '$intendedState'")
+                return@addOption true
+            }.buildTabCompletions { _, args ->
+                if(args.size == 3) {
+                    return@buildTabCompletions listOf("on", "off")
+                }
+                return@buildTabCompletions emptyList<String>()
+            }
 
         addHelpOption(ChatColor.AQUA, ChatColor.DARK_AQUA)
     }

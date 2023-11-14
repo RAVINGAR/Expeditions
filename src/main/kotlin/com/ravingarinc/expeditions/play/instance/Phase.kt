@@ -107,7 +107,6 @@ class IdlePhase(expedition: Expedition) :
         instance.bossBar.progress = 1.0
 
         instance.expedition.onCreateCommands.forEach { command ->
-            warn("Debug -> executing command '$command'")
             instance.plugin.server.dispatchCommand(instance.plugin.server.consoleSender, command.replace("{world}", instance.world.name))
         }
     }

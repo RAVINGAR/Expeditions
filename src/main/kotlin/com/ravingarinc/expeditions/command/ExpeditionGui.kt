@@ -4,6 +4,7 @@ import com.ravingarinc.api.gui.BaseGui
 import com.ravingarinc.api.gui.builder.GuiBuilder
 import com.ravingarinc.api.gui.builder.GuiProvider
 import com.ravingarinc.api.gui.component.action.RunnableAction
+import com.ravingarinc.api.gui.component.observer.ItemUpdater
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.ExpeditionManager
 import com.ravingarinc.expeditions.play.PlayHandler
@@ -12,6 +13,8 @@ import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import java.util.concurrent.ConcurrentHashMap
+import java.util.function.BiPredicate
+import java.util.function.Supplier
 
 object ExpeditionGui {
     private val guis: MutableMap<Player, BaseGui> = ConcurrentHashMap()
@@ -21,6 +24,14 @@ object ExpeditionGui {
             return@computeIfAbsent build(plugin, it)
         }
         player.openInventory(gui.inventory)
+    }
+
+    fun refreshAll() {
+        guis.forEach { (player, gui) ->
+            if(player.openInventory.topInventory.holder is BaseGui) {
+                gui.fillElement(gui, player)
+            }
+        }
     }
 
     fun build(plugin: RavinPlugin, player: Player) : BaseGui {
@@ -39,7 +50,22 @@ object ExpeditionGui {
         builder.setBackIconIndex(22)
 
         builder.createMenu("MAIN", null)
+            .addPage("expedition_locked_page", 10, 11, 12, 13, 14, 15, 16)
+            .addPageFiller("lock_filler") { listOf(10, 11, 12, 13, 14, 15, 16) }
+            .setIdentifierProvider { it -> "type_$it"}
+            .setDisplayNameProvider { _ -> "" }
+            .setLoreProvider { _ -> "&7No expeditions available..."}
+            .setMaterialProvider { _ -> Material.IRON_BARS }
+            .setPredicateProvider { _ -> return@setPredicateProvider BiPredicate { _, _ -> handler.areExpeditionsLocked() } }
+            .finalise().finalise()
             .addStaticIcon("title", "${ChatColor.DARK_AQUA}Expeditions", "${ChatColor.GRAY}Select and join a\n${ChatColor.GRAY}random expedition!", Material.COMPASS, 4)
+            .addChild { icon -> Supplier {
+                val updater = ItemUpdater(icon)
+                updater.setLoreProvider { _, _ -> if(handler.areExpeditionsLocked())
+                    "${ChatColor.RED}You cannot join any\n" + "${ChatColor.RED}expeditions at this time!"
+                    else "${ChatColor.GRAY}Select and join a\\n\" + \"${ChatColor.GRAY}random expedition!"}
+                return@Supplier updater
+            }}
             .finalise()
             .addPage("expedition_type_page", 10, 11, 12, 13, 14, 15, 16)
             .addNextPageIcon(17).finalise()
@@ -67,6 +93,7 @@ object ExpeditionGui {
                 return@setLoreProvider str
             }
             .setMaterialProvider { _ -> Material.FILLED_MAP }
+            .setPredicateProvider { _ -> return@setPredicateProvider BiPredicate { _, _ -> !handler.areExpeditionsLocked() } }
             .addActionProvider { it -> RunnableAction { _, player ->
                 if(it.permission != null && !player.hasPermission(it.permission)) {
                     player.sendMessage(it.lockedMessage)

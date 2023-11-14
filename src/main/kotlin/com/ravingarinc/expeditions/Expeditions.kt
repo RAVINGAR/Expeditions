@@ -24,7 +24,8 @@ class Expeditions : RavinPluginKotlin() {
                 Version.V1_19_2,
                 Version.V1_19_3,
                 Version.V1_19_4,
-                Version.V1_20
+                Version.V1_20,
+                Version.V1_20_2
             ))
         } catch(exception: IllegalStateException) {
             I.log(Level.SEVERE, "Encountered exception loading plugin!", exception)

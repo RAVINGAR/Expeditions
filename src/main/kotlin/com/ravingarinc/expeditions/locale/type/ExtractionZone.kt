@@ -44,7 +44,7 @@ class ExtractionZone(val chance: Double,
 
     override val displayType: String = "Extraction Zone"
 
-    private val particleData = Particle.DustTransition(Color.fromRGB(215,49,12), Color.fromRGB(255,179,39), 0.5F)
+    private val particleData = Particle.DustTransition(Color.fromRGB(215,49,12), Color.fromRGB(255,179,39), 3F)
 
     override fun initialise(plugin: RavinPlugin, world: World) {
         beaconLoc?.let {
@@ -68,9 +68,9 @@ class ExtractionZone(val chance: Double,
         val startZ = startLoc.z.toInt()
         val endZ = endLoc.z.toInt()
         for(x in xRange) {
-            if(x == startX || x == endX) for(z in zRange) {
-                if(z == startZ || z == endZ) {
-                    world.spawnParticle(Particle.REDSTONE, x.toDouble(), particleHeight, z.toDouble(), 1, 0.0, 0.05, 0.0, particleData)
+            for(z in zRange) {
+                if(x == startX || x == endX || z == startZ || z == endZ) {
+                    world.spawnParticle(Particle.REDSTONE, x.toDouble(), particleHeight, z.toDouble(), 2, 0.0, 0.05, 0.0, particleData)
                 }
             }
         }

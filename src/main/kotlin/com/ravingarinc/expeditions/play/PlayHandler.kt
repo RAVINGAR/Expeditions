@@ -25,6 +25,7 @@ import org.bukkit.World
 import org.bukkit.entity.Player
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.java, plugin, true, ExpeditionManager::class.java) {
     private lateinit var expeditions: ExpeditionManager
@@ -43,6 +44,8 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     private val expeditionPlayers: MutableMap<Player, ExpeditionInstance> = ConcurrentHashMap()
     private val abandonedPlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
     private val respawningPlayers: MutableMap<UUID, CachedPlayer> = ConcurrentHashMap()
+
+    private val lockedState = AtomicBoolean(false)
 
     private lateinit var capacityJob: CapacityTicker
 
@@ -92,6 +95,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
 
     override suspend fun suspendCancel() {
         ExpeditionGui.dispose()
+        lockedState.setRelease(true)
         ticker.cancel()
         capacityJob.cancel()
         instances.values.forEach { list -> list.forEach { destroyInstance(it) }}
@@ -101,6 +105,19 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         respawningPlayers.clear()
         expeditionPlayers.clear()
         overhangingBlocks.clear()
+
+        lockedState.setRelease(false)
+    }
+
+    fun lockExpeditions(locked: Boolean) {
+        this.lockedState.setRelease(locked)
+        plugin.launch(plugin.minecraftDispatcher) {
+            ExpeditionGui.refreshAll()
+        }
+    }
+
+    fun areExpeditionsLocked() : Boolean {
+        return this.lockedState.acquire
     }
 
     fun getOverhangingBlocks() : Set<Material> {
@@ -143,6 +160,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     }
 
     fun tryJoinExpedition(identifier: String, player: Player) : Boolean {
+        if(lockedState.acquire) return false
         val expedition = expeditions.getMapByIdentifier(identifier) ?: return false
         val provider = parties.getProvider() ?: return joinExpedition(identifier, player)
         with(provider) {
@@ -190,6 +208,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
      * Try and join an expedition for a singular player, when handling parties a different method must be used.
      */
     fun joinExpedition(identifier: String, player: Player) : Boolean {
+        if(lockedState.acquire) return false
         val list = instances[identifier] ?: return false
         val randomList = ArrayList(list)
         randomList.shuffle()

@@ -343,13 +343,12 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 }
             }
         }
-
         val name = zone["name"].toString();
         val rawMessage = parseMessage(name, zone.getOrDefault("enter-message","&6&l{name}&r&7 | &eExtraction Zone").toString());
         return ExtractionZone(
             parsePercentage(zone["chance"].toString()),
             parseBlockVector(zone["beacon-loc"].toString()),
-            zone["particle-effect-height"].toString().toDoubleOrNull() ?: ((startLoc.blockY + endLoc.blockY) / 2.0),
+            zone["particle-height"].toString().toDoubleOrNull() ?: ((startLoc.blockY + endLoc.blockY) / 2.0),
             name,
             startLoc,
             endLoc,
