@@ -58,16 +58,10 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
     }
 
     open fun onTick(random: Random, instance: ExpeditionInstance) {
-        if(mobInterval != -1L && ticks % mobInterval == 0L) {
-            instance.tickMobs(random)
-        }
-        if(lootInterval != -1L && ticks % lootInterval == 0L) {
-            instance.tickLoot(random)
-        }
-        if(randomMobInterval != -1L && ticks % randomMobInterval == 0L) {
-            instance.tickRandomMobs(random)
-        }
-        instance.tickNPC()
+        instance.tickExpedition(random,
+            mobInterval != -1L && ticks % mobInterval == 0L,
+            lootInterval != -1L && ticks % lootInterval == 0L,
+            randomMobInterval != -1L && ticks % randomMobInterval == 0L)
     }
 
     fun next(instance: ExpeditionInstance) {

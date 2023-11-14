@@ -173,13 +173,13 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
-    fun tickMobs(random: Random) {
+    fun tickExpedition(random: Random, tickMobs: Boolean, tickLoot: Boolean, tickRandomMobs: Boolean) {
         areaInstances.forEach {
-            it.tickMobs(random, this)
+            if(tickMobs) it.tickMobs(random, this)
+            if(tickLoot) it.tickLoot(random, world)
+            it.tick(world)
         }
-    }
-
-    fun tickRandomMobs(random: Random) {
+        if(!tickRandomMobs) return
         joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
             val loc = player.location
             for(i in 0 until expedition.randomSpawnsAmount) {
@@ -191,18 +191,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                     incrementMobSpawns(it.uniqueId, mobLoc.blockX, mobLoc.blockZ)
                 }
             }
-        }
-    }
-
-    fun tickLoot(random: Random) {
-        areaInstances.forEach {
-            it.tickLoot(random, world)
-        }
-    }
-
-    fun tickNPC() {
-        areaInstances.forEach {
-            it.tickNPC(world)
         }
     }
 

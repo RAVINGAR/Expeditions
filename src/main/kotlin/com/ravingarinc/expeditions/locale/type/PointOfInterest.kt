@@ -42,4 +42,8 @@ class PointOfInterest(displayName: String,
     override fun dispose(plugin: RavinPlugin, world: World) {
 
     }
+
+    override fun tick(world: World) {
+
+    }
 }

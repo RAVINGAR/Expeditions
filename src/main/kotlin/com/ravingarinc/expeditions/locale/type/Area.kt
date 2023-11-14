@@ -63,11 +63,15 @@ abstract class Area(val displayName: String,
      */
     abstract fun dispose(plugin: RavinPlugin, world: World)
 
-    private val xRange = min(startLoc.x, endLoc.x).toInt() .. max(startLoc.x, endLoc.x).toInt()
-    private val yRange = min(startLoc.y, endLoc.y).toInt() .. max(startLoc.y, endLoc.y).toInt()
-    private val zRange = min(startLoc.z, endLoc.z).toInt() .. max(startLoc.z, endLoc.z).toInt()
+
+
+    protected val xRange = min(startLoc.x, endLoc.x).toInt() .. max(startLoc.x, endLoc.x).toInt()
+    protected val yRange = min(startLoc.y, endLoc.y).toInt() .. max(startLoc.y, endLoc.y).toInt()
+    protected val zRange = min(startLoc.z, endLoc.z).toInt() .. max(startLoc.z, endLoc.z).toInt()
 
     fun isInArea(x: Int, y: Int, z: Int) : Boolean {
         return xRange.contains(x) && yRange.contains(y) && zRange.contains(z)
     }
+
+    abstract fun tick(world: World)
 }

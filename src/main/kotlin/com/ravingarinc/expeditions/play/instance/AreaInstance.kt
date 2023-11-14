@@ -130,7 +130,8 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         npcLastFollowingTime = -1L
     }
 
-    fun tickNPC(world: World) {
+    fun tick(world: World) {
+        area.tick(world)
         if(npcLastFollowingTime == -1L) return
         npc?.let {
             if(it.getFollowing() == null && System.currentTimeMillis() - npcLastFollowingTime > 60000) {

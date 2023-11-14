@@ -117,3 +117,4 @@ extraction-zones:
     end-location: 50,90,-40 # The x,y,z coordinate of the second corner. These two values form a bounding box for this area
     chance: 100% # Chance for this extraction zone to be placed
     beacon-loc: 26,60,80 # Coordinates for where the beacon is placed if this zone is chosen
+    particle-effect-height: 60.5 # The y-coordinate that the particles will spawn on
