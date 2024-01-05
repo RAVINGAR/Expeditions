@@ -64,6 +64,8 @@ repositories {
     maven("https://repo.onarandombox.com/content/groups/public/")
 
     maven("https://jitpack.io")
+
+    maven("https://nexus.betonquest.org/repository/betonquest/")
 }
 
 dependencies {
@@ -88,6 +90,8 @@ dependencies {
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.2")
+
+    compileOnly("org.betonquest:betonquest:2.0.0")
 
     compileOnly("com.alessiodp.parties:parties-api:3.2.13")
 
@@ -143,7 +147,6 @@ tasks {
             exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         }
     }
-
 }
 
 tasks.withType<KotlinCompile> {
@@ -163,7 +166,7 @@ bukkit {
     // Other possible properties from plugin.yml (optional)
     author = "RAVINGAR"
     depend = listOf("Multiverse-Core", "ProtocolLib")
-    softDepend = listOf("MMOItems", "MythicMobs", "MythicCrucible", "PlaceholderAPI", "Citizens", "Parties")
+    softDepend = listOf("MMOItems", "MythicMobs", "MythicCrucible", "PlaceholderAPI", "Citizens", "Parties", "BetonQuest")
 
     commands {
         register("expeditions") {

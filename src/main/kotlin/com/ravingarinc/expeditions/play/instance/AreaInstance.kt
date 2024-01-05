@@ -3,12 +3,15 @@ package com.ravingarinc.expeditions.play.instance
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.github.shynixn.mccoroutine.bukkit.ticks
+import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.blockWithChunk
 import com.ravingarinc.expeditions.integration.NPCHandler
 import com.ravingarinc.expeditions.integration.npc.ExpeditionNPC
 import com.ravingarinc.expeditions.locale.type.Area
 import com.ravingarinc.expeditions.locale.type.Expedition
+import com.ravingarinc.expeditions.play.event.ExpeditionKillEntityEvent
+import com.ravingarinc.expeditions.play.event.ExpeditionLootCrateEvent
 import kotlinx.coroutines.delay
 import org.bukkit.World
 import org.bukkit.block.Block
@@ -19,6 +22,7 @@ import org.bukkit.util.BlockVector
 import org.bukkit.util.Vector
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Level
 import kotlin.random.Random
 
 /**
@@ -235,6 +239,7 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
             loot.loot(player)
             delay(10.ticks)
             availableLootLocations.add(vector)
+            plugin.server.pluginManager.callEvent(ExpeditionLootCrateEvent(player, area.displayName, expedition))
         }
         return true
     }
@@ -274,9 +279,18 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
             if(boss == entity) {
                 boss = null
                 bossCooldown = area.bossCooldown
+                val killer = (entity as? LivingEntity)?.killer ?: return true
+                plugin.server.pluginManager.callEvent(ExpeditionKillEntityEvent(killer, entity, area.displayName, expedition))
                 return true
             }
         }
-        return spawnedMobs.remove(entity)
+        if(spawnedMobs.remove(entity)) {
+            val killer = (entity as? LivingEntity)?.killer ?: return true
+            // Todo, the killer of an entity might not be set yet!
+            I.log(Level.WARNING, "Debug -> Spawned Mob DIED and was KILLED by Player!")
+            plugin.server.pluginManager.callEvent(ExpeditionKillEntityEvent(killer, entity, area.displayName, expedition))
+            return true
+        }
+        return false
     }
 }

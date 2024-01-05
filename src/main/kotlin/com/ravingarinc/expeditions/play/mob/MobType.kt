@@ -16,6 +16,8 @@ sealed interface MobType {
 
     fun spawn(level: Int, vector: BlockVector, world: World) : Entity?
 
+    fun isSameAs(entity: Entity) : Boolean
+
     fun reload()
 }
 
@@ -43,6 +45,11 @@ class MythicMobType(private val identifier: String) : MobType {
         return mob
     }
 
+    override fun isSameAs(entity: Entity): Boolean {
+        val mob = MythicBukkit.inst().mobManager.getActiveMob(entity.uniqueId).orElse(null) ?: return false
+        return mob.type.internalName == identifier
+    }
+
     override fun reload() {
         mob = null
     }
@@ -57,6 +64,10 @@ class VanillaMobType(private val type: EntityType) : MobType {
         return world.spawnEntity(Location(world, vector.x + 0.5, vector.y, vector.z + 0.5), type, true)
     }
 
+    override fun isSameAs(entity: Entity): Boolean {
+        return entity.type == type
+    }
+
     override fun reload() {}
 
     override fun identifier(): String {
@@ -66,6 +77,10 @@ class VanillaMobType(private val type: EntityType) : MobType {
 
 object EmptyMobType : MobType {
     override fun spawn(level: Int, vector: BlockVector, world: World): Entity? { return null }
+
+    override fun isSameAs(entity: Entity): Boolean {
+        return false
+    }
 
     override fun reload() {}
 
