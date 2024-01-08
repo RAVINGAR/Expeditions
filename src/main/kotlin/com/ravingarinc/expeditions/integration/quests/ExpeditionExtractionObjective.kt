@@ -12,7 +12,7 @@ import org.bukkit.event.Listener
 
 class ExpeditionExtractionObjective(instruction: Instruction) : CountingObjective(instruction), Listener {
     init {
-        targetAmount = instruction.getVarNum("amount")
+        targetAmount = instruction.getVarNum()
     }
 
     @EventHandler

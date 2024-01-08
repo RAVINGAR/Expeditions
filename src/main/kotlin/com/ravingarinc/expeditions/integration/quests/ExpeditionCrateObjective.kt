@@ -13,14 +13,14 @@ import org.bukkit.event.Listener
 class ExpeditionCrateObjective(instruction: Instruction) : CountingObjective(instruction), Listener {
     private val pois: MutableList<String> = instruction.getList { it }
     init {
-        targetAmount = instruction.getVarNum("amount")
+        targetAmount = instruction.getVarNum()
     }
 
     @EventHandler
     fun onExpeditionLoot(event: ExpeditionLootCrateEvent) {
         val profile = PlayerConverter.getID(event.player)
         if(!containsPlayer(profile)) return
-        val poi = event.area
+        val poi = event.area.replace(" ", "_", ignoreCase = false)
         if(pois.isNotEmpty() && pois.stream().noneMatch { it == poi }) return
 
         if(checkConditions(profile)) {

@@ -14,7 +14,7 @@ class ExpeditionNPCObjective(instruction: Instruction) : CountingObjective(instr
     private val npcIdentifiers: MutableList<String> = instruction.getList { it }
 
     init {
-        targetAmount = instruction.getVarNum("amount")
+        targetAmount = instruction.getVarNum()
     }
 
     @EventHandler
@@ -22,7 +22,8 @@ class ExpeditionNPCObjective(instruction: Instruction) : CountingObjective(instr
         val profile = PlayerConverter.getID(event.player)
         if(!containsPlayer(profile)) return
         val npc = event.npc
-        if(npcIdentifiers.isNotEmpty() && npcIdentifiers.stream().noneMatch { it == npc.identifier() }) return
+        val identifier = npc.identifier().replace(" ", "_", ignoreCase = false)
+        if(npcIdentifiers.isNotEmpty() && !npcIdentifiers.stream().anyMatch { it == identifier }) return
 
         if(checkConditions(profile)) {
             getCountingData(profile).progress()

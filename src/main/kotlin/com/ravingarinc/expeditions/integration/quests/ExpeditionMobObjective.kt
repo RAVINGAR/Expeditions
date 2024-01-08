@@ -16,17 +16,17 @@ class ExpeditionMobObjective(instruction: Instruction) : CountingObjective(instr
     private val mobTypes: MutableList<MobType> = instruction.getList { parseMobType(it) }
     private val pois: MutableList<String> = instruction.getList { it }
     init {
-        targetAmount = instruction.getVarNum("amount")
+        targetAmount = instruction.getVarNum()
     }
 
     @EventHandler
     fun onExpeditionMobKill(event: ExpeditionKillEntityEvent) {
         val profile = PlayerConverter.getID(event.player)
         if(!containsPlayer(profile)) return
-        val entity = event.mob
-        val poi = event.area
-        if(pois.isNotEmpty() && pois.stream().noneMatch { it == poi }) return
-        if(mobTypes.isNotEmpty() && mobTypes.stream().noneMatch { it.isSameAs(entity) }) return
+        val entity = event.entity
+        val poi = event.area.replace(" ", "_", ignoreCase = false)
+        if(pois.isNotEmpty() && !pois.stream().anyMatch { it == poi }) return
+        if(mobTypes.isNotEmpty() && !mobTypes.stream().anyMatch { it.isSameAs(entity) }) return
 
         if(checkConditions(profile)) {
             getCountingData(profile).progress()
