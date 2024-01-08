@@ -9,6 +9,8 @@ import com.ravingarinc.expeditions.api.roll
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
+import com.ravingarinc.expeditions.play.event.ExpeditionExtractEvent
+import com.ravingarinc.expeditions.play.event.ExpeditionNPCExtractEvent
 import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
@@ -42,9 +44,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     val sneakingPlayers: MutableMap<Player, Pair<Long, Vector>> = ConcurrentHashMap()
 
-    val npcFollowers: MutableMap<Player, AreaInstance> = HashMap()
+    private val npcFollowers: MutableMap<Player, AreaInstance> = HashMap()
 
-    val mapView: MapView
+    private val mapView: MapView
 
     val renderer: ExpeditionRenderer = ExpeditionRenderer(expedition)
 
@@ -437,13 +439,16 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                                         .replace("{npc}", npc.identifier())
                                         .replace("{player}", player.name))
                             }
+                            plugin.server.pluginManager.callEvent(ExpeditionNPCExtractEvent(player, npc, expedition))
                             it.destroyNPC()
                         }
                     }
                     expedition.onExtractCommands.forEach { command ->
                         plugin.server.dispatchCommand(plugin.server.consoleSender, command.replace("@player", player.name))
                     }
-                    player.teleport(cache.previousLocale)
+                    val event = ExpeditionExtractEvent(player, expedition, cache.previousLocale)
+                    plugin.server.pluginManager.callEvent(event)
+                    player.teleport(event.returningLocation)
                 }
             }
             removeMap(player)

@@ -8,28 +8,16 @@ import com.ravingarinc.expeditions.play.item.LootTable
 import kotlinx.coroutines.delay
 import org.bukkit.*
 import org.bukkit.Particle.DustOptions
+import org.bukkit.entity.Entity
 import org.bukkit.entity.MagmaCube
 import org.bukkit.entity.Player
 import org.bukkit.util.BlockVector
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.random.Random
 
 class LootableChest(private val loot: LootTable, val instance: AreaInstance, private val location: BlockVector, private val world: World) {
     private val block = world.getBlockAt(location.blockX, location.blockY, location.blockZ)
-    private val entity = world.spawn(Location(world, location.x + 0.5, location.y, location.z + 0.5), MagmaCube::class.java) {
-        it.size = 1
-        it.isSilent = true
-        it.setGravity(false)
-        it.setAI(false)
-        it.isInvulnerable = true
-        it.isPersistent = true
-        it.removeWhenFarAway = false
-        //val duration =  (instance.expedition.calmPhaseDuration + instance.expedition.stormPhaseDuration).toInt()
-        //it.addPotionEffect(PotionEffect(PotionEffectType.INVISIBILITY, duration, 1, true, false))
-        //it.addPotionEffect(PotionEffect(PotionEffectType.GLOWING, duration, 1, true, false))
-
-        // ONLY when you first load into a world and go to a POI, the magma cube doesn't appear properly. Or rather isn't
-        // registered by this object correctly. Maybe delay the initial tick?
-    }
+    private var entity : AtomicReference<Entity?> = AtomicReference(null)
 
     private val showingPlayers: MutableSet<Player> = HashSet()
     init {
@@ -54,6 +42,8 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
     }
 
     fun show(player: Player) {
+        checkEntity()
+        val entity = this.entity.acquire!!
         if(!entity.isValid) {
             return
         }
@@ -71,7 +61,29 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
         }
     }
 
+    fun checkEntity() {
+        if(this.entity.acquire == null) {
+            this.entity.setRelease(world.spawn(Location(world, location.x + 0.5, location.y, location.z + 0.5), MagmaCube::class.java) {
+                it.size = 1
+                it.isSilent = true
+                it.setGravity(false)
+                it.setAI(false)
+                it.isInvulnerable = true
+                it.isPersistent = true
+                it.removeWhenFarAway = false
+                //val duration =  (instance.expedition.calmPhaseDuration + instance.expedition.stormPhaseDuration).toInt()
+                //it.addPotionEffect(PotionEffect(PotionEffectType.INVISIBILITY, duration, 1, true, false))
+                //it.addPotionEffect(PotionEffect(PotionEffectType.GLOWING, duration, 1, true, false))
+
+                // ONLY when you first load into a world and go to a POI, the magma cube doesn't appear properly. Or rather isn't
+                // registered by this object correctly. Maybe delay the initial tick?
+            })
+        }
+    }
+
     fun hide(player: Player) {
+        checkEntity()
+        val entity = this.entity.acquire!!
         if(showingPlayers.remove(player)) {
             player.sendPacket(Versions.version.removeEntity(entity.entityId))
             /*
@@ -86,9 +98,11 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
     }
 
     fun destroy() {
-        showingPlayers.forEach { it.sendPacket(Versions.version.removeEntity(entity.entityId)) }
+        entity.acquire?.let { entity ->
+            showingPlayers.forEach { it.sendPacket(Versions.version.removeEntity(entity.entityId)) }
+            entity.remove()
+        }
         showingPlayers.clear()
-        entity.remove()
         block.setType(Material.AIR, false)
     }
 
