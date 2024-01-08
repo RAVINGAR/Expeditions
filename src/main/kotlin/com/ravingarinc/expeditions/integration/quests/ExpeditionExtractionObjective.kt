@@ -11,6 +11,8 @@ import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
 
 class ExpeditionExtractionObjective(instruction: Instruction) : CountingObjective(instruction), Listener {
+    private val pois: MutableList<String> = instruction.getList { it }
+    private val all: Boolean = pois.contains("all")
     init {
         targetAmount = instruction.getVarNum()
     }
@@ -19,6 +21,8 @@ class ExpeditionExtractionObjective(instruction: Instruction) : CountingObjectiv
     fun onExpeditionExtraction(event: ExpeditionExtractEvent) {
         val profile = PlayerConverter.getID(event.player)
         if(!containsPlayer(profile)) return
+        val poi = event.area.replace(" ", "_")
+        if(!all && pois.isNotEmpty() && pois.stream().noneMatch { it == poi }) return
         if(checkConditions(profile)) {
             getCountingData(profile).progress()
             completeIfDoneOrNotify(profile)

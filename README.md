@@ -4,7 +4,9 @@ Expeditions is a core feature plugin for the Minecraft server RogueMC.
 
 ## BetonQuest Integration
 
-*Note, identifiers for POIs and NPCs that have spaces must be replaced with an _ in the BetonQuest config
+*Note, identifiers for POIs and NPCs that have spaces must be replaced with an _ in the BetonQuest config*
+
+*Additionally, with ALL POI lists, if you specify 'all' (in lowercase), this will consider the objective for all POIs
 
 ### Objectives
 
@@ -18,8 +20,8 @@ In the example below, a player must loot 3 crates in either the 'Ancient Ruins' 
 **Extraction:** `expeditionextraction`  
 To complete this objective, the player must extract from any expedition a specific number of times.  
 
-In the example below the player will complete the objective after they extract twice.
-> expeditionextraction 2
+In the example below the player will complete the objective after they extract twice from a specific extraction zone.
+> expeditionextraction Extraction_Zone 2
 
 **NPC Extraction:** `expeditionnpcextraction`  
 To complete this objective, the player must extract a specific type of npc and specified amount of times. Similarly,
@@ -30,8 +32,8 @@ In the example below the player will complete the objective after they extract o
 > expeditionextraction Lost_Architect 1
 
 **Mob Kill:** `expeditionmobkill`  
-To complete this objective, the player must kill a specific number of mobs of a specific type. This links to the same
+To complete this objective, the player must kill a specific number of mobs of a specific type in a specific area. This links to the same
 identifier format used when configuring mobs for a POI; eg. `'mythic:SkeletonKing'` or `vanilla:skeleton`.
 
 In the example below the player will complete the objective after kill three Skeletal Minions from Mythic Mobs
-> expeditionmobkill SkeletalMinion 3
+> expeditionmobkill SkeletalMinion Ancient_Ruins,Quarry 3

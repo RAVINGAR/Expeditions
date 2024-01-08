@@ -15,6 +15,7 @@ import org.bukkit.event.Listener
 class ExpeditionMobObjective(instruction: Instruction) : CountingObjective(instruction), Listener {
     private val mobTypes: MutableList<MobType> = instruction.getList { parseMobType(it) }
     private val pois: MutableList<String> = instruction.getList { it }
+    private val all: Boolean = pois.contains("all")
     init {
         targetAmount = instruction.getVarNum()
     }
@@ -25,8 +26,8 @@ class ExpeditionMobObjective(instruction: Instruction) : CountingObjective(instr
         if(!containsPlayer(profile)) return
         val entity = event.entity
         val poi = event.area.replace(" ", "_", ignoreCase = false)
-        if(pois.isNotEmpty() && !pois.stream().anyMatch { it == poi }) return
-        if(mobTypes.isNotEmpty() && !mobTypes.stream().anyMatch { it.isSameAs(entity) }) return
+        if(!all && pois.isNotEmpty() && pois.stream().noneMatch { it == poi }) return
+        if(mobTypes.isNotEmpty() && mobTypes.stream().noneMatch { it.isSameAs(entity) }) return
 
         if(checkConditions(profile)) {
             getCountingData(profile).progress()

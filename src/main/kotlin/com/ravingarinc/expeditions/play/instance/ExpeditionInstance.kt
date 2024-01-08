@@ -446,7 +446,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                     expedition.onExtractCommands.forEach { command ->
                         plugin.server.dispatchCommand(plugin.server.consoleSender, command.replace("@player", player.name))
                     }
-                    val event = ExpeditionExtractEvent(player, expedition, cache.previousLocale)
+                    val event = ExpeditionExtractEvent(player, getPlayerArea(player), expedition, cache.previousLocale)
                     plugin.server.pluginManager.callEvent(event)
                     player.teleport(event.returningLocation)
                 }

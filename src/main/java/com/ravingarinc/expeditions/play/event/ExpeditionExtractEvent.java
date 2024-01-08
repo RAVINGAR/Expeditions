@@ -7,10 +7,16 @@ import org.bukkit.entity.Player;
 public class ExpeditionExtractEvent extends ExpeditionEvent {
     private final Player player;
     private Location returningLocation;
-    public ExpeditionExtractEvent(final Player player, final Expedition expedition, final Location returningLocation) {
+    private final String area;
+    public ExpeditionExtractEvent(final Player player, final String area, final Expedition expedition, final Location returningLocation) {
         super(expedition);
         this.player = player;
+        this.area = area;
         this.returningLocation = returningLocation;
+    }
+
+    public String getArea() {
+        return area;
     }
 
     public void setReturningLocation(Location returningLocation) {
