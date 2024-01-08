@@ -102,6 +102,7 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
             showingPlayers.forEach { it.sendPacket(Versions.version.removeEntity(entity.entityId)) }
             entity.remove()
         }
+        entity.setRelease(null)
         showingPlayers.clear()
         block.setType(Material.AIR, false)
     }
