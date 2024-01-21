@@ -6,6 +6,7 @@ import java.util.*
 import kotlin.math.floor
 
 enum class RenderColour(val id: Color, val predicate: (Material) -> Boolean) {
+    NONE(Color(255, 255, 255, 0), { it.isAir || it == Material.GLASS || it == Material.GLASS_PANE || it == Material.BARRIER }),
     STONE(Color(7368816), { it == Material.GRAVEL || it == Material.TUFF || it == Material.BASALT || it == Material.SMOOTH_BASALT || it == Material.POLISHED_BASALT || it.name.startsWith("STONE") || it.name.startsWith("ANDESITE") || it.name.startsWith("COBBLESTONE") }),
     GRASS(Color(8368696), { it == Material.GRASS_BLOCK || it == Material.SLIME_BLOCK }),
     SAND(Color(16247203), { it.name.startsWith("SAND") || it.name.startsWith("BIRCH") }),
@@ -47,8 +48,7 @@ enum class RenderColour(val id: Color, val predicate: (Material) -> Boolean) {
     NETHER(Color(7340544), { it == Material.MAGMA_BLOCK || it.name.startsWith("NETHER")}),
     WARPED(Color(1474182), { it.name.startsWith("WARPED")}),
     CRIMSON(Color(6035741), { it.name.startsWith("CRIMSON")}),
-    DEEPSLATE(Color(6579300), { it.name.startsWith("DEEPSLATE") || it.name.startsWith("BLACKSTONE")}),
-    NONE(Color(255, 255, 255, 0), { it.isAir || it == Material.GLASS || it == Material.GLASS_PANE || it == Material.BARRIER });
+    DEEPSLATE(Color(6579300), { it.name.startsWith("DEEPSLATE") || it.name.startsWith("BLACKSTONE")});
 
     fun withBrightness(brightness: Brightness) : Color {
         val red = floor(id.red * brightness.brightness).toInt()

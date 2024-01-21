@@ -14,20 +14,21 @@ import org.bukkit.block.data.Levelled
 import org.bukkit.util.BlockVector
 import org.bukkit.util.NumberConversions.square
 import java.awt.Color
-import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.log
+import kotlin.math.round
 
 class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, private val centreZ: Int, private val radius: Int, private val world: World, private val minBuildHeight: Int) {
     private val colourCache: Array<Color> = Array(16384) { RenderColour.NONE.id }
     private val scope: CoroutineScope = CoroutineScope(plugin.minecraftDispatcher)
 
     private fun run() : Deferred<Array<Color>> = scope.async(Dispatchers.IO) {
-        val i: Int = 1 shl ceil(log(radius * 2 / 128.0, 2.0)).toInt() // scale
+        val i = 1 shl round(log(radius * 2 / 128.0, 2.0)).toInt() // scale
 
+        // TODO Try making i a double and see if things can scale in such a way that spreads features over between amounts
         val i4 = 128 * i
-        val j: Int = ((floor((centreX + 64.0) / i4)) * i4 + i4 / 2 - 64).toInt()
-        val k: Int = ((floor((centreZ + 64.0) / i4)) * i4 + i4 / 2 - 64).toInt()
+        val j = centreX
+        val k = centreZ
 
         val j1 = 128 / i
 
@@ -53,8 +54,8 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
         val blockPos1 = BlockVector()
         for(x in 0 until 128) {
             for(z in 0 until 128) {
-                val entityX = floor(j - radius + (x / 128.0) * radius * 2)
-                val entityZ = floor(k - radius + (z / 128.0) * radius * 2)
+                val entityX = floor(j - r + (x / 128.0) * r * 2)
+                val entityZ = floor(k - r + (z / 128.0) * r * 2)
                 val l: Int = ((entityX - j.toDouble()) / i + 64).toInt()
                 val i1: Int = ((entityZ - k.toDouble()) / i + 64).toInt()
                 ++step
@@ -71,7 +72,6 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
                                 val j2 = (j / i + k1 - 64) * i
                                 val k2 = (k / i + l1 - 64) * i
                                 val multiset: Multiset<RenderColour> = LinkedHashMultiset.create()
-                                val chunk = snapshots[Chunk.getChunkKey(j2 shr 4, k2 shr 4)]!!
                                 var l2 = 0
                                 var d1 = 0.0
 
@@ -81,6 +81,7 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
                                         blockPos.setY(0)
                                         blockPos.setZ(k2 + j3)
 
+                                        val chunk = snapshots[Chunk.getChunkKey(blockPos.blockX shr 4, blockPos.blockZ shr 4)]!!
                                         var k3 = chunk.getHighestBlockYAt(blockPos.blockX.mod(16), blockPos.blockZ.mod(16)) + 1
                                         var data: BlockData
                                         if(k3 > minBuildHeight + 1) {
