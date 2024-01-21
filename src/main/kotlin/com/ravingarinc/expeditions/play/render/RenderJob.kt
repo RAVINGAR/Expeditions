@@ -23,16 +23,17 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
     private val scope: CoroutineScope = CoroutineScope(plugin.minecraftDispatcher)
 
     private fun run() : Deferred<Array<Color>> = scope.async(Dispatchers.IO) {
+        val i: Int = 1 shl ceil(log(radius * 2 / 128.0, 2.0)).toInt() // scale
 
-        val i: Int = ceil(log(radius * 2 / 128.0, 2.0)).toInt() // scale
-
-        val j: Int = ((floor((centreX + 64.0) / i)) * i + i / 2 - 64).toInt()
-        val k: Int = ((floor((centreZ + 64.0) / i)) * i + i / 2 - 64).toInt()
+        val i4 = 128 * i
+        val j: Int = ((floor((centreX + 64.0) / i4)) * i4 + i4 / 2 - 64).toInt()
+        val k: Int = ((floor((centreZ + 64.0) / i4)) * i4 + i4 / 2 - 64).toInt()
 
         val j1 = 128 / i
 
-        val minChunkX = ((j - radius - 15) shr 4); val maxChunkX = ((j + radius + 15) shr 4)
-        val minChunkZ = ((k - radius - 15) shr 4); val maxChunkZ = ((k + radius + 15) shr 4)
+        val r = i4 / 2
+        val minChunkX = ((j - r - 15) shr 4); val maxChunkX = ((j + r + 15) shr 4)
+        val minChunkZ = ((k - r - 15) shr 4); val maxChunkZ = ((k + r + 15) shr 4)
         val snapshots = withContext(plugin.minecraftDispatcher) {
             val chunks: MutableMap<Long, ChunkSnapshot> = HashMap()
             for(cX in minChunkX until maxChunkX) {
@@ -91,7 +92,7 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
 
                                             // isEmpty
                                             // TRUE should be if
-                                            if(k3 > minBuildHeight && (data is Levelled && data.level > data.minimumLevel)) {
+                                            if(k3 > minBuildHeight && !(data is Levelled && data.level == data.minimumLevel)) {
                                                 // This block should execute only if block is a fluid and is not empty
                                                 var l3 = k3 - 1
                                                 var data1: BlockData
@@ -102,7 +103,7 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
                                                     blockPos1.setY(l3--)
                                                     data1 = chunk.getBlockData(blockPos1.blockX.mod(16), blockPos1.blockY, blockPos1.blockZ.mod(16))
                                                     ++l2
-                                                } while (l3 > minBuildHeight && (data1 is Levelled && data1.level > data1.minimumLevel))
+                                                } while (l3 > minBuildHeight && !(data1 is Levelled && data1.level == data1.minimumLevel))
                                             }
                                         } else {
                                             data = Bukkit.createBlockData(Material.BEDROCK) // todo is this async safe?
@@ -147,6 +148,7 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
                     ++k1
                 }
             }
+            scope.ensureActive()
         }
         return@async colourCache
     }
@@ -159,6 +161,10 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
             return true
         }
         return false
+    }
+
+    fun getProgress() : String {
+        return ""
     }
 
     companion object {
