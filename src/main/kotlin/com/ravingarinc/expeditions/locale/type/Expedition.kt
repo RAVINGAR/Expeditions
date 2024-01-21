@@ -1,24 +1,17 @@
 package com.ravingarinc.expeditions.locale.type
 
-import com.github.shynixn.mccoroutine.bukkit.launch
-import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
-import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
-import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.WeightedCollection
 import com.ravingarinc.expeditions.play.mob.MobType
 import com.ravingarinc.expeditions.play.render.RenderColour
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
 import org.bukkit.ChatColor
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.util.BlockVector
 import java.awt.Color
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.logging.Level
 
 class Expedition(val identifier: String,
                  description: List<String>,
@@ -55,10 +48,7 @@ class Expedition(val identifier: String,
 
     private val formatted: String
 
-    val colourCache: Array<Color> = Array(16384) { RenderColour.STONE.id }
-
-    private var mapJob: Job? = null
-    private var isMapDone = AtomicBoolean(false)
+    private var mapJob: Deferred<Array<Color>>? = null
 
     val randomMobCollection: WeightedCollection<Pair<MobType, IntRange>> = WeightedCollection()
 
@@ -79,7 +69,23 @@ class Expedition(val identifier: String,
         formatted = builder.toString()
     }
 
+    fun assignJob(job: Deferred<Array<Color>>) {
+        if(mapJob == null) {
+            mapJob = job
+        }
+    }
+
+    suspend fun dispose() {
+        mapJob?.let {
+            if(it.isActive) {
+                it.cancelAndJoin()
+            }
+        }
+    }
+
+    @Deprecated("Replaced with new method")
     suspend fun render(plugin: RavinPlugin) {
+        /*
         if(mapJob != null) {
             warn("Cannot render expedition '$displayName' as it is already being rendered!")
             return
@@ -143,10 +149,20 @@ class Expedition(val identifier: String,
             }
             mapJob = null
         }
+        */
     }
 
     fun isMapRendered() : Boolean {
-        return isMapDone.get()
+        return mapJob?.isCompleted ?: false
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun getColourCache() : Array<Color> {
+        val deferred = mapJob
+        if(deferred == null || !deferred.isCompleted) {
+            return EMPTY_COLOUR_CACHE
+        }
+        return deferred.getCompleted()
     }
 
     fun addArea(area: Area) {
@@ -168,5 +184,9 @@ class Expedition(val identifier: String,
 
     fun getAreas() : List<Area> {
         return areas
+    }
+
+    companion object {
+        val EMPTY_COLOUR_CACHE: Array<Color> = Array(16384) { RenderColour.NONE.id }
     }
 }

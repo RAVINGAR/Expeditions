@@ -18,6 +18,7 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
+import java.util.function.Consumer
 
 
 fun <T : Module> RavinPlugin.withModule(module: Class<T>, function: T.() -> Unit) {
@@ -26,17 +27,6 @@ fun <T : Module> RavinPlugin.withModule(module: Class<T>, function: T.() -> Unit
         function.invoke(m)
     } else {
         warn("Could not execute function with module ${module.name} as this module has not been loaded!")
-    }
-}
-
-fun formatMilliseconds(milliseconds: Long): String {
-    if (milliseconds == -1L) {
-        return "Nil"
-    }
-    return if (milliseconds > 1000) {
-        "${milliseconds / 1000.0F} s"
-    } else {
-        "$milliseconds ms"
     }
 }
 
@@ -197,10 +187,22 @@ fun ConfigurationSection.getDuration(path: String) : Long? {
     return null
 }
 
+fun Long.formatMilliseconds() : String {
+    return if(this < 1000) {
+        "$this milliseconds"
+    } else if(this < 60000) {
+        "${(this / 1000).toInt()} seconds"
+    } else if(this < 3600000) {
+        if(this % 60000 > 0) "${(this / 60000).toInt()} minutes, ${(this % 60000 / 1000).toInt()} seconds" else "${(this / 60000).toInt()} minutes"
+    } else {
+        if(this % 3600000 > 0) "${(this / 3600000).toInt()} hours, ${(this % 3600000 / 60000)} minutes" else "${(this / 3600000).toInt()} hours"
+    }
+}
+
 private object Extensions {
     val timeTypes: Array<TimeFormat> = arrayOf(
-        TimeFormat(arrayOf("ms", "milliseconds", "millisecond")) { it / 50L },
         TimeFormat(arrayOf("t", "ticks", "tick")) { it },
+        TimeFormat(arrayOf("ms", "milliseconds", "millisecond")) { it / 50L },
         TimeFormat(arrayOf("s", "secs", "sec", "seconds", "second")) { it * 20L },
         TimeFormat(arrayOf("m", "mins", "min", "minutes", "minute")) { it * 1200L },
         TimeFormat(arrayOf("h", "hours", "hour")) { it * 72000L }
@@ -460,7 +462,13 @@ fun World.blockWithChunk(plugin: RavinPlugin, chunkX: Int, chunkZ: Int, withChun
         withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
     } else {
         this.addPluginChunkTicket(chunkX, chunkZ, plugin)
-        withChunk.invoke(getChunkAt(chunkX, chunkZ))
+        if(isChunkLoaded(chunkX, chunkZ)) {
+            withChunk.invoke(getChunkAt(chunkX, chunkZ))
+        } else {
+            getChunkAtAsync(chunkX, chunkZ, Consumer {
+                withChunk.invoke(it)
+            })
+        }
         this.removePluginChunkTicket(chunkX, chunkZ, plugin)
     }
 }

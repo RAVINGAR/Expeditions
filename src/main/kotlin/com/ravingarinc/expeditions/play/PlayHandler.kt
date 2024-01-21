@@ -3,9 +3,11 @@ package com.ravingarinc.expeditions.play
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.github.shynixn.mccoroutine.bukkit.ticks
+import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
 import com.ravingarinc.expeditions.api.Ticker
+import com.ravingarinc.expeditions.api.formatMilliseconds
 import com.ravingarinc.expeditions.api.getDuration
 import com.ravingarinc.expeditions.api.getMaterialList
 import com.ravingarinc.expeditions.command.ExpeditionGui
@@ -18,6 +20,7 @@ import com.ravingarinc.expeditions.play.instance.CachedPlayer
 import com.ravingarinc.expeditions.play.instance.ExpeditionInstance
 import com.ravingarinc.expeditions.play.instance.IdlePhase
 import com.ravingarinc.expeditions.play.instance.PlayPhase
+import com.ravingarinc.expeditions.play.render.RenderJob
 import kotlinx.coroutines.CoroutineScope
 import org.bukkit.ChatColor
 import org.bukkit.Material
@@ -26,6 +29,7 @@ import org.bukkit.entity.Player
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.logging.Level
 
 class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.java, plugin, true, ExpeditionManager::class.java) {
     private lateinit var expeditions: ExpeditionManager
@@ -80,17 +84,27 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                 createInstance(type)?.let { list.add(it) }
             }
         }
-        plugin.launch {
-            // Render after copying the worlds... such to avoid chunk glitch issues.
-            for(type in expeditions.getMaps()) {
-                type.render(plugin)
-            }
-            capacityJob.start(tickInterval)
-            ticker.start()
-        }
         manager.getRespawningPlayers().forEach {
             respawningPlayers[it.player.uniqueId] = it
         }
+        plugin.launch {
+            // Render after copying the worlds... such to avoid chunk glitch issues.
+            for(type in expeditions.getMaps()) {
+                val startTime = System.currentTimeMillis()
+                val deferred = RenderJob.render(plugin, type.centreX, type.centreZ, type.radius, type.world, type.world.minHeight)
+                type.assignJob(deferred)
+                deferred.invokeOnCompletion {
+                    if(it == null) {
+                        I.log(Level.INFO, "Successfully rendered expedition map for '${type.displayName}' in ${(System.currentTimeMillis() - startTime).formatMilliseconds()}!")
+                    } else {
+                        I.log(Level.SEVERE, "Encountered exception whilst rendering expedition map for '${type.displayName}'!", it)
+                    }
+
+                }
+            }
+        }
+        capacityJob.start(tickInterval)
+        ticker.start()
     }
 
     override suspend fun suspendCancel() {

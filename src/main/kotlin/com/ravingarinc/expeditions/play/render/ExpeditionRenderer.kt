@@ -25,7 +25,7 @@ class ExpeditionRenderer(val expedition: Expedition) : MapRenderer(false) {
             if(!players.contains(player.uniqueId)) {
                 for(x in 0 until 128) {
                     for(z in 0 until 128) {
-                        canvas.setPixelColor(x, z, expedition.colourCache[z * 128 + x])
+                        canvas.setPixelColor(x, z, expedition.getColourCache()[z * 128 + x])
                     }
                 }
                 players.add(player.uniqueId)
