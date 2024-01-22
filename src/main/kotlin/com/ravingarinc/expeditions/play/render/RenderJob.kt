@@ -11,28 +11,25 @@ import kotlinx.coroutines.*
 import org.bukkit.*
 import org.bukkit.block.data.BlockData
 import org.bukkit.block.data.Levelled
-import org.bukkit.util.BlockVector
 import org.bukkit.util.NumberConversions.square
 import java.awt.Color
 import kotlin.math.floor
-import kotlin.math.log
-import kotlin.math.round
 
 class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, private val centreZ: Int, private val radius: Int, private val world: World, private val minBuildHeight: Int) {
     private val colourCache: Array<Color> = Array(16384) { RenderColour.NONE.id }
     private val scope: CoroutineScope = CoroutineScope(plugin.minecraftDispatcher)
 
     private fun run() : Deferred<Array<Color>> = scope.async(Dispatchers.IO) {
-        val i = 1 shl round(log(radius * 2 / 128.0, 2.0)).toInt() // scale
+        //val i = 1 shl round(log(radius * 2 / 128.0, 2.0)).toInt() // scale
+        val i = (radius * 2) / 128.0
 
-        // TODO Try making i a double and see if things can scale in such a way that spreads features over between amounts
         val i4 = 128 * i
         val j = centreX
         val k = centreZ
 
         val j1 = 128 / i
 
-        val r = i4 / 2
+        val r = (i4 / 2).toInt()
         val minChunkX = ((j - r - 15) shr 4); val maxChunkX = ((j + r + 15) shr 4)
         val minChunkZ = ((k - r - 15) shr 4); val maxChunkZ = ((k + r + 15) shr 4)
         val snapshots = withContext(plugin.minecraftDispatcher) {
@@ -50,67 +47,58 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
         var flag = false
         var step = 0
 
-        val blockPos = BlockVector()
-        val blockPos1 = BlockVector()
         for(x in 0 until 128) {
             for(z in 0 until 128) {
                 val entityX = floor(j - r + (x / 128.0) * r * 2)
                 val entityZ = floor(k - r + (z / 128.0) * r * 2)
-                val l: Int = ((entityX - j.toDouble()) / i + 64).toInt()
-                val i1: Int = ((entityZ - k.toDouble()) / i + 64).toInt()
+                val l = ((entityX - j.toDouble()) / i + 64).toInt()
+                val i1 = ((entityZ - k.toDouble()) / i + 64).toInt()
                 ++step
-                var k1: Int = l - j1 + 1
+                var k1 = l - j1 + 1
                 while(k1 < l + j1) {
-                    if((k1 and 15) == (step and 15) || flag) {
+                    if((k1.toInt() and 15) == (step and 15) || flag) {
                         flag = false
                         var d0 = 0.0
                         var l1 = i1 - j1 - 1
                         while(l1 < i1 + j1) {
                             if(k1 >= 0 && l1 >= -1 && k1 < 128 && l1 < 128) {
-                                val i2 = (square((k1 - l).toDouble()) + square((l1 - i1).toDouble())).toInt()
+                                val i2 = (square((k1 - l)) + square((l1 - i1))).toInt()
                                 val flag1 = i2 > (j1 - 2) * (j1 - 2)
                                 val j2 = (j / i + k1 - 64) * i
                                 val k2 = (k / i + l1 - 64) * i
                                 val multiset: Multiset<RenderColour> = LinkedHashMultiset.create()
-                                var l2 = 0
+                                var l2 = 0.0
                                 var d1 = 0.0
 
-                                for(i3 in 0 until i) {
-                                    for(j3 in 0 until i) {
-                                        blockPos.setX(j2 + i3)
-                                        blockPos.setY(0)
-                                        blockPos.setZ(k2 + j3)
+                                for(i3 in 0 until i.toInt()) {
+                                    for(j3 in 0 until i.toInt()) {
+                                        val x4 = (j2 + i3).toInt()
+                                        val z4 = (k2 + j3).toInt()
+                                        val mX = x4.mod(16)
+                                        val mZ = z4.mod(16)
 
-                                        val chunk = snapshots[Chunk.getChunkKey(blockPos.blockX shr 4, blockPos.blockZ shr 4)]!!
-                                        var k3 = chunk.getHighestBlockYAt(blockPos.blockX.mod(16), blockPos.blockZ.mod(16)) + 1
+                                        val chunk = snapshots[Chunk.getChunkKey(x4 shr 4, z4 shr 4)]!!
+                                        var k3 = chunk.getHighestBlockYAt(mX, mZ) + 1
                                         var data: BlockData
                                         if(k3 > minBuildHeight + 1) {
                                             do {
-                                                --k3
-                                                blockPos.setY(k3)
-                                                data = chunk.getBlockData(blockPos.blockX.mod(16), blockPos.blockY, blockPos.blockZ.mod(16))
+                                                data = chunk.getBlockData(mX, --k3, mZ)
                                             } while ( RenderColour.NONE.predicate.invoke(data.material) && k3 > minBuildHeight)
 
-                                            // isEmpty
-                                            // TRUE should be if
-                                            if(k3 > minBuildHeight && !(data is Levelled && data.level == data.minimumLevel)) {
+                                            if(k3 > minBuildHeight && data.material == Material.WATER && (data is Levelled)) {
                                                 // This block should execute only if block is a fluid and is not empty
                                                 var l3 = k3 - 1
                                                 var data1: BlockData
-                                                blockPos1.setX(blockPos.blockX)
-                                                blockPos1.setY(blockPos.blockY)
-                                                blockPos1.setZ(blockPos.blockZ)
                                                 do {
-                                                    blockPos1.setY(l3--)
-                                                    data1 = chunk.getBlockData(blockPos1.blockX.mod(16), blockPos1.blockY, blockPos1.blockZ.mod(16))
+                                                    data1 = chunk.getBlockData(mX, l3--, mZ)
                                                     ++l2
-                                                } while (l3 > minBuildHeight && !(data1 is Levelled && data1.level == data1.minimumLevel))
+                                                } while (l3 > minBuildHeight && data1.material == Material.WATER && (data1 is Levelled))
                                             }
                                         } else {
-                                            data = Bukkit.createBlockData(Material.BEDROCK) // todo is this async safe?
+                                            data = BEDROCK_STATE
                                         }
 
-                                        d1 += k3.toDouble() / (i * i).toDouble()
+                                        d1 += k3.toDouble() / (i * i)
                                         multiset.add(RenderColour.match(data.material))
                                     }
                                 }
@@ -119,7 +107,7 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
                                 var d2: Double
                                 var brightness: RenderColour.Brightness
                                 if(mapColour == RenderColour.WATER) {
-                                    d2 = l2 * 0.1 + (k1 + l1 and 1).toDouble() * 0.2
+                                    d2 = l2 * 0.1 + ((k1 + l1).toInt() and 1).toDouble() * 0.2
                                     brightness = if(d2 < 0.5) {
                                         RenderColour.Brightness.HIGH
                                     } else if(d2 > 0.9) {
@@ -128,7 +116,7 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
                                         RenderColour.Brightness.NORMAL
                                     }
                                 } else {
-                                    d2 = (d1 - d0) * 4.0 / (i + 4).toDouble() + ((k1 + l1 and 1).toDouble() - 0.5) * 0.4
+                                    d2 = (d1 - d0) * 4.0 / (i + 4) + (((k1 + l1).toInt() and 1).toDouble() - 0.5) * 0.4
                                     brightness = if(d2 > 0.6) {
                                         RenderColour.Brightness.HIGH
                                     } else if(d2 < -0.6) {
@@ -139,8 +127,8 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
                                 }
 
                                 d0 = d1
-                                if(l1 >= 0 && i2 < j1 * j1 && (!flag1 || (k1 + l1 and 1) != 0)) {
-                                    flag = flag or setColor(k1, l1, mapColour.withBrightness(brightness))
+                                if(l1 >= 0 && i2 < j1 * j1 && (!flag1 || ((k1 + l1).toInt() and 1) != 0)) {
+                                    flag = flag or setColor(k1.toInt(), l1.toInt(), mapColour.withBrightness(brightness))
                                 }
                             }
                             ++l1
@@ -164,14 +152,14 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
         return false
     }
 
-    fun getProgress() : String {
-        return ""
-    }
-
     companion object {
         fun render(plugin: RavinPlugin, centreX: Int, centreZ: Int, radius: Int, world: World, minBuildHeight: Int) : Deferred<Array<Color>> {
             val render = RenderJob(plugin, centreX, centreZ, radius, world, minBuildHeight)
             return render.run()
+        }
+
+        val BEDROCK_STATE by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            Bukkit.createBlockData(Material.BEDROCK)
         }
     }
 }
