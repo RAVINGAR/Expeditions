@@ -400,10 +400,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         val uuid = player.uniqueId
         val previousLocale = player.location
         if(!player.teleport(location)) {
-            I.log(Level.WARNING, "Could not teleport '${player.name}' for unknown reason! Something is cancelling this teleportation! Trying again in 20 ticks...")
+            I.log(Level.WARNING, "Could not teleport '${player.name}' for unknown reason! Something is cancelling this teleportation! Trying again in 60 ticks...")
             plugin.launch {
-                delay(20.ticks)
-                addPlayer(player, location)
+                delay(60.ticks)
+                if(player.isOnline) {
+                    addPlayer(player, location)
+                }
             }
             return
         }

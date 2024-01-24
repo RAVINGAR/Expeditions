@@ -43,6 +43,13 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
         loadExpeditions(manager)
     }
 
+    override suspend fun suspendCancel() {
+        maps.forEach { it.dispose() }
+        lootTables.clear()
+        maps.clear()
+        mobTypes.clear()
+    }
+
     fun getLootBlock() : Material {
         return lootBlock
     }
@@ -410,12 +417,5 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
 
     fun reloadMobs() {
         mobTypes.values.forEach { it.reload() }
-    }
-
-    override suspend fun suspendCancel() {
-
-        lootTables.clear()
-        maps.clear()
-        mobTypes.clear()
     }
 }

@@ -31,6 +31,12 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
         data.reload()
     }
 
+    override suspend fun suspendCancel() {
+        config.reload()
+        data.save()
+        mapConfigurations.clear()
+    }
+
     fun addAbandonedPlayer(uuid: UUID) {
         val list = data.config.getStringList("abandoned-players")
         val str = uuid.toString()
@@ -95,11 +101,5 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
 
     fun getMapConfigs(): Map<String, ConfigurationSection> {
         return mapConfigurations
-    }
-
-    override suspend fun suspendCancel() {
-        config.reload()
-        data.save()
-        mapConfigurations.clear()
     }
 }

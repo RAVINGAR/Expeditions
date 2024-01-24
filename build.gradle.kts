@@ -7,6 +7,7 @@ plugins {
     id("net.minecrell.plugin-yml.bukkit") version "0.5.3"
     id("pmd")
     id("java-library")
+    id("io.papermc.paperweight.userdev") version "1.5.10"
 }
 
 group = "com.ravingarinc.expeditions"
@@ -74,6 +75,7 @@ dependencies {
 
     library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-api", "2.11.0")
     library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-core", "2.11.0")
+    library("com.google.guava:guava:18.0")
 
     implementation("com.ravingarinc.api:common:1.4.3")
     implementation("com.ravingarinc.api:module:1.4.3")
@@ -85,7 +87,9 @@ dependencies {
     //compileOnly("org.spigotmc:spigot:1.19.4-R0.1-SNAPSHOT:remapped-mojang")
     //compileOnly("org.spigotmc:spigot-api:1.18.2-R0.1-SNAPSHOT")
 
-    compileOnly("io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.19.4-R0.1-SNAPSHOT")
+
+    //compileOnly("io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT")
     compileOnly("io.lumine:Mythic-Dist:5.1.0-SNAPSHOT")
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
@@ -118,8 +122,14 @@ tasks {
         relocate("com.ravingarinc.api", "com.ravingarinc.expeditions.libs.api")
     }
 
+    /*
     artifacts {
         archives(shadowJar)
+    }
+    */
+
+    assemble {
+        dependsOn(reobfJar)
     }
 
     register<Copy>("copyToDev") {

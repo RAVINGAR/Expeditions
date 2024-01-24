@@ -2,11 +2,12 @@ package com.ravingarinc.expeditions.play.render
 
 import org.bukkit.Material
 import java.awt.Color
-import java.util.concurrent.ThreadLocalRandom
+import java.util.*
 import kotlin.math.floor
 
 enum class RenderColour(val id: Color, val predicate: (Material) -> Boolean) {
-    NONE(Color(255, 255, 255, 0), { it.isAir || it == Material.GLASS || it == Material.GLASS_PANE }),
+    NONE(Color(255, 255, 255, 0), { it.isAir || it == Material.GLASS || it == Material.GLASS_PANE || it == Material.BARRIER }),
+    STONE(Color(7368816), { it == Material.GRAVEL || it == Material.TUFF || it == Material.BASALT || it == Material.SMOOTH_BASALT || it == Material.POLISHED_BASALT || it.name.startsWith("STONE") || it.name.startsWith("ANDESITE") || it.name.startsWith("COBBLESTONE") }),
     GRASS(Color(8368696), { it == Material.GRASS_BLOCK || it == Material.SLIME_BLOCK }),
     SAND(Color(16247203), { it.name.startsWith("SAND") || it.name.startsWith("BIRCH") }),
     FIRE(Color(16711680), { it == Material.LAVA || it == Material.FIRE || it == Material.TNT || it == Material.REDSTONE_BLOCK }),
@@ -47,38 +48,34 @@ enum class RenderColour(val id: Color, val predicate: (Material) -> Boolean) {
     NETHER(Color(7340544), { it == Material.MAGMA_BLOCK || it.name.startsWith("NETHER")}),
     WARPED(Color(1474182), { it.name.startsWith("WARPED")}),
     CRIMSON(Color(6035741), { it.name.startsWith("CRIMSON")}),
-    DEEPSLATE(Color(6579300), { it.name.startsWith("DEEPSLATE")}),
-    STONE(Color(7368816), { true });
+    DEEPSLATE(Color(6579300), { it.name.startsWith("DEEPSLATE") || it.name.startsWith("BLACKSTONE")});
 
-
-    fun randomise() : Color {
-        val random = shades[ThreadLocalRandom.current().nextInt(4)]
-        val red = floor(id.red * random).toInt()
-        val green = floor(id.green * random).toInt()
-        val blue = floor(id.blue * random).toInt()
+    fun withBrightness(brightness: Brightness) : Color {
+        val red = floor(id.red * brightness.brightness).toInt()
+        val green = floor(id.green * brightness.brightness).toInt()
+        val blue = floor(id.blue * brightness.brightness).toInt()
         return Color(red, green, blue)
     }
 
-    fun brighter() : Color {
-        val red = floor(id.red * shades[1]).toInt()
-        val green = floor(id.green * shades[1]).toInt()
-        val blue = floor(id.blue * shades[1]).toInt()
-        return Color(red, green, blue)
-    }
-
-    fun darker() : Color {
-        val red = floor(id.red * shades[3]).toInt()
-        val green = floor(id.green * shades[3]).toInt()
-        val blue = floor(id.blue * shades[3]).toInt()
-        return Color(red, green, blue)
+    enum class Brightness(val brightness: Double) {
+        LOW(0.71),
+        NORMAL(0.86),
+        HIGH(1.0),
+        LOWEST(0.53)
     }
 
     companion object {
-        val shades: Array<Double> = arrayOf(
-            0.71,
-            0.86,
-            1.0,
-            0.53
-        )
+        private val cache: MutableMap<Material, RenderColour> = EnumMap(org.bukkit.Material::class.java)
+
+        fun match(material: Material) : RenderColour {
+            return cache.computeIfAbsent(material) {
+                for(colour in RenderColour.values()) {
+                    if(colour.predicate.invoke(material)) {
+                        return@computeIfAbsent colour
+                    }
+                }
+                return@computeIfAbsent RenderColour.NONE
+            }
+        }
     }
 }
