@@ -6,6 +6,7 @@ import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.blockWithChunk
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
+import com.ravingarinc.expeditions.locale.type.PointOfInterest
 import com.ravingarinc.expeditions.play.PlayHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -90,7 +91,10 @@ class IdlePhase(expedition: Expedition) :
                 instance.areaInstances.add(AreaInstance(instance.plugin, instance.expedition, it))
             }
         }
-        instance.areaInstances.forEach {
+        for(it in instance.areaInstances) {
+            if(it.area is PointOfInterest && it.area.hidden) {
+                continue
+            }
             it.initialise(instance.plugin, instance.world)
             val center = it.area.centre()
             val radius = instance.expedition.radius

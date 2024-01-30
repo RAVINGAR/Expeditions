@@ -237,7 +237,8 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             }
         }
         val name = poi["name"].toString();
-        val rawMessage = parseMessage(name, poi.getOrDefault("enter-message","&6&l{name}&r&7 | &ePoint of Interest").toString());
+        val rawMessage = parseMessage(name, poi.getOrDefault("enter-message","&6&l{name}&r&7 | &ePoint of Interest").toString())
+        val isHidden = poi.getOrDefault("hidden", "false").toString().toBooleanStrictOrNull() ?: false
 
         return PointOfInterest(
             name,
@@ -264,7 +265,8 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
             npcRefollowText,
             npcUnfollowText,
             parseCursor(poi["cursor-type"]?.toString(), MapCursor.Type.MANSION),
-            rawMessage
+            rawMessage,
+            isHidden
         )
     }
 
