@@ -491,6 +491,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     }
 
     fun onMoveEvent(player: Player) {
+        val loc = player.location.toVector()
+        val areas = areaInstances.filter { it.area.isInArea(loc.blockX, loc.blockY, loc.blockZ) }
+        if(areas.isEmpty()) return
         areaInstances.forEach {
             if(it.onMove(player)) {
                 if(it.area is ExtractionZone && player.isSneaking && !sneakingPlayers.containsKey(player)) {
