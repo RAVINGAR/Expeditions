@@ -44,6 +44,10 @@ class PointOfInterest(displayName: String,
 
     }
 
+    override fun isHidden(): Boolean {
+        return hidden
+    }
+
     override fun tick(world: World) {
 
     }

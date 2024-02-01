@@ -7,6 +7,7 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.roll
 import com.ravingarinc.expeditions.locale.type.Expedition
+import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
 import com.ravingarinc.expeditions.play.event.ExpeditionExtractEvent
 import com.ravingarinc.expeditions.play.event.ExpeditionNPCExtractEvent
@@ -14,6 +15,8 @@ import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.*
 import org.bukkit.block.Block
 import org.bukkit.boss.BarColor
@@ -128,6 +131,16 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         npcFollowers[player]?.let {
             it.stopFollowing(player)
             npcFollowers.remove(player)
+        }
+        for(it in areaInstances) {
+            if(it.area is ExtractionZone && it.isInArea(player)) {
+                it.resetPlayer(player)
+                player.sendMessage(
+                    Component
+                    .text("Your extraction progress was reset! You must not take damage whilst extracting!")
+                    .color(NamedTextColor.RED))
+                break
+            }
         }
     }
 
@@ -452,7 +465,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
             handler.removeJoinedExpedition(player)
             bossBar.removePlayer(player)
-            areaInstances.forEach { it.leaveArea(player) }
+            areaInstances.forEach { it.leaveArea(player, false) }
         }
     }
 

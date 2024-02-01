@@ -73,5 +73,7 @@ abstract class Area(val displayName: String,
         return xRange.contains(x) && yRange.contains(y) && zRange.contains(z)
     }
 
+    abstract fun isHidden() : Boolean
+
     abstract fun tick(world: World)
 }

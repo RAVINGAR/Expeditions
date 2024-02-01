@@ -284,7 +284,9 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
     fun enterArea(player: Player, loc: Vector) {
         if(!inArea.containsKey(player)) {
             inArea[player] = System.currentTimeMillis()
-            player.sendActionBar(area.enterMessage)
+            if(!area.isHidden()) {
+                player.sendActionBar(area.enterMessage)
+            }
             if(area is ExtractionZone) {
                 player.sendMessage(Component.text("Prepare for extraction!").color(NamedTextColor.YELLOW))
             }
@@ -300,14 +302,17 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
 
     }
 
-    fun leaveArea(player: Player) {
+    fun leaveArea(player: Player, notify: Boolean) {
         if(inArea.remove(player) != null) {
             spawnedChests.forEach {
                 it.value.hide(player)
             }
-            if(area is ExtractionZone) {
-                player.sendMessage(Component.text("You are no longer extracting!").color(NamedTextColor.YELLOW))
+            if(notify) {
+                if(area is ExtractionZone) {
+                    player.sendMessage(Component.text("You are no longer extracting!").color(NamedTextColor.YELLOW))
+                }
             }
+            player.sendActionBar(Component.text())
         }
     }
 
@@ -319,13 +324,21 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         if(area.isInArea(loc.x.toInt(), loc.y.toInt(), loc.z.toInt())) {
             enterArea(player, loc)
         } else {
-            leaveArea(player)
+            leaveArea(player, true)
         }
+    }
+
+    fun isInArea(player: Player) : Boolean {
+        return inArea.containsKey(player)
+    }
+
+    fun resetPlayer(player: Player) {
+        inArea[player] = System.currentTimeMillis()
     }
 
     fun onDeath(entity: Entity) : Boolean {
         if(entity is Player) {
-            leaveArea(entity)
+            leaveArea(entity, false)
         }
         if(boss != null) {
             if(boss == entity) {
