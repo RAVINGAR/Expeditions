@@ -5,7 +5,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import kotlin.experimental.ExperimentalTypeInference
 
-class LootTable @OptIn(ExperimentalTypeInference::class) constructor(private val quantity: IntRange, @BuilderInference builderAction: MutableList<LootItem>.() -> Unit) :
+class LootTable @OptIn(ExperimentalTypeInference::class) constructor(val title: String, private val quantity: IntRange, @BuilderInference builderAction: MutableList<LootItem>.() -> Unit) :
     LootHolder {
     private val loots: WeightedCollection<LootItem> = WeightedCollection()
     init {

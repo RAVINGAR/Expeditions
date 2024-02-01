@@ -5,6 +5,7 @@ import com.ravingarinc.api.Versions
 import com.ravingarinc.api.build
 import com.ravingarinc.api.sendPacket
 import com.ravingarinc.expeditions.play.item.LootTable
+import kotlinx.coroutines.delay
 import net.kyori.adventure.text.Component
 import org.bukkit.*
 import org.bukkit.Particle.DustOptions
@@ -25,13 +26,17 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
         block.setType(instance.expedition.lootBlock, false)
     }
 
-    fun loot(player: Player) {
+    suspend fun loot(player: Player) {
         var results = loot.collectResults(player)
-        val loc = Location(world, location.x + 0.5, location.y + 0.5, location.z + 0.5)
-        world.spawnParticle(Particle.SPELL_INSTANT, loc, 15, 0.4, 0.75, 0.4, 1.0)
-        world.spawnParticle(Particle.REDSTONE, loc, 25, 0.5, 0.5, 0.5, dust)
 
         destroy()
+
+        val loc = Location(world, location.x + 0.5, location.y + 0.5, location.z + 0.5)
+
+        world.spawnParticle(Particle.SPELL_INSTANT, loc, 15, 0.4, 0.75, 0.4, 1.0)
+        world.spawnParticle(Particle.REDSTONE, loc, 25, 0.5, 0.5, 0.5, dust)
+        world.playSound(loc, Sound.ITEM_SHIELD_BLOCK, SoundCategory.BLOCKS, 0.7F, 0.5F)
+        world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.BLOCKS, 0.7F, 0.9F)
 
         val inventory = Bukkit.createInventory(player, InventoryType.CHEST, Component.text("Loot Crate"))
         val takenSlots : Set<Int> = HashSet()
@@ -46,9 +51,9 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
             inventory.setItem(i, result)
         }
 
+        delay(50)
+
         world.playSound(loc, Sound.BLOCK_CHEST_OPEN, SoundCategory.BLOCKS, 0.7F, 0.8F)
-        world.playSound(loc, Sound.ITEM_SHIELD_BLOCK, SoundCategory.BLOCKS, 0.7F, 0.5F)
-        world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.BLOCKS, 0.7F, 0.9F)
 
         player.openInventory(inventory)
     }

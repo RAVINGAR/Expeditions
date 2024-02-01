@@ -137,7 +137,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         for(it in areaInstances) {
             if(it.area is ExtractionZone && it.isInArea(player)) {
                 it.leaveArea(player, false)
-                if(!warningMessageLog.add(player.uniqueId)) {
+                if(warningMessageLog.add(player.uniqueId)) {
                     player.sendMessage(
                         Component
                             .text("Your extraction progress was reset! You must not take damage whilst extracting!")
