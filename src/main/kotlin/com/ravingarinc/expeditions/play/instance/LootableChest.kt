@@ -5,12 +5,13 @@ import com.ravingarinc.api.Versions
 import com.ravingarinc.api.build
 import com.ravingarinc.api.sendPacket
 import com.ravingarinc.expeditions.play.item.LootTable
-import kotlinx.coroutines.delay
+import net.kyori.adventure.text.Component
 import org.bukkit.*
 import org.bukkit.Particle.DustOptions
 import org.bukkit.entity.Entity
 import org.bukkit.entity.MagmaCube
 import org.bukkit.entity.Player
+import org.bukkit.event.inventory.InventoryType
 import org.bukkit.util.BlockVector
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.random.Random
@@ -24,21 +25,32 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
         block.setType(instance.expedition.lootBlock, false)
     }
 
-    suspend fun loot(player: Player) {
-        val results = loot.collectResults(player)
-        destroy()
+    fun loot(player: Player) {
+        var results = loot.collectResults(player)
         val loc = Location(world, location.x + 0.5, location.y + 0.5, location.z + 0.5)
         world.spawnParticle(Particle.SPELL_INSTANT, loc, 15, 0.4, 0.75, 0.4, 1.0)
-        world.spawnParticle(Particle.REDSTONE, loc, 10, 0.5, 0.5, 0.5, dust)
+        world.spawnParticle(Particle.REDSTONE, loc, 25, 0.5, 0.5, 0.5, dust)
+
+        destroy()
+
+        val inventory = Bukkit.createInventory(player, InventoryType.CHEST, Component.text("Loot Crate"))
+        val takenSlots : Set<Int> = HashSet()
+        if(results.size > 27) {
+            results = results.subList(0, 27)
+        }
+        for(result in results) {
+            var i = random.nextInt(27)
+            while(takenSlots.contains(i)) {
+                i = random.nextInt(27)
+            }
+            inventory.setItem(i, result)
+        }
+
         world.playSound(loc, Sound.BLOCK_CHEST_OPEN, SoundCategory.BLOCKS, 0.7F, 0.8F)
         world.playSound(loc, Sound.ITEM_SHIELD_BLOCK, SoundCategory.BLOCKS, 0.7F, 0.5F)
         world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.BLOCKS, 0.7F, 0.9F)
 
-        for(result in results) {
-            world.playSound(loc, Sound.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 0.7F, 1.0F)
-            world.dropItemNaturally(loc, result)
-            delay(Random.nextLong(150))
-        }
+        player.openInventory(inventory)
     }
 
     fun show(player: Player) {
@@ -109,5 +121,7 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
 
     companion object {
         val dust = DustOptions(Color.fromRGB(232, 202, 81), 1.0F)
+
+        val random = Random(System.currentTimeMillis())
     }
 }
