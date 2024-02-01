@@ -235,11 +235,6 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
     }
 
     @EventHandler
-    fun onShiftEvent(event: PlayerToggleSneakEvent) {
-        handler.getJoinedExpedition(event.player)?.onSneakEvent(event.player, event.isSneaking)
-    }
-
-    @EventHandler
     fun onMoveEvent(event: PlayerMoveEvent) {
         val player = event.player
         val time = System.currentTimeMillis()

@@ -7,7 +7,6 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.roll
 import com.ravingarinc.expeditions.locale.type.Expedition
-import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
 import com.ravingarinc.expeditions.play.event.ExpeditionExtractEvent
 import com.ravingarinc.expeditions.play.event.ExpeditionNPCExtractEvent
@@ -26,9 +25,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.MapMeta
 import org.bukkit.map.MapView
 import org.bukkit.util.BlockVector
-import org.bukkit.util.Vector
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 import kotlin.math.abs
@@ -41,8 +38,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         NamespacedKey(plugin, "${world.name}_bossbar"),
         "${expedition.displayName} Expedition",
         BarColor.BLUE, BarStyle.SEGMENTED_12)
-
-    val sneakingPlayers: MutableMap<Player, Pair<Long, Vector>> = ConcurrentHashMap()
 
     private val npcFollowers: MutableMap<Player, AreaInstance> = HashMap()
 
@@ -165,7 +160,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun clearPlayers() {
         joinedPlayers.clear()
         quitPlayers.clear()
-        sneakingPlayers.clear()
     }
 
     suspend fun tick(random: Random) {
@@ -184,6 +178,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             if(tickMobs) it.tickMobs(random, this)
             if(tickLoot) it.tickLoot(random, world)
             it.tick(world)
+            it.tickExtractions(this)
         }
         if(!tickRandomMobs) return
         joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
@@ -411,7 +406,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
         joinedPlayers[uuid] = CachedPlayer(player, previousLocale)
         bossBar.addPlayer(player)
-        areaInstances.forEach { it.onMove(player) }
+        onMoveEvent(player)
         handler.addJoinedExpedition(player, this)
 
         giveMap(player)
@@ -457,10 +452,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
             handler.removeJoinedExpedition(player)
             bossBar.removePlayer(player)
-            sneakingPlayers.remove(player)
-            areaInstances.forEach {
-                it.inArea.remove(player)
-            }
+            areaInstances.forEach { it.leaveArea(player) }
         }
     }
 
@@ -476,32 +468,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
-    fun onSneakEvent(player: Player, isSneaking: Boolean) {
-        if(isSneaking) {
-            areaInstances.forEach {
-                if(it.inArea.contains(player) && it.area is ExtractionZone) {
-                    sneakingPlayers[player] = Pair(System.currentTimeMillis(), player.location.toVector())
-                    return
-                }
-            }
-        }
-        if(sneakingPlayers.remove(player) != null) {
-            player.sendMessage("${ChatColor.YELLOW}You are no longer extracting!")
-        }
-    }
-
     fun onMoveEvent(player: Player) {
-        val loc = player.location.toVector()
-        val areas = areaInstances.filter { it.area.isInArea(loc.blockX, loc.blockY, loc.blockZ) }
-        if(areas.isEmpty()) return
-        areaInstances.forEach {
-            if(it.onMove(player)) {
-                if(it.area is ExtractionZone && player.isSneaking && !sneakingPlayers.containsKey(player)) {
-                    sneakingPlayers[player] = Pair(System.currentTimeMillis(), player.location.toVector())
-                }
-                return@forEach
-            }
-        }
+        areaInstances.forEach { it.onMove(player) }
     }
 
     private fun giveMap(player: Player) {
