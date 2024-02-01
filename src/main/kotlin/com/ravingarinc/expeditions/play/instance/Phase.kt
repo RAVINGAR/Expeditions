@@ -10,6 +10,7 @@ import com.ravingarinc.expeditions.play.PlayHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import org.bukkit.ChatColor
 import org.bukkit.Location
 import org.bukkit.Sound
@@ -191,8 +192,19 @@ class StormPhase(expedition: Expedition) :
             10L -> {
                 instance.getRemainingPlayers().forEach { cache ->
                     val it = cache.player.player!!
+                    it.playSound(it, Sound.ENTITY_ENDERMAN_DEATH, 0.7F, 0.1F)
                     instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
                     it.sendMessage("${ChatColor.YELLOW}There are 10 seconds remaining. Make your way to the nearest extraction point before it's too late!")
+                    instance.plugin.launch {
+                        delay(Random.nextLong(100))
+                        instance.world.strikeLightning(Location(it.world, it.location.x, 200.0, it.location.z))
+                    }
+                }
+            }
+            2L -> {
+                instance.getRemainingPlayers().forEach { cache ->
+                    val it = cache.player.player!!
+                    it.playSound(it, Sound.ENTITY_WITHER_SPAWN, 0.9F, 0.2F)
                 }
             }
         }
@@ -206,8 +218,6 @@ class StormPhase(expedition: Expedition) :
         // Done before getQuitPlayers, since this method may add to quit players
         instance.getRemainingPlayers().forEach {
             val player = it.player.player!!
-            player.playSound(player, Sound.ENTITY_ENDERMAN_DEATH, 0.7F, 0.4F)
-            player.playSound(player, Sound.ENTITY_WITHER_SPAWN, 0.9F, 0.2F)
             player.inventory.clear()
             instance.removePlayer(player, RemoveReason.DEATH)
             instance.world.strikeLightningEffect(player.location)

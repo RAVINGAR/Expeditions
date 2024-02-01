@@ -157,9 +157,10 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
 
             if(progress >= 1.0) {
                 instance.plugin.launch {
-                    player.addPotionEffect(PotionEffect(PotionEffectType.BLINDNESS, 20, 1, true))
+                    player.sendActionBar(Component.text("-- Extraction Complete --").color(NamedTextColor.GOLD))
                     player.playSound(player, Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8F, 0.8F)
-                    delay(40)
+                    player.addPotionEffect(PotionEffect(PotionEffectType.BLINDNESS, 20, 1, true))
+                    delay(60)
                     instance.removePlayer(player, RemoveReason.EXTRACTION)
                     player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)
                 }

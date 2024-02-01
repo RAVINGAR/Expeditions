@@ -42,6 +42,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         "${expedition.displayName} Expedition",
         BarColor.BLUE, BarStyle.SEGMENTED_12)
 
+    private val warningMessageLog: MutableSet<UUID> = HashSet()
+
     private val npcFollowers: MutableMap<Player, AreaInstance> = HashMap()
 
     private val mapView: MapView
@@ -134,11 +136,14 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
         for(it in areaInstances) {
             if(it.area is ExtractionZone && it.isInArea(player)) {
-                it.resetPlayer(player)
-                player.sendMessage(
-                    Component
-                    .text("Your extraction progress was reset! You must not take damage whilst extracting!")
-                    .color(NamedTextColor.RED))
+                it.leaveArea(player, false)
+                if(!warningMessageLog.add(player.uniqueId)) {
+                    player.sendMessage(
+                        Component
+                            .text("Your extraction progress was reset! You must not take damage whilst extracting!")
+                            .color(NamedTextColor.RED))
+                }
+                player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
                 break
             }
         }
@@ -191,7 +196,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             if(tickMobs) it.tickMobs(random, this)
             if(tickLoot) it.tickLoot(random, world)
             it.tick(world)
-            it.tickExtractions(this)
+            if(it.area is ExtractionZone) {
+                it.tickExtractions(this)
+            }
         }
         if(!tickRandomMobs) return
         joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
@@ -466,6 +473,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             handler.removeJoinedExpedition(player)
             bossBar.removePlayer(player)
             areaInstances.forEach { it.leaveArea(player, false) }
+            warningMessageLog.remove(player.uniqueId)
         }
     }
 

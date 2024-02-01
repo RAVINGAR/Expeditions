@@ -239,7 +239,7 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         val player = event.player
         val time = System.currentTimeMillis()
         val lastTime = movementCooldown[player.uniqueId] ?: time
-        if(time - lastTime > 1000L) {
+        if(time - lastTime > 100) {
             movementCooldown[player.uniqueId] = time
             val vector = player.location.toVector()
             val lastVector = lastLocation[player.uniqueId] ?: vector
