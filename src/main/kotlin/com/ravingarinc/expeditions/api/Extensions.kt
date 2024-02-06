@@ -134,7 +134,7 @@ fun ConfigurationSection.getIntPair(path: String) : Pair<Int, Int>? {
         warn("Could not find option at path '$path' in section '${this.name}'")
         return null
     }
-    val split = string.replace(" ", "").split(",", ";", "-", limit = 2)
+    val split = string.replace(" ", "").split(",",";", limit = 2)
     val first = split[0].toIntOrNull()
     val second = split[1].toIntOrNull()
     if(first == null || second == null) {
