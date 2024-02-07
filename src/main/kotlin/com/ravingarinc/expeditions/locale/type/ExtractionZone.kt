@@ -75,4 +75,8 @@ class ExtractionZone(val chance: Double,
             }
         }
     }
+
+    override fun isHidden(): Boolean {
+        return false
+    }
 }

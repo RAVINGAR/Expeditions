@@ -15,6 +15,8 @@ import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.*
 import org.bukkit.block.Block
 import org.bukkit.boss.BarColor
@@ -26,9 +28,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.MapMeta
 import org.bukkit.map.MapView
 import org.bukkit.util.BlockVector
-import org.bukkit.util.Vector
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 import kotlin.math.abs
@@ -42,7 +42,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         "${expedition.displayName} Expedition",
         BarColor.BLUE, BarStyle.SEGMENTED_12)
 
-    val sneakingPlayers: MutableMap<Player, Pair<Long, Vector>> = ConcurrentHashMap()
+    private val warningMessageLog: MutableSet<UUID> = HashSet()
 
     private val npcFollowers: MutableMap<Player, AreaInstance> = HashMap()
 
@@ -134,6 +134,19 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             it.stopFollowing(player)
             npcFollowers.remove(player)
         }
+        for(it in areaInstances) {
+            if(it.area is ExtractionZone && it.isInArea(player)) {
+                it.leaveArea(player, false)
+                if(warningMessageLog.add(player.uniqueId)) {
+                    player.sendMessage(
+                        Component
+                            .text("Your extraction progress was reset! You must not take damage whilst extracting!")
+                            .color(NamedTextColor.RED))
+                }
+                player.playSound(player, Sound.BLOCK_NOTE_BLOCK_SNARE, 0.8F, 0.5F)
+                break
+            }
+        }
     }
 
     fun onNPCClick(player: Player, entityId: Int) {
@@ -165,7 +178,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun clearPlayers() {
         joinedPlayers.clear()
         quitPlayers.clear()
-        sneakingPlayers.clear()
     }
 
     suspend fun tick(random: Random) {
@@ -184,6 +196,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             if(tickMobs) it.tickMobs(random, this)
             if(tickLoot) it.tickLoot(random, world)
             it.tick(world)
+            if(it.area is ExtractionZone) {
+                it.tickExtractions(this)
+            }
         }
         if(!tickRandomMobs) return
         joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
@@ -411,7 +426,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
         joinedPlayers[uuid] = CachedPlayer(player, previousLocale)
         bossBar.addPlayer(player)
-        areaInstances.forEach { it.onMove(player) }
+        onMoveEvent(player)
         handler.addJoinedExpedition(player, this)
 
         giveMap(player)
@@ -457,10 +472,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
             handler.removeJoinedExpedition(player)
             bossBar.removePlayer(player)
-            sneakingPlayers.remove(player)
-            areaInstances.forEach {
-                it.inArea.remove(player)
-            }
+            areaInstances.forEach { it.leaveArea(player, false) }
+            warningMessageLog.remove(player.uniqueId)
         }
     }
 
@@ -476,29 +489,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
-    fun onSneakEvent(player: Player, isSneaking: Boolean) {
-        if(isSneaking) {
-            areaInstances.forEach {
-                if(it.inArea.contains(player) && it.area is ExtractionZone) {
-                    sneakingPlayers[player] = Pair(System.currentTimeMillis(), player.location.toVector())
-                    return
-                }
-            }
-        }
-        if(sneakingPlayers.remove(player) != null) {
-            player.sendMessage("${ChatColor.YELLOW}You are no longer extracting!")
-        }
-    }
-
     fun onMoveEvent(player: Player) {
-        areaInstances.forEach {
-            if(it.onMove(player)) {
-                if(it.area is ExtractionZone && player.isSneaking && !sneakingPlayers.containsKey(player)) {
-                    sneakingPlayers[player] = Pair(System.currentTimeMillis(), player.location.toVector())
-                }
-                return@forEach
-            }
-        }
+        areaInstances.forEach { it.onMove(player) }
     }
 
     private fun giveMap(player: Player) {

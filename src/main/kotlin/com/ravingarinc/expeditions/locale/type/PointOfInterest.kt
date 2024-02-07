@@ -32,7 +32,8 @@ class PointOfInterest(displayName: String,
                       npcRefollowText: String,
                       npcUnfollowText: String,
                       cursorType: MapCursor.Type,
-                      enterMessage: ComponentLike
+                      enterMessage: ComponentLike,
+                      val hidden: Boolean
 ) : Area(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown, npcIdentifier, npcSpawnLoc, npcOnSpawn, npcOnExtract, npcFollowText, npcRefollowText, npcUnfollowText, cursorType, enterMessage) {
     override val displayType: String = "Point of Interest"
     override fun initialise(plugin: RavinPlugin, world: World) {
@@ -41,6 +42,10 @@ class PointOfInterest(displayName: String,
 
     override fun dispose(plugin: RavinPlugin, world: World) {
 
+    }
+
+    override fun isHidden(): Boolean {
+        return hidden
     }
 
     override fun tick(world: World) {

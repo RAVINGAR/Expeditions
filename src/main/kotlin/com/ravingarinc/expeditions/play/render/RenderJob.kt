@@ -30,8 +30,8 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
         val j1 = 128 / i
 
         val r = (i4 / 2).toInt()
-        val minChunkX = ((j - r - 15) shr 4); val maxChunkX = ((j + r + 15) shr 4)
-        val minChunkZ = ((k - r - 15) shr 4); val maxChunkZ = ((k + r + 15) shr 4)
+        val minChunkX = ((j - r - 31) shr 4); val maxChunkX = ((j + r + 31) shr 4)
+        val minChunkZ = ((k - r - 31) shr 4); val maxChunkZ = ((k + r + 31) shr 4)
         val snapshots = withContext(plugin.minecraftDispatcher) {
             val chunks: MutableMap<Long, ChunkSnapshot> = HashMap()
             for(cX in minChunkX until maxChunkX) {

@@ -11,16 +11,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.ChatColor
 import org.bukkit.Location
 import org.bukkit.Sound
 import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarFlag
 import org.bukkit.map.MapCursor
-import org.bukkit.potion.PotionEffect
-import org.bukkit.potion.PotionEffectType
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
@@ -90,7 +86,10 @@ class IdlePhase(expedition: Expedition) :
                 instance.areaInstances.add(AreaInstance(instance.plugin, instance.expedition, it))
             }
         }
-        instance.areaInstances.forEach {
+        for(it in instance.areaInstances) {
+            if(it.area.isHidden()) {
+                continue
+            }
             it.initialise(instance.plugin, instance.world)
             val center = it.area.centre()
             val radius = instance.expedition.radius
@@ -135,7 +134,6 @@ class PlayPhase(expedition: Expedition) :
     override fun onTick(random: Random, instance: ExpeditionInstance) {
         super.onTick(random, instance)
         instance.bossBar.progress = 1.0 - (ticks / totalTime.toDouble())
-        tickExtractions(instance)
         if(!rainStarted && this.durationTicks - ticks <= 200) {
             val world = instance.world
             val duration = instance.expedition.stormPhaseDuration.toInt() + 200
@@ -175,7 +173,6 @@ class StormPhase(expedition: Expedition) :
     override fun onTick(random: Random, instance: ExpeditionInstance) {
         super.onTick(random, instance)
         instance.bossBar.progress = 1.0 - ((instance.expedition.calmPhaseDuration + ticks) / totalTime.toDouble())
-        tickExtractions(instance)
         when ((durationTicks - ticks) / 20) {
             60L -> {
                 instance.getRemainingPlayers().forEach { cache ->
@@ -195,8 +192,19 @@ class StormPhase(expedition: Expedition) :
             10L -> {
                 instance.getRemainingPlayers().forEach { cache ->
                     val it = cache.player.player!!
+                    it.playSound(it, Sound.ENTITY_ENDERMAN_DEATH, 0.7F, 0.1F)
                     instance.world.strikeLightning(Location(it.world, it.location.x, 400.0, it.location.z))
                     it.sendMessage("${ChatColor.YELLOW}There are 10 seconds remaining. Make your way to the nearest extraction point before it's too late!")
+                    instance.plugin.launch {
+                        delay(Random.nextLong(100))
+                        instance.world.strikeLightning(Location(it.world, it.location.x, 200.0, it.location.z))
+                    }
+                }
+            }
+            2L -> {
+                instance.getRemainingPlayers().forEach { cache ->
+                    val it = cache.player.player!!
+                    it.playSound(it, Sound.ENTITY_WITHER_SPAWN, 0.9F, 0.2F)
                 }
             }
         }
@@ -210,8 +218,6 @@ class StormPhase(expedition: Expedition) :
         // Done before getQuitPlayers, since this method may add to quit players
         instance.getRemainingPlayers().forEach {
             val player = it.player.player!!
-            player.playSound(player, Sound.ENTITY_ENDERMAN_DEATH, 0.7F, 0.4F)
-            player.playSound(player, Sound.ENTITY_WITHER_SPAWN, 0.9F, 0.2F)
             player.inventory.clear()
             instance.removePlayer(player, RemoveReason.DEATH)
             instance.world.strikeLightningEffect(player.location)
@@ -288,48 +294,5 @@ class RestorationPhase(expedition: Expedition) :
 
     override fun onEnd(instance: ExpeditionInstance) {
 
-    }
-}
-
-fun tickExtractions(instance: ExpeditionInstance) {
-    ArrayList(instance.sneakingPlayers.keys).forEach { player ->
-        val time = System.currentTimeMillis()
-        val location = player.location.toVector()
-        val pair = instance.sneakingPlayers[player]!!
-        if(location == pair.second) {
-            val diff = time - pair.first
-            if((0..1000L).contains(diff)) {
-                player.sendMessage("${ChatColor.YELLOW}Prepare for extraction!")
-            }
-            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 0.8F)
-            val progress = diff / (instance.expedition.extractionTime * 50.0)
-            val builder = Component.text()
-                .content("Extracting . . .")
-                .color(NamedTextColor.GOLD)
-                .append(Component.text(" | ").color(NamedTextColor.GRAY))
-                .append(Component.text("[").color(NamedTextColor.GRAY));
-            for(i in 1..16) {
-                builder.append(Component
-                    .text("|")
-                    .color(if(progress > (i / 16.0)) NamedTextColor.YELLOW else NamedTextColor.GRAY))
-            }
-            builder.append(Component.text("]").color(NamedTextColor.GRAY))
-            player.sendActionBar(builder.build())
-
-            if(progress >= 1.0) {
-                instance.sneakingPlayers.remove(player)
-                instance.plugin.launch {
-                    player.addPotionEffect(PotionEffect(PotionEffectType.BLINDNESS, 20, 1, true))
-                    player.playSound(player, Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8F, 0.8F)
-                    delay(20)
-                    instance.removePlayer(player, RemoveReason.EXTRACTION)
-                    player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)
-                }
-            }
-        } else {
-            player.playSound(player, Sound.BLOCK_NOTE_BLOCK_HAT, 0.8F, 0.4F)
-            instance.sneakingPlayers[player] = Pair(time, location)
-            player.sendMessage("${ChatColor.RED}You must remain still whilst extracting!")
-        }
     }
 }

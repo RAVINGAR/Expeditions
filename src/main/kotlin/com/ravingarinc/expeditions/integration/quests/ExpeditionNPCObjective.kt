@@ -11,7 +11,8 @@ import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
 
 class ExpeditionNPCObjective(instruction: Instruction) : CountingObjective(instruction), Listener {
-    private val npcIdentifiers: MutableList<String> = instruction.getList { it }
+    private val expeditions: MutableList<String> = instruction.getList { it.lowercase() }
+    private val npcIdentifiers: MutableList<String> = instruction.getList { it.lowercase() }
 
     init {
         targetAmount = instruction.getVarNum()
@@ -22,7 +23,11 @@ class ExpeditionNPCObjective(instruction: Instruction) : CountingObjective(instr
         val profile = PlayerConverter.getID(event.player)
         if(!containsPlayer(profile)) return
         val npc = event.npc
-        val identifier = npc.identifier().replace(" ", "_", ignoreCase = false)
+
+        val expedition = event.expedition.displayName.replace(" ", "_", ignoreCase = false).lowercase()
+        if(!expeditions.contains("all") && expeditions.isNotEmpty() && expeditions.stream().noneMatch { it == expedition}) return
+
+        val identifier = npc.identifier().replace(" ", "_", ignoreCase = false).lowercase()
         if(npcIdentifiers.isNotEmpty() && !npcIdentifiers.stream().anyMatch { it == identifier }) return
 
         if(checkConditions(profile)) {

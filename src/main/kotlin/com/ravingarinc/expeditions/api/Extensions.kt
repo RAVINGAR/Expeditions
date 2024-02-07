@@ -91,7 +91,8 @@ fun parseRange(string: String): IntRange {
 
 fun ConfigurationSection.getDropTable(path: String): LootTable {
     val range = getRange("$path.quantity")
-    return LootTable(range) {
+    val title = getString("$path.title") ?: "Loot Crate"
+    return LootTable(title, range) {
         getMapList("$path.loot").forEach { map ->
             val id = map["id"].toString()
             val r = parseRange(map["quantity"].toString())
@@ -133,7 +134,7 @@ fun ConfigurationSection.getIntPair(path: String) : Pair<Int, Int>? {
         warn("Could not find option at path '$path' in section '${this.name}'")
         return null
     }
-    val split = string.replace(" ", "").split(",", ";", "-", limit = 2)
+    val split = string.replace(" ", "").split(",",";", limit = 2)
     val first = split[0].toIntOrNull()
     val second = split[1].toIntOrNull()
     if(first == null || second == null) {
