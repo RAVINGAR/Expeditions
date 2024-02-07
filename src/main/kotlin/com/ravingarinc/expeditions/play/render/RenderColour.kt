@@ -23,11 +23,11 @@ enum class RenderColour(val id: Color, val predicate: (Material) -> Boolean) {
     CLAY(Color(10791096), { it == Material.CLAY || it.name.startsWith("IRON") || it.name.startsWith("SMOOTH_STONE") }),
     DIRT(Color(9923917), { it == Material.DIRT || it == Material.COARSE_DIRT || it == Material.FARMLAND
             || it == Material.DIRT_PATH || it == Material.BROWN_MUSHROOM_BLOCK
-            || it.name.startsWith("GRANITE") || it.name.startsWith("JUNGLE")}),
+            || it.name.startsWith("GRANITE") || it.name.startsWith("POLISHED_GRANITE") || it.name.startsWith("JUNGLE")}),
     WATER(Color(4210943), { it == Material.WATER }),
     WOOD(Color(9402184), { it == Material.CHEST || it == Material.TRAPPED_CHEST || it == Material.DEAD_BUSH || it == Material.CRAFTING_TABLE || it == Material.COMPOSTER || it == Material.NOTE_BLOCK || it.name.contains("OAK") }),
     QUARTZ(Color(16776437), { it.name.startsWith("QUARTZ") || it.name.startsWith("DIORITE") || it.name.startsWith("BIRCH")} ),
-    COLOR_ORANGE(Color(14188339), { it == Material.PUMPKIN || it == Material.TERRACOTTA || it.name.startsWith("RED_SAND") || it.name.startsWith("ACACIA") || it.name.startsWith("ORANGE") }),
+    COLOR_ORANGE(Color(14188339), { it == Material.PUMPKIN || it == Material.TERRACOTTA || it.name.startsWith("RED_SAND") || it.name.startsWith("ACACIA") || it.name.startsWith("ORANGE") || it.name.contains("COPPER")}),
     COLOR_MAGENTA(Color(11685080), { it.name.startsWith("MAGENTA") || it.name.startsWith("PURPUR")}),
     COLOR_LIGHT_BLUE(Color(6724056), { it.name.startsWith("LIGHT_BLUE") || it == Material.SOUL_FIRE }),
     COLOR_YELLOW(Color(15066419), { it.name.startsWith("YELLOW") || it == Material.SPONGE || it == Material.WET_SPONGE || it == Material.HAY_BLOCK || it == Material.BEEHIVE }),
