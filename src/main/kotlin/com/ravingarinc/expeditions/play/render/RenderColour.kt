@@ -75,7 +75,7 @@ enum class RenderColour(val id: Color, val predicate: (Material) -> Boolean) {
                         return@computeIfAbsent colour
                     }
                 }
-                return@computeIfAbsent RenderColour.NONE
+                return@computeIfAbsent NONE
             }
         }
     }
