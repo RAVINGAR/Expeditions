@@ -14,7 +14,13 @@ import org.bukkit.event.Listener
 
 class ExpeditionMobObjective(instruction: Instruction) : CountingObjective(instruction), Listener {
     private val expeditions: MutableList<String> = instruction.getList { it.lowercase() }
-    private val mobTypes: MutableList<MobType> = instruction.getList { parseMobType(it) }
+    private val mobTypes: MutableList<MobType> = ArrayList()
+    init {
+        val mobStrings = instruction.getList { it }
+        if(!mobStrings.contains("all")) {
+            mobStrings.forEach { parseMobType(it)?.let { it1 -> mobTypes.add(it1) } }
+        }
+    }
 
     private val pois: MutableList<String> = instruction.getList { it.lowercase() }
     private val all: Boolean = pois.contains("all")

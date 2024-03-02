@@ -11,11 +11,11 @@ plugins {
 }
 
 group = "com.ravingarinc.expeditions"
-version = "1.7.2"
+version = "1.7.4"
 
 repositories {
-    mavenLocal()
     gradlePluginPortal()
+    mavenLocal()
     mavenCentral()
 
     maven("https://repo.dmulloy2.net/repository/public/") {

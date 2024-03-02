@@ -70,6 +70,33 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
             }
 
         addOption("admin", "expeditions.admin", "- Admin command for Expeditions", 1) { _, _ -> false }
+            .addOption("join", null, "<player> <expedition> - Force join an expedition", 3) { sender, args ->
+                val player = sender as? Player ?: if (args.size > 2) plugin.server.getPlayer(args[2]) else null
+                if(player == null) {
+                    sender.sendMessage("${ChatColor.RED}Could not find player!")
+                } else {
+                    val expedition = expeditions.getMapByIdentifier(args[3])
+                    if(expedition == null) {
+                        sender.sendMessage("${ChatColor.RED}There is no such expedition called '${args[3]}'")
+                    } else {
+                        if(handler.tryJoinExpedition(expedition.identifier, player)) {
+                            if(sender is Player) {
+                                sender.sendMessage("${ChatColor.GREEN}${player.name} has forcefully joined the '${args[3]}' expedition!")
+                                player.sendMessage("${ChatColor.GREEN}You were forced to join an expedition!")
+                            }
+                        } else {
+                            sender.sendMessage("${ChatColor.RED}${player.name} cannot join that expedition at this time!")
+                        }
+                    }
+                }
+                return@addOption true
+            }.buildTabCompletions { _, args ->
+                return@buildTabCompletions when(args.size) {
+                    3 -> null
+                    4 -> expeditions.getMaps().stream().map { it.identifier }.toList()
+                    else -> emptyList()
+                }
+            }.parent
             .addOption("leave", null, "<player> - Force leave an expedition", 2) { sender, args ->
                 val player = sender as? Player ?: if (args.size > 2) plugin.server.getPlayer(args[2]) else null
                 if(player == null) {
@@ -80,8 +107,11 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                         sender.sendMessage("${ChatColor.RED}That player is not currently apart of an expedition!")
                     } else {
                         inst.removePlayer(player, RemoveReason.EXTRACTION)
-                        sender.sendMessage("${ChatColor.GREEN}${player.name} has been force removed from their expedition!")
-                        player.sendMessage("${ChatColor.GREEN}You have been force removed from your expedition!")
+                        if(sender is Player) {
+                            sender.sendMessage("${ChatColor.GREEN}${player.name} has been force removed from their expedition!")
+                            player.sendMessage("${ChatColor.GREEN}You have been force removed from your expedition!")
+                        }
+
                     }
                 }
                 return@addOption true
