@@ -76,6 +76,8 @@ class IdlePhase(expedition: Expedition) :
     Phase("${ChatColor.GRAY}Idle ✓", -1, -1, -1, -1, {
         PlayPhase(expedition)
 }) {
+    private val COMMAND_REGEX = Pattern.compile("(-?(?:\d+)(?:\.\d+)?) (-?(?:\d+)(?:\.\d+)?) (-?(?:\d+)(?:\.\d+)?)")
+
     override fun onStart(instance: ExpeditionInstance) {
         instance.expedition.getAreas().forEach {
             if(it is ExtractionZone) {
@@ -104,7 +106,7 @@ class IdlePhase(expedition: Expedition) :
         border.damageBuffer = 0.0
         border.damageAmount = 1.0
         instance.bossBar.progress = 1.0
-
+        // todo here IF the above pattern matches then auto load the chunk before executing the command!
         instance.expedition.onCreateCommands.forEach { command ->
             instance.plugin.server.dispatchCommand(instance.plugin.server.consoleSender, command.replace("{world}", instance.world.name))
         }
