@@ -86,6 +86,7 @@ class IdlePhase(expedition: Expedition) :
                 instance.areaInstances.add(AreaInstance(instance.plugin, instance.expedition, it))
             }
         }
+        instance.renderer.clearCursors()
         for(it in instance.areaInstances) {
             if(it.area.isHidden()) {
                 continue
