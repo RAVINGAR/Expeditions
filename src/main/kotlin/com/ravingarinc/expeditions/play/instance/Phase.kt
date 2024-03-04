@@ -194,6 +194,10 @@ class StormPhase(expedition: Expedition) :
     override fun onTick(random: Random, instance: ExpeditionInstance) {
         super.onTick(random, instance)
         instance.bossBar.progress = 1.0 - ((instance.expedition.calmPhaseDuration + ticks) / totalTime.toDouble())
+        if(instance.remainingPlayers().isEmpty()) {
+            ticks = durationTicks
+            return
+        }
         when ((durationTicks - ticks) / 20) {
             60L -> {
                 instance.getRemainingPlayers().forEach { cache ->
