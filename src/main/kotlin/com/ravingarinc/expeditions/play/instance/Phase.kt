@@ -107,8 +107,25 @@ class IdlePhase(expedition: Expedition) :
         border.damageAmount = 1.0
         instance.bossBar.progress = 1.0
         // todo here IF the above pattern matches then auto load the chunk before executing the command!
+        
         instance.expedition.onCreateCommands.forEach { command ->
-            instance.plugin.server.dispatchCommand(instance.plugin.server.consoleSender, command.replace("{world}", instance.world.name))
+            val matcher = COMMAND_REGEX.matcher(command)
+            var x : Double = null
+            var y : Double = null
+            var z : Double = null
+            if(matcher.find()) {
+                x = matcher.group(1).toDoubleOrNull
+                y = matcher.group(2).toDoubleOrNull
+                z = matcher.group(3).toDoubleOrNull
+            }
+            if(x != null && y != null && z != null) {
+                instance.plugin.launch(instance.plugin.minecraftDispatcher) {
+                    
+                }
+            } else {
+                instance.plugin.server.dispatchCommand(instance.plugin.server.consoleSender, command.replace("{world}", instance.world.name))
+            }
+            
         }
     }
 
