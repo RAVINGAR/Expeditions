@@ -465,12 +465,13 @@ fun World.blockWithChunk(plugin: RavinPlugin, chunkX: Int, chunkZ: Int, withChun
         this.addPluginChunkTicket(chunkX, chunkZ, plugin)
         if(isChunkLoaded(chunkX, chunkZ)) {
             withChunk.invoke(getChunkAt(chunkX, chunkZ))
+            this.removePluginChunkTicket(chunkX, chunkZ, plugin)
         } else {
             getChunkAtAsync(chunkX, chunkZ, Consumer {
                 withChunk.invoke(it)
+                this.removePluginChunkTicket(chunkX, chunkZ, plugin)
             })
         }
-        this.removePluginChunkTicket(chunkX, chunkZ, plugin)
     }
 }
 

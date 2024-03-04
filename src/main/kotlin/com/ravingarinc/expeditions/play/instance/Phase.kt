@@ -108,6 +108,7 @@ class IdlePhase(expedition: Expedition) :
         instance.bossBar.progress = 1.0
         // todo here IF the above pattern matches then auto load the chunk before executing the command!
         
+        val plugin = instance.plugin
         instance.expedition.onCreateCommands.forEach { command ->
             val matcher = COMMAND_REGEX.matcher(command)
             var x : Double = null
@@ -119,13 +120,14 @@ class IdlePhase(expedition: Expedition) :
                 z = matcher.group(3).toDoubleOrNull
             }
             if(x != null && y != null && z != null) {
-                instance.plugin.launch(instance.plugin.minecraftDispatcher) {
-                    
+                plugin.launch(plugin.minecraftDispatcher) {
+                    instance.world.blockWithChunk(plugin, x.toInt() shr 4, z.toInt() shr 4) {
+                        plugin.server.dispatchCommand(plugin.server.consoleSender, command.replace("{world}", instance.world.name))
+                    }
                 }
             } else {
-                instance.plugin.server.dispatchCommand(instance.plugin.server.consoleSender, command.replace("{world}", instance.world.name))
+                plugin.server.dispatchCommand(plugin.server.consoleSender, command.replace("{world}", instance.world.name))
             }
-            
         }
     }
 
