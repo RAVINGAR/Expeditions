@@ -9,11 +9,15 @@ import org.bukkit.map.MapView
 import java.util.*
 
 class ExpeditionRenderer(val expedition: Expedition) : MapRenderer(false) {
-    private val collection = ArrayList<MapCursor>()
+    private val collection : MutableSet<MapCursor> = ConcurrentHashMap.newKeySet()
     private val players: MutableSet<UUID> = HashSet()
 
     fun addCursor(cursor: MapCursor) {
         collection.add(cursor)
+    }
+
+    fun clearCursors() {
+        collection.clear()
     }
 
     fun removePlayer(player: Player) {
