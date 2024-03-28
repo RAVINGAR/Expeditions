@@ -1,6 +1,7 @@
 package com.ravingarinc.expeditions.play.instance
 
 import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.blockWithChunk
@@ -19,6 +20,7 @@ import org.bukkit.boss.BarFlag
 import org.bukkit.map.MapCursor
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.regex.Pattern
 import kotlin.random.Random
 
 sealed class Phase(val name: String, private val mobInterval: Long, private val randomMobInterval: Long, private val lootInterval: Long, val durationTicks: Long, private val nextPhase: () -> Phase) {
@@ -76,7 +78,7 @@ class IdlePhase(expedition: Expedition) :
     Phase("${ChatColor.GRAY}Idle ✓", -1, -1, -1, -1, {
         PlayPhase(expedition)
 }) {
-    private val COMMAND_REGEX = Pattern.compile("(-?(?:\d+)(?:\.\d+)?) (-?(?:\d+)(?:\.\d+)?) (-?(?:\d+)(?:\.\d+)?)")
+    private val COMMAND_REGEX = Pattern.compile("(-?\\d+(?:.\\d+)?) (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:.\\d+)?)")
 
     override fun onStart(instance: ExpeditionInstance) {
         instance.expedition.getAreas().forEach {
@@ -111,13 +113,13 @@ class IdlePhase(expedition: Expedition) :
         val plugin = instance.plugin
         instance.expedition.onCreateCommands.forEach { command ->
             val matcher = COMMAND_REGEX.matcher(command)
-            var x : Double = null
-            var y : Double = null
-            var z : Double = null
+            var x : Double? = null
+            var y : Double? = null
+            var z : Double? = null
             if(matcher.find()) {
-                x = matcher.group(1).toDoubleOrNull
-                y = matcher.group(2).toDoubleOrNull
-                z = matcher.group(3).toDoubleOrNull
+                x = matcher.group(1).toDoubleOrNull()
+                y = matcher.group(2).toDoubleOrNull()
+                z = matcher.group(3).toDoubleOrNull()
             }
             if(x != null && y != null && z != null) {
                 plugin.launch(plugin.minecraftDispatcher) {
@@ -194,7 +196,7 @@ class StormPhase(expedition: Expedition) :
     override fun onTick(random: Random, instance: ExpeditionInstance) {
         super.onTick(random, instance)
         instance.bossBar.progress = 1.0 - ((instance.expedition.calmPhaseDuration + ticks) / totalTime.toDouble())
-        if(instance.remainingPlayers().isEmpty()) {
+        if(instance.getRemainingPlayers().isEmpty()) {
             ticks = durationTicks
             return
         }
