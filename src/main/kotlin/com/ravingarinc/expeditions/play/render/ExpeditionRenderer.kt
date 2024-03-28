@@ -7,6 +7,7 @@ import org.bukkit.map.MapCursor
 import org.bukkit.map.MapRenderer
 import org.bukkit.map.MapView
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 class ExpeditionRenderer(val expedition: Expedition) : MapRenderer(false) {
     private val collection : MutableSet<MapCursor> = ConcurrentHashMap.newKeySet()
