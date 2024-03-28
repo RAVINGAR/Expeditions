@@ -29,6 +29,7 @@ import org.bukkit.inventory.meta.MapMeta
 import org.bukkit.map.MapView
 import org.bukkit.util.BlockVector
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 import kotlin.math.abs
@@ -301,7 +302,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     private fun getRandomLocation(world: World) : Location {
         var vector : BlockVector? = null
         while(vector == null) {
-            val nextVec = if(availableSpawns.isEmpty()) reshuffleLocations() else availableSpawns.poll() ?: expedition.spawnLocations.random()
+            val nextVec = (if(availableSpawns.isEmpty()) reshuffleLocations() else availableSpawns.poll()) ?: expedition.spawnLocations.random()
             val lastVec = lastSpawn.acquire
             if(lastVec == null || nextVec.distanceSquared(lastVec) > 1024) {
                 vector = nextVec
