@@ -55,8 +55,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     private var lastSpawn: AtomicReference<BlockVector?> = AtomicReference(null)
 
-    private val availableSpawns: Queue<BlockVector> = LinkedList(expedition.spawnLocations.shuffled())
-    private val spawnLock = Mutex(false)
+    private val availableSpawns: Queue<BlockVector> = ConcurrentLinkedQueue(expedition.spawnLocations.shuffled())
 
     init {
         val view = Bukkit.createMap(world)
@@ -299,21 +298,21 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
     }
 
-    private suspend fun getRandomLocation(world: World) : Location {
-        spawnLock.withLock {
-            var vector : BlockVector? = null
-            while(vector == null) {
-                if(availableSpawns.isEmpty()) {
-                    expedition.spawnLocations.shuffled().forEach { availableSpawns.add(it) }
-                }
-                val nextVec = availableSpawns.poll()!!
-                val lastVec = lastSpawn.acquire
-                if(lastVec == null || nextVec.distanceSquared(lastVec) > 1024) {
-                    vector = nextVec
-                }
+    private fun getRandomLocation(world: World) : Location {
+        var vector : BlockVector? = null
+        while(vector == null) {
+            val nextVec = if(availableSpawns.isEmpty()) reshuffleLocations() else availableSpawns.poll() ?: expedition.spawnLocations.random()
+            val lastVec = lastSpawn.acquire
+            if(lastVec == null || nextVec.distanceSquared(lastVec) > 1024) {
+                vector = nextVec
             }
-            return Location(world, vector.x + 0.5, vector.y + 0.1, vector.z + 0.5)
         }
+        return Location(world, vector.x + 0.5, vector.y + 0.1, vector.z + 0.5)
+    }
+
+    private fun reshuffleLocations() : BlockVector? {
+        expedition.spawnLocations.shuffled().forEach { availableSpawns.add(it) }
+        return availableSpawns.poll()
     }
 
     private fun findSuitableLocation(
