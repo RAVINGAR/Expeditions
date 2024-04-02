@@ -301,13 +301,17 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     private fun getRandomLocation(world: World) : Location {
         var vector : BlockVector? = null
-        while(vector == null) {
+        var i = 0
+        val total = expedition.spawnLocations.size
+        while(vector == null && i < total) {
             val nextVec = (if(availableSpawns.isEmpty()) reshuffleLocations() else availableSpawns.poll()) ?: expedition.spawnLocations.random()
             val lastVec = lastSpawn.acquire
             if(lastVec == null || nextVec.distanceSquared(lastVec) > 1024) {
                 vector = nextVec
             }
+            i++
         }
+        if(vector == null) vector = expedition.spawnLocations.random()
         return Location(world, vector.x + 0.5, vector.y + 0.1, vector.z + 0.5)
     }
 

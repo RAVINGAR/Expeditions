@@ -108,7 +108,6 @@ class IdlePhase(expedition: Expedition) :
         border.damageBuffer = 0.0
         border.damageAmount = 1.0
         instance.bossBar.progress = 1.0
-        // todo here IF the above pattern matches then auto load the chunk before executing the command!
         
         val plugin = instance.plugin
         instance.expedition.onCreateCommands.forEach { command ->
