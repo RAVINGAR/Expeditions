@@ -11,11 +11,11 @@ plugins {
 }
 
 group = "com.ravingarinc.expeditions"
-version = "1.7.2"
+version = "1.7.5"
 
 repositories {
-    mavenLocal()
     gradlePluginPortal()
+    mavenLocal()
     mavenCentral()
 
     maven("https://repo.dmulloy2.net/repository/public/") {
@@ -77,17 +77,11 @@ dependencies {
     library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-core", "2.11.0")
     library("com.google.guava:guava:18.0")
 
-    //implementation("com.ravingarinc.api:common:1.4.3")
-    //implementation("com.ravingarinc.api:module:1.4.3")
-    //implementation("com.ravingarinc.api:module-kotlin:1.4.3")
-    //implementation("com.ravingarinc.api:gui:1.4.3")
-    //implementation("com.ravingarinc.api:version:1.4.3")
-
-    implementation("com.github.RAVINGAR.RavinAPI:common:1.4.3")
-    implementation("com.github.RAVINGAR.RavinAPI:module:1.4.3")
-    implementation("com.github.RAVINGAR.RavinAPI:module-kotlin:1.4.3")
-    implementation("com.github.RAVINGAR.RavinAPI:gui:1.4.3")
-    implementation("com.github.RAVINGAR.RavinAPI:version:1.4.3")
+    implementation("com.github.RAVINGAR.RavinAPI:common:1.5.0")
+    implementation("com.github.RAVINGAR.RavinAPI:module:1.5.0")
+    implementation("com.github.RAVINGAR.RavinAPI:module-kotlin:1.5.0")
+    implementation("com.github.RAVINGAR.RavinAPI:gui:1.5.0")
+    implementation("com.github.RAVINGAR.RavinAPI:version:1.5.0")
 
     compileOnly("org.jetbrains:annotations:23.1.0")
 
@@ -122,10 +116,18 @@ tasks {
         }
     }
 
+    jar {
+        archiveFileName.set("Expeditions-parent.jar")
+        archiveBaseName.set("Expeditions-parent")
+        archiveVersion.set(null as String?)
+        archiveClassifier.set("original")
+    }
+
     shadowJar {
+        archiveFileName.set("Expeditions.jar")
         archiveBaseName.set("Expeditions")
+        archiveVersion.set(null as String?)
         archiveClassifier.set("")
-        archiveVersion.set("")
         relocate("com.ravingarinc.api", "com.ravingarinc.expeditions.libs.api")
     }
 
@@ -141,7 +143,7 @@ tasks {
 
     register<Copy>("copyToDev") {
         from(shadowJar)
-        into(project.layout.projectDirectory.dir("../../Desktop/Programming/Servers/Latest/plugins"))
+        into(project.layout.projectDirectory.dir("../../Desktop/Programming/Servers/1.20.4/plugins"))
         //into "E:/Documents/Workspace/Servers/1.18.2-TEST/plugins/"
     }
 

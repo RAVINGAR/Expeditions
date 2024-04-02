@@ -1,6 +1,7 @@
 package com.ravingarinc.expeditions.play.instance
 
 import com.github.shynixn.mccoroutine.bukkit.launch
+import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.blockWithChunk
@@ -19,6 +20,7 @@ import org.bukkit.boss.BarFlag
 import org.bukkit.map.MapCursor
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.regex.Pattern
 import kotlin.random.Random
 
 sealed class Phase(val name: String, private val mobInterval: Long, private val randomMobInterval: Long, private val lootInterval: Long, val durationTicks: Long, private val nextPhase: () -> Phase) {
@@ -76,6 +78,8 @@ class IdlePhase(expedition: Expedition) :
     Phase("${ChatColor.GRAY}Idle ✓", -1, -1, -1, -1, {
         PlayPhase(expedition)
 }) {
+    private val COMMAND_REGEX = Pattern.compile("(-?\\d+(?:.\\d+)?) (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:.\\d+)?)")
+
     override fun onStart(instance: ExpeditionInstance) {
         instance.expedition.getAreas().forEach {
             if(it is ExtractionZone) {
@@ -104,9 +108,27 @@ class IdlePhase(expedition: Expedition) :
         border.damageBuffer = 0.0
         border.damageAmount = 1.0
         instance.bossBar.progress = 1.0
-
+        
+        val plugin = instance.plugin
         instance.expedition.onCreateCommands.forEach { command ->
-            instance.plugin.server.dispatchCommand(instance.plugin.server.consoleSender, command.replace("{world}", instance.world.name))
+            val matcher = COMMAND_REGEX.matcher(command)
+            var x : Double? = null
+            var y : Double? = null
+            var z : Double? = null
+            if(matcher.find()) {
+                x = matcher.group(1).toDoubleOrNull()
+                y = matcher.group(2).toDoubleOrNull()
+                z = matcher.group(3).toDoubleOrNull()
+            }
+            if(x != null && y != null && z != null) {
+                plugin.launch(plugin.minecraftDispatcher) {
+                    instance.world.blockWithChunk(plugin, x.toInt() shr 4, z.toInt() shr 4) {
+                        plugin.server.dispatchCommand(plugin.server.consoleSender, command.replace("{world}", instance.world.name))
+                    }
+                }
+            } else {
+                plugin.server.dispatchCommand(plugin.server.consoleSender, command.replace("{world}", instance.world.name))
+            }
         }
     }
 
@@ -173,6 +195,10 @@ class StormPhase(expedition: Expedition) :
     override fun onTick(random: Random, instance: ExpeditionInstance) {
         super.onTick(random, instance)
         instance.bossBar.progress = 1.0 - ((instance.expedition.calmPhaseDuration + ticks) / totalTime.toDouble())
+        if(instance.getRemainingPlayers().isEmpty()) {
+            ticks = durationTicks
+            return
+        }
         when ((durationTicks - ticks) / 20) {
             60L -> {
                 instance.getRemainingPlayers().forEach { cache ->
@@ -268,6 +294,7 @@ class RestorationPhase(expedition: Expedition) :
             }
             instance.clearMobSpawns()
         }
+        instance.renderer.clearCursors()
         val world = instance.world
         world.isThundering = false
         world.setStorm(false)

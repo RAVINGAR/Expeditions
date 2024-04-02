@@ -7,13 +7,18 @@ import org.bukkit.map.MapCursor
 import org.bukkit.map.MapRenderer
 import org.bukkit.map.MapView
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 class ExpeditionRenderer(val expedition: Expedition) : MapRenderer(false) {
-    private val collection = ArrayList<MapCursor>()
+    private val collection : MutableSet<MapCursor> = ConcurrentHashMap.newKeySet()
     private val players: MutableSet<UUID> = HashSet()
 
     fun addCursor(cursor: MapCursor) {
         collection.add(cursor)
+    }
+
+    fun clearCursors() {
+        collection.clear()
     }
 
     fun removePlayer(player: Player) {
