@@ -22,6 +22,7 @@ import com.ravingarinc.expeditions.play.instance.IdlePhase
 import com.ravingarinc.expeditions.play.instance.PlayPhase
 import com.ravingarinc.expeditions.play.render.RenderJob
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import org.bukkit.ChatColor
 import org.bukkit.Material
 import org.bukkit.World
@@ -89,6 +90,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         }
         plugin.launch {
             // Render after copying the worlds... such to avoid chunk glitch issues.
+            delay(5000)
             for(type in expeditions.getMaps()) {
                 val startTime = System.currentTimeMillis()
                 val deferred = RenderJob.render(plugin, type.centreX, type.centreZ, type.radius, type.world, type.world.minHeight)
