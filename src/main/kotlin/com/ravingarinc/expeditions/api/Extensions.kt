@@ -2,6 +2,7 @@ package com.ravingarinc.expeditions.api
 
 import com.ravingarinc.api.module.Module
 import com.ravingarinc.api.module.RavinPlugin
+import com.ravingarinc.api.module.severe
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.Extensions.timeTypes
 import com.ravingarinc.expeditions.play.item.*
@@ -18,7 +19,6 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
-import java.util.function.Consumer
 
 
 fun <T : Module> RavinPlugin.withModule(module: Class<T>, function: T.() -> Unit) {
@@ -462,15 +462,18 @@ fun World.blockWithChunk(plugin: RavinPlugin, chunkX: Int, chunkZ: Int, withChun
     if(this.isChunkLoaded(chunkX, chunkZ)) {
         withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
     } else {
-        this.addPluginChunkTicket(chunkX, chunkZ, plugin)
-        if(isChunkLoaded(chunkX, chunkZ)) {
-            withChunk.invoke(getChunkAt(chunkX, chunkZ))
+        try {
+            this.addPluginChunkTicket(chunkX, chunkZ, plugin)
+            if(isChunkLoaded(chunkX, chunkZ)) {
+                withChunk.invoke(getChunkAt(chunkX, chunkZ))
+            } else {
+                getChunkAtAsyncUrgently(chunkX, chunkZ).thenAccept(withChunk).exceptionally {
+                    severe("Encountered exception whilst attempting to load chunk", it)
+                    return@exceptionally null
+                }
+            }
+        } finally {
             this.removePluginChunkTicket(chunkX, chunkZ, plugin)
-        } else {
-            getChunkAtAsync(chunkX, chunkZ, Consumer {
-                withChunk.invoke(it)
-                this.removePluginChunkTicket(chunkX, chunkZ, plugin)
-            })
         }
     }
 }

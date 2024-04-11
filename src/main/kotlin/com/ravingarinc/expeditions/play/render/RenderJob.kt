@@ -6,13 +6,15 @@ import com.google.common.collect.LinkedHashMultiset
 import com.google.common.collect.Multiset
 import com.google.common.collect.Multisets
 import com.ravingarinc.api.module.RavinPlugin
-import com.ravingarinc.expeditions.api.blockWithChunk
+import com.ravingarinc.api.module.severe
 import kotlinx.coroutines.*
+import kotlinx.coroutines.future.await
 import org.bukkit.*
 import org.bukkit.block.data.BlockData
 import org.bukkit.block.data.Levelled
 import org.bukkit.util.NumberConversions.square
 import java.awt.Color
+import java.util.concurrent.TimeUnit
 import kotlin.math.floor
 
 class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, private val centreZ: Int, private val radius: Int, private val world: World, private val minBuildHeight: Int) {
@@ -32,16 +34,16 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
         val r = (i4 / 2).toInt()
         val minChunkX = ((j - r - 31) shr 4); val maxChunkX = ((j + r + 31) shr 4)
         val minChunkZ = ((k - r - 31) shr 4); val maxChunkZ = ((k + r + 31) shr 4)
-        val snapshots = withContext(plugin.minecraftDispatcher) {
-            val chunks: MutableMap<Long, ChunkSnapshot> = HashMap()
-            for(cX in minChunkX until maxChunkX) {
-                for(cZ in minChunkZ until maxChunkZ) {
-                    world.blockWithChunk(plugin, cX, cZ) {
-                        chunks[Chunk.getChunkKey(cX, cZ)] = (it.getChunkSnapshot(true, true, false))
-                    }
-                }
+        val snapshots: MutableMap<Long, ChunkSnapshot> = HashMap()
+        for(cX in minChunkX until maxChunkX) {
+            for(cZ in minChunkZ until maxChunkZ) {
+                world.getChunkAtAsyncUrgently(cX, cZ).thenAccept {
+                    snapshots[Chunk.getChunkKey(cX, cZ)] = (it.getChunkSnapshot(true, true, false))
+                }.orTimeout(5000, TimeUnit.MILLISECONDS).exceptionally {
+                    severe("Encountered exception whilst waiting for chunk asynchronously!", it)
+                    return@exceptionally null
+                }.await()
             }
-            return@withContext chunks
         }
 
         var flag = false
