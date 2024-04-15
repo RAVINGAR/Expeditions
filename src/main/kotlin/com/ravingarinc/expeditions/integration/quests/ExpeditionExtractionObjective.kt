@@ -13,7 +13,6 @@ import org.bukkit.event.Listener
 class ExpeditionExtractionObjective(instruction: Instruction) : CountingObjective(instruction), Listener {
     private val expeditions: MutableList<String> = instruction.getList { it.lowercase() }
     private val pois: MutableList<String> = instruction.getList { it.lowercase() }
-    private val all: Boolean = pois.contains("all")
     init {
         targetAmount = instruction.getVarNum()
     }
@@ -27,7 +26,7 @@ class ExpeditionExtractionObjective(instruction: Instruction) : CountingObjectiv
         if(!expeditions.contains("all") && expeditions.isNotEmpty() && expeditions.stream().noneMatch { it == expedition}) return
 
         val poi = event.area.replace(" ", "_")
-        if(!all && pois.isNotEmpty() && pois.stream().noneMatch { it == poi }) return
+        if(!pois.contains("all") && pois.isNotEmpty() && pois.stream().noneMatch { it == poi }) return
 
         if(checkConditions(profile)) {
             getCountingData(profile).progress()

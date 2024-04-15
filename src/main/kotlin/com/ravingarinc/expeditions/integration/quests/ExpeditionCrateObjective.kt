@@ -13,8 +13,9 @@ import org.bukkit.event.Listener
 class ExpeditionCrateObjective(instruction: Instruction) : CountingObjective(instruction), Listener {
     private val expeditions: MutableList<String> = instruction.getList { it.lowercase() }
     private val pois: MutableList<String> = instruction.getList { it.lowercase() }
-    private val all: Boolean = pois.contains("all")
     init {
+        if(expeditions.contains("all")) expeditions.clear()
+        if(pois.contains("all")) pois.clear()
         targetAmount = instruction.getVarNum()
     }
 
@@ -23,10 +24,10 @@ class ExpeditionCrateObjective(instruction: Instruction) : CountingObjective(ins
         val profile = PlayerConverter.getID(event.player)
         if(!containsPlayer(profile)) return
         val expedition = event.expedition.displayName.replace(" ", "_", ignoreCase = false).lowercase()
-        if(!expeditions.contains("all") && expeditions.isNotEmpty() && expeditions.stream().noneMatch { it == expedition}) return
+        if(expeditions.isNotEmpty() && expeditions.stream().noneMatch { it == expedition}) return
 
         val poi = event.area.replace(" ", "_", ignoreCase = false).lowercase()
-        if(!all && pois.isNotEmpty() && pois.stream().noneMatch { it == poi }) return
+        if(pois.isNotEmpty() && pois.stream().noneMatch { it == poi }) return
 
         if(checkConditions(profile)) {
             getCountingData(profile).progress()

@@ -16,15 +16,16 @@ class ExpeditionMobObjective(instruction: Instruction) : CountingObjective(instr
     private val expeditions: MutableList<String> = instruction.getList { it.lowercase() }
     private val mobTypes: MutableList<MobType> = ArrayList()
     init {
+        if(expeditions.contains("all")) expeditions.clear() // If a list is empty we consider it to be for ALL
         val mobStrings = instruction.getList { it }
-        if(!mobStrings.contains("all")) {
+        if(!mobStrings.contains("all") && !mobStrings.contains("ALL")) {
             mobStrings.forEach { parseMobType(it)?.let { it1 -> mobTypes.add(it1) } }
         }
     }
 
     private val pois: MutableList<String> = instruction.getList { it.lowercase() }
-    private val all: Boolean = pois.contains("all")
     init {
+        if(pois.contains("all")) pois.clear()
         targetAmount = instruction.getVarNum()
     }
 
@@ -34,11 +35,10 @@ class ExpeditionMobObjective(instruction: Instruction) : CountingObjective(instr
         if(!containsPlayer(profile)) return
         val entity = event.entity
         val expedition = event.expedition.displayName.replace(" ", "_", ignoreCase = false).lowercase()
-        if(!expeditions.contains("all") && expeditions.isNotEmpty() && expeditions.stream().noneMatch { it == expedition}) return
+        if(expeditions.isNotEmpty() && expeditions.stream().noneMatch { it == expedition}) return
 
         val poi = event.area.replace(" ", "_", ignoreCase = false).lowercase()
-        if(!all && pois.isNotEmpty() && pois.stream().noneMatch { it == poi }) return
-
+        if(pois.isNotEmpty() && pois.stream().noneMatch { it == poi }) return
         if(mobTypes.isNotEmpty() && mobTypes.stream().noneMatch { it.isSameAs(entity) }) return
 
         if(checkConditions(profile)) {
