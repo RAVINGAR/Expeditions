@@ -341,21 +341,19 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         if(entity is Player) {
             leaveArea(entity, false)
         }
-        if(boss != null) {
-            if(boss == entity) {
-                boss = null
-                bossCooldown = area.bossCooldown
-                val killer = (entity as? LivingEntity)?.killer ?: return true
-                plugin.server.pluginManager.callEvent(
-                    ExpeditionKillEntityEvent(
-                        killer,
-                        entity,
-                        area.displayName,
-                        expedition
-                    )
+        if(boss != null && boss == entity) {
+            boss = null
+            bossCooldown = area.bossCooldown
+            val killer = (entity as? LivingEntity)?.killer ?: return true
+            plugin.server.pluginManager.callEvent(
+                ExpeditionKillEntityEvent(
+                    killer,
+                    entity,
+                    area.displayName,
+                    expedition
                 )
-                return true
-            }
+            )
+            return true
         }
         if(spawnedMobs.remove(entity)) {
             val killer = (entity as? LivingEntity)?.killer ?: return true
