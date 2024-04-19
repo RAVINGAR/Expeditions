@@ -22,10 +22,7 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockExplodeEvent
 import org.bukkit.event.block.BlockPlaceEvent
-import org.bukkit.event.entity.EntityDamageByEntityEvent
-import org.bukkit.event.entity.EntityDamageEvent
-import org.bukkit.event.entity.EntityDeathEvent
-import org.bukkit.event.entity.EntityExplodeEvent
+import org.bukkit.event.entity.*
 import org.bukkit.event.player.*
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.util.Vector
@@ -106,9 +103,18 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
 
     @EventHandler
     fun onEntityDeath(event: EntityDeathEvent) {
+        if(!handler.isExpeditionWorld(event.entity.world)) return
         handler.getInstances().values.forEach { list -> list.forEach {
             if(it.onDeathEvent(event)) return
         } }
+    }
+
+    @EventHandler
+    fun onCreatureSpawn(event: CreatureSpawnEvent) {
+        if(!handler.isExpeditionWorld(event.entity.world)) return
+        if(event.spawnReason == CreatureSpawnEvent.SpawnReason.NATURAL) {
+            event.isCancelled = true
+        }
     }
 
     @EventHandler

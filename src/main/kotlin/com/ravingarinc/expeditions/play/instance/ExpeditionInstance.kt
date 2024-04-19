@@ -10,6 +10,7 @@ import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
 import com.ravingarinc.expeditions.play.event.ExpeditionExtractEvent
+import com.ravingarinc.expeditions.play.event.ExpeditionKillEntityEvent
 import com.ravingarinc.expeditions.play.event.ExpeditionNPCExtractEvent
 import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
@@ -576,19 +577,19 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     fun onDeathEvent(event: EntityDeathEvent) : Boolean {
         val entity = event.entity
-        var result = false
+        if(world != entity.world) return false
         if(entity is Player && joinedPlayers.containsKey(entity.uniqueId)) {
             removePlayer(entity, RemoveReason.DEATH)
-            result = true
+            areaInstances.forEach { it.leaveArea(entity, false) }
+            return true
         }
         for(it in areaInstances) {
-            if(it.onDeath(entity)) {
-                result = true
-                break
-            }
+            if(it.onDeath(entity)) return true
         }
-
-        return result
+        entity.killer?.let {
+            plugin.server.pluginManager.callEvent(ExpeditionKillEntityEvent(it, entity, "", expedition))
+        }
+        return true
     }
 
     fun setPhase(phase: Phase) {

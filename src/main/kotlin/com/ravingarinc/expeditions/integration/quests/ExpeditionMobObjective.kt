@@ -16,7 +16,6 @@ class ExpeditionMobObjective(instruction: Instruction) : CountingObjective(instr
     private val expeditions: MutableList<String> = instruction.getList { it.lowercase() }
     private val mobTypes: MutableList<MobType> = ArrayList()
     init {
-        if(expeditions.contains("all")) expeditions.clear() // If a list is empty we consider it to be for ALL
         val mobStrings = instruction.getList { it }
         if(!mobStrings.contains("all") && !mobStrings.contains("ALL")) {
             mobStrings.forEach { parseMobType(it)?.let { it1 -> mobTypes.add(it1) } }
@@ -25,6 +24,7 @@ class ExpeditionMobObjective(instruction: Instruction) : CountingObjective(instr
 
     private val pois: MutableList<String> = instruction.getList { it.lowercase() }
     init {
+        if(expeditions.contains("all")) expeditions.clear() // If a list is empty we consider it to be for ALL
         if(pois.contains("all")) pois.clear()
         targetAmount = instruction.getVarNum()
     }

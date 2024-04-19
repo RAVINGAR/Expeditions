@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "com.ravingarinc.expeditions"
-version = "1.7.6"
+version = "1.7.7"
 
 repositories {
     gradlePluginPortal()

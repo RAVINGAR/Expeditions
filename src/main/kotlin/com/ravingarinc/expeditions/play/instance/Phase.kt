@@ -21,6 +21,7 @@ import org.bukkit.map.MapCursor
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
+import kotlin.math.max
 import kotlin.random.Random
 
 sealed class Phase(val name: String, private val mobInterval: Long, private val randomMobInterval: Long, private val lootInterval: Long, val durationTicks: Long, private val nextPhase: () -> Phase) {
@@ -60,9 +61,9 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
 
     open fun onTick(random: Random, instance: ExpeditionInstance) {
         instance.tickExpedition(random,
-            mobInterval != -1L && ticks % mobInterval == 0L,
-            lootInterval != -1L && ticks % lootInterval == 0L,
-            randomMobInterval != -1L && ticks % randomMobInterval == 0L)
+            mobInterval != -1L && ticks % max(mobInterval, 1L) == 0L,
+            lootInterval != -1L && ticks % max(lootInterval, 1L) == 0L,
+            randomMobInterval != -1L && ticks % max(randomMobInterval, 1L) == 0L)
     }
 
     fun next(instance: ExpeditionInstance) {

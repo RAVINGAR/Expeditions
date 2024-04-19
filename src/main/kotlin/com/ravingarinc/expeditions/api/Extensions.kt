@@ -9,6 +9,7 @@ import com.ravingarinc.expeditions.play.item.*
 import com.ravingarinc.expeditions.play.mob.MobType
 import com.ravingarinc.expeditions.play.mob.MythicMobType
 import com.ravingarinc.expeditions.play.mob.VanillaMobType
+import kotlinx.coroutines.future.await
 import org.bukkit.*
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.EntityType
@@ -19,6 +20,7 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.TimeUnit
 
 
 fun <T : Module> RavinPlugin.withModule(module: Class<T>, function: T.() -> Unit) {
@@ -476,5 +478,14 @@ fun World.blockWithChunk(plugin: RavinPlugin, chunkX: Int, chunkZ: Int, withChun
             this.removePluginChunkTicket(chunkX, chunkZ, plugin)
         }
     }
+}
+
+suspend fun World.suspendWithChunk(chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
+    getChunkAtAsyncUrgently(chunkX, chunkZ).thenAccept {
+        withChunk.invoke(it)
+    }.orTimeout(10, TimeUnit.SECONDS).exceptionally {
+        severe("Encountered unexpected exception whilst waiting for chunk to load!", it)
+        return@exceptionally null
+    }.await()
 }
 
