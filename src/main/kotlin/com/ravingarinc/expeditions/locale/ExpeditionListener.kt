@@ -27,6 +27,7 @@ import org.bukkit.event.player.*
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.util.Vector
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(ExpeditionListener::class.java, plugin, true, PlayHandler::class.java) {
     private lateinit var handler: PlayHandler
@@ -37,6 +38,8 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
     private val lastLocation: MutableMap<UUID, Vector> = HashMap()
 
     private val allowedCommands: MutableSet<String> = HashSet()
+
+    private val forceDeaths: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
 
     private lateinit var fallbackLocation: Location
     override suspend fun suspendLoad() {
@@ -64,7 +67,17 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         super.suspendCancel()
         breakableBlocks.clear()
         allowedCommands.clear()
+        forceDeaths.clear()
     }
+
+    /**
+     * When a player is killed forcefully, and we want them to die and drop their items, except prevent the items from
+     * dropping on the floor.
+     */
+    fun clearItemsOnDeath(uuid: UUID) {
+        forceDeaths.add(uuid)
+    }
+
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
@@ -78,8 +91,8 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
             delay(5.ticks)
             if(handler.didAbandon(player)) {
                 handler.removeAbandon(player)
+                clearItemsOnDeath(player.uniqueId)
                 player.sendMessage("${ChatColor.RED}You previously abandoned an expedition! You were devoured by the storm and lost all your items!")
-                player.inventory.clear()
                 player.health = 0.0
             } else {
                 if(handler.isExpeditionWorld(player.world)) {
@@ -88,10 +101,16 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
                 }
             }
         }
-
     }
 
 
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onPlayerDeathEvent(event: PlayerDeathEvent) {
+        val player = event.player
+        if(!forceDeaths.remove(player.uniqueId)) return
+        if(event.keepInventory) return
+        event.drops.clear()
+    }
 
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {

@@ -39,7 +39,7 @@ class RenderJob(private val plugin: RavinPlugin, private val centreX: Int, priva
             for(cZ in minChunkZ until maxChunkZ) {
                 world.getChunkAtAsyncUrgently(cX, cZ).thenAccept {
                     snapshots[Chunk.getChunkKey(cX, cZ)] = (it.getChunkSnapshot(true, true, false))
-                }.orTimeout(5000, TimeUnit.MILLISECONDS).exceptionally {
+                }.orTimeout(60000, TimeUnit.MILLISECONDS).exceptionally {
                     severe("Encountered exception whilst waiting for chunk asynchronously!", it)
                     return@exceptionally null
                 }.await()

@@ -5,6 +5,7 @@ import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.blockWithChunk
+import com.ravingarinc.expeditions.locale.ExpeditionListener
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
@@ -245,10 +246,10 @@ class StormPhase(expedition: Expedition) :
         // Done before getQuitPlayers, since this method may add to quit players
         instance.getRemainingPlayers().forEach {
             val player = it.player.player!!
-            player.inventory.clear()
+            instance.plugin.getModule(ExpeditionListener::class.java).clearItemsOnDeath(player.uniqueId)
+            player.health = 0.0
             instance.removePlayer(player, RemoveReason.DEATH)
             instance.world.strikeLightningEffect(player.location)
-            player.health = 0.0
         }
         instance.getQuitPlayers().forEach {
             handler.addAbandon(it)
