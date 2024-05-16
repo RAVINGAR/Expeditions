@@ -13,6 +13,8 @@ import java.util.*
 class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class.java, plugin) {
     val config: ConfigFile = ConfigFile(plugin, "config.yml")
     val data: ConfigFile = ConfigFile(plugin, "data.yml")
+    val queue: ConfigFile = ConfigFile(plugin, "queue.yml")
+    val gear: ConfigFile = ConfigFile(plugin, "gear.yml")
 
     private val mapConfigurations: MutableMap<String, ConfigurationSection> = Hashtable()
 
@@ -33,6 +35,8 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
 
     override suspend fun suspendCancel() {
         config.reload()
+        queue.reload()
+        gear.reload()
         data.save()
         mapConfigurations.clear()
     }

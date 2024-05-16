@@ -1,0 +1,10 @@
+gear:
+  divisor: 10
+  maximum-score: 100
+  max-items-to-consider: 9 # Up to x amount of other items will be considered
+queue:
+  maximum-slippage: 25%
+  maximum-wait-time: 5min # The maximum wait time to try and get matched with players of similar.
+rotations:
+  - key: 'generic'
+    maps: ['Battlegrounds','Skyscraper']
