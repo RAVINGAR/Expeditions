@@ -245,19 +245,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         trackedMobs.clear()
     }
 
-    /**
-     * Try to join this player to this expedition instance. Returns true if successful, or false
-     * if not.
-     */
-    fun participate(player: Player) {
-        if(phase is IdlePhase) {
-            phase.next(this)
-            join(player)
-        } else if(phase is PlayPhase) {
-            join(player)
-        }
-    }
-
     fun participate(collection: Collection<Player>) {
         if(phase is IdlePhase) {
             phase.next(this)
@@ -284,20 +271,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             addPlayer(player, playerLoc)
             expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
         }
-    }
-
-    /**
-     * Join the specific player, does not consider parties.
-     */
-    private fun join(player: Player) = plugin.launch {
-        val loc = if(expedition.spawnLocations.isEmpty()) {
-            findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks(), 0, 32)
-        } else {
-            getRandomLocation(world)
-        }
-        lastSpawn.setRelease(BlockVector(loc.blockX, loc.blockY, loc.blockZ))
-        addPlayer(player, loc)
-        expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
     }
 
     private fun getRandomLocation(world: World) : Location {

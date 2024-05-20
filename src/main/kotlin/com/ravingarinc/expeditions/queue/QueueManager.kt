@@ -8,15 +8,23 @@ import com.ravingarinc.expeditions.api.getDuration
 import com.ravingarinc.expeditions.api.getPercentage
 import com.ravingarinc.expeditions.api.parseItem
 import com.ravingarinc.expeditions.locale.ExpeditionManager
+import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.persistent.ConfigFile
 import com.ravingarinc.expeditions.persistent.ConfigManager
+import com.ravingarinc.expeditions.play.PlayHandler
+import com.ravingarinc.expeditions.play.instance.IdlePhase
 import com.ravingarinc.expeditions.play.item.ItemType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.title.TitlePart
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.ItemStack
-import java.util.concurrent.ConcurrentHashMap
+import java.util.*
+import kotlin.jvm.optionals.getOrElse
 import kotlin.math.floor
 
 class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager::class.java, plugin, isRequired = false, ConfigManager::class.java, ExpeditionManager::class.java) {
@@ -28,14 +36,20 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     private var slippage: Double = 0.25
     private var maxWaitTime: Long = -1L
     private var maxItems = 9
+    private var minimumPlayerPercent = 0.5
+
+    private lateinit var ticker: QueueTicker
 
     override suspend fun suspendLoad() {
         val manager = plugin.getModule(ConfigManager::class.java)
         loadQueue(manager.queue)
         loadGear(manager.gear)
 
-        TODO("NEXT Is the ticker that actually checks the buckets and puts players into an expedition")
+        ticker = QueueTicker(plugin)
         super.suspendLoad()
+
+        // TODO If a player equips new items that increase their gear score more than the slippage percentage then change
+        //   bucket they're in!
     }
 
     private fun loadQueue(file: ConfigFile) {
@@ -45,6 +59,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
 
         slippage = file.config.getPercentage("queue.max-slippage")
         maxWaitTime = file.config.getDuration("queue.maximum-wait-time")?.times(50) ?: -1L
+        minimumPlayerPercent = file.config.getPercentage("queue.minimum-players")
         val expeditions = plugin.getModule(ExpeditionManager::class.java)
         for(map in file.config.getMapList("rotations")) {
             val key = map["key"]?.toString()
@@ -89,30 +104,109 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         return buildList {
             val max = floor(maxScore / divisor).toInt()
             for(i in 0 .. max) {
-                this.add(Bucket(i * divisor))
+                this.add(Bucket(floor(i * divisor).toInt()))
             }
         }
     }
+
+    fun getRelativeGroups(rotation: String, score: Int) : Collection<MutableList<JoinRequest>> {
+        return buildList {
+            getBucketList(rotation)?.let {
+                for(bucket in it) {
+                    if(((score * (1.0 - slippage)).toInt() .. (score * (1.0 + slippage)).toInt()).contains(bucket.score)) {
+                        this.add(bucket.players)
+                    }
+                }
+            }
+        }
+    }
+
     override suspend fun suspendCancel() {
+        ticker.cancel()
         queues.values.forEach { list -> list.forEach { it.players.clear() } }
         queues.clear()
         gearMap.clear()
     }
 
-    fun enqueuePlayer(rotation: String, player: Player) {
+
+    fun enqueuePlayer(rotation: String, player: Player, priority: Boolean = false) {
+        enqueueRequest(rotation, PlayerRequest(player), priority)
+    }
+
+    fun enqueueParty(rotation: String, party: Collection<Player>, priority: Boolean = false) {
+        enqueueRequest(rotation, PartyRequest(party), priority)
+    }
+
+    fun enqueueRequest(rotation: String, request: JoinRequest, priority: Boolean) {
         val buckets = getBucketList(rotation) ?: throw IllegalArgumentException("Could not find rotation called '$rotation'!")
-        val inventory = player.inventory.contents
+
+        val inventories = request.players.map { it.inventory.contents }
         plugin.launch(Dispatchers.IO) {
-            val score = calculateGearScore(inventory)
+            val score = floor(inventories.map { calculateGearScore(it) }.average()).toInt()
             val bucket = buckets[getBucketIndex(score)]
-            bucket.players.add(player)
+            if(priority) {
+                bucket.players.add(0, request) // This actually isn't thread safe but as long as ONLY queueticker calls it we should be fine....
+            } else {
+                bucket.players.add(request)
+            }
+        }
+    }
+
+    fun getMinimumPLayers() : Double {
+        return minimumPlayerPercent;
+    }
+
+    suspend fun dequeueGroup(rotation: String, expedition: Expedition, requests: Collection<JoinRequest>) {
+        requests.forEach { request -> request.players.forEach {
+                it.sendTitlePart(TitlePart.TITLE, Component.text("Expedition Found!").color(NamedTextColor.GOLD))
+                it.sendTitlePart(TitlePart.SUBTITLE, Component.text("Expedition to '${expedition.displayName}' will begin shortly...").color(NamedTextColor.YELLOW))
+        } }
+        val handler = plugin.getModule(PlayHandler::class.java)
+        val startTime = System.currentTimeMillis()
+        val opt = handler.getInstances()[expedition.identifier]!!.stream().filter { it.getPhase() is IdlePhase }.findFirst()
+        val inst = opt.getOrElse {
+            val newInst = handler.createInstance(expedition)
+            if(newInst == null) {
+                requests.forEach { request ->
+                    request.players.forEach { it.sendMessage(Component
+                        .text("Sorry! Something went wrong joining the expedition. You have rejoined the queue with priority!")
+                        .color(NamedTextColor.RED))
+                    }
+                    enqueueRequest(rotation, request, true)
+                }
+                throw IllegalStateException("Something went wrong forming expedition for group!")
+            }
+            return@getOrElse newInst
+        }
+        delay(5000 - System.currentTimeMillis() - startTime)
+        requests.forEach {
+            inst.participate(it.players)
         }
     }
 
     fun dequeuePlayer(player: Player) {
         for(set in queues.values) {
             for(bucket in set) {
-                if(bucket.players.remove(player)) break
+                for(request in ArrayList(bucket.players)) {
+                    if(request.contains(player)) {
+                        bucket.players.remove(request)
+                        if(request is PartyRequest) request.remove(player)
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    fun getRotations() : Collection<Rotation> {
+        return this.queues.keys
+    }
+
+    fun getIndexedPlayers(rotation: String) : List<Pair<Int,MutableList<JoinRequest>>> {
+        return buildList {
+            val list = getBucketList(rotation) ?: return@buildList
+            list.forEach {
+                this.add(Pair(it.score, it.players))
             }
         }
     }
@@ -154,6 +248,6 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     }
 }
 
-private class Bucket(val score: Double) {
-    val players: MutableSet<Player> = ConcurrentHashMap.newKeySet()
+private class Bucket(val score: Int) {
+    val players: MutableList<JoinRequest> = LinkedList()
 }

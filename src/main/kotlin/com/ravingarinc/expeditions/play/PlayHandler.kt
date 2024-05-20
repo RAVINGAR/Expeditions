@@ -54,8 +54,6 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
 
     private lateinit var capacityJob: CapacityTicker
 
-    // Todo might be worthwhile adding a 'join-queue' such that join requests aren't overloaded for specific expeditions
-
     override suspend fun suspendLoad() {
         manager = plugin.getModule(ConfigManager::class.java)
         parties = plugin.getModule(PartyManager::class.java)
@@ -232,7 +230,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         randomList.shuffle()
         for(i in randomList) {
             if(i.canJoin()) {
-                i.participate(player)
+                i.participate(listOf(player))
                 return true
             }
         }
