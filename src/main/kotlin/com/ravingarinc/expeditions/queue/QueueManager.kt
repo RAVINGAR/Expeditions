@@ -102,11 +102,23 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
 
     private fun createBucketList() : List<Bucket> {
         return buildList {
-            val max = floor(maxScore / divisor).toInt()
-            for(i in 0 .. max) {
-                this.add(Bucket(floor(i * divisor).toInt()))
+            getScoreRanges().forEach {
+                this.add(Bucket(it))
             }
         }
+    }
+
+    fun getScoreRanges() : List<Int> {
+        val max = floor(maxScore / divisor).toInt()
+        return buildList {
+            for(i in 0 .. max) {
+                this.add(floor(i * divisor).toInt())
+            }
+        }
+    }
+
+    fun getSlippage() : Double {
+        return slippage
     }
 
     fun getRelativeGroups(rotation: String, score: Int) : Collection<MutableList<JoinRequest>> {
@@ -221,6 +233,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     }
 
     fun calculateGearScore(inventory: Array<ItemStack?>) : Int {
+        if(inventory.size == 0) return 0
         val scores = ArrayList<Int>()
         for(item in inventory) {
             if(item == null) continue
@@ -230,8 +243,16 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         }
         val sorted = scores.sortedDescending()
         var total = 0
+        var average = 0
         for(i in 0 until maxItems) {
-            total += sorted[i]
+            if(i < sorted.size) {
+                total += sorted[i]
+            } else {
+                if(average == 0) {
+                    average = total / (i + 1)
+                }
+                total += average
+            } 
         }
         return total
     }

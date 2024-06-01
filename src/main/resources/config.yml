@@ -34,17 +34,3 @@ general:
   # The allowed commands whilst in an expedition unless you have the permission expeditions.admin.bypass
   allowed-commands:
     - party
-loot-tables: # Loot tables used by maps are specified here.
-  common_crate: # Unique identifier for this loot table
-    title: 'Common Crate'
-    quantity: 1-3 # Can be a single number, or a range such as 3-4 or 3to4. Represents the amount of loot types given.
-    loot:
-    - id: 'mmoitem:sword:ancient_sword'
-      quantity: 1 # Can be a single number, or a range such as 3-4 or 3to4
-      weight: 1 # The higher the weight, the higher the chance of rolling
-    - id: 'vanilla:gold_ingot'
-      quantity: 3-4
-      weight: 5
-    - id: 'vanilla:rotten_flesh'
-      quantity: 3-4
-      weight: 5
