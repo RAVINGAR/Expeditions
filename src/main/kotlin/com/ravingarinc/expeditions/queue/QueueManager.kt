@@ -117,6 +117,10 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         }
     }
 
+    fun getDivisor(): Double {
+        return divisor
+    }
+
     fun getSlippage() : Double {
         return slippage
     }
@@ -168,7 +172,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         return minimumPlayerPercent;
     }
 
-    suspend fun dequeueGroup(rotation: String, expedition: Expedition, requests: Collection<JoinRequest>) {
+    suspend fun dequeueGroup(rotation: String, score: Int, expedition: Expedition, requests: Collection<JoinRequest>) {
         requests.forEach { request -> request.players.forEach {
                 it.sendTitlePart(TitlePart.TITLE, Component.text("Expedition Found!").color(NamedTextColor.GOLD))
                 it.sendTitlePart(TitlePart.SUBTITLE, Component.text("Expedition to '${expedition.displayName}' will begin shortly...").color(NamedTextColor.YELLOW))
@@ -190,13 +194,14 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
             }
             return@getOrElse newInst
         }
+        inst.score = score
         delay(5000 - System.currentTimeMillis() - startTime)
         requests.forEach {
             inst.participate(it.players)
         }
     }
 
-    fun dequeuePlayer(player: Player) {
+    fun removePlayer(player: Player) {
         for(set in queues.values) {
             for(bucket in set) {
                 for(request in ArrayList(bucket.players)) {
@@ -265,7 +270,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val player = event.player
-        dequeuePlayer(player)
+        removePlayer(player)
     }
 }
 

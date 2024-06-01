@@ -60,7 +60,7 @@ class QueueTicker(plugin: RavinPlugin) : Ticker(plugin, 30000) {
                     }
                 } else {
                     plugin.launch(plugin.minecraftDispatcher) {
-                        queueManager.dequeueGroup(rotation.key, chosenMap, requests)
+                        queueManager.dequeueGroup(rotation.key, pair.first, chosenMap, requests)
                     }
                 }
             }

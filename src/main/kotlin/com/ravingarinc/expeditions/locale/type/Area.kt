@@ -75,18 +75,19 @@ abstract class Area(val displayName: String,
         return xRange.contains(x) && yRange.contains(y) && zRange.contains(z)
     }
 
-    fun findLootTable(plugin: RavinPlugin, score: Int) : LootTable {
-        val standardised = (score * )
+    fun getLootGroup(plugin: RavinPlugin, score: Int) : WeightedCollection<LootTable> {
+        val divisor = plugin.getModule(QueueManager::class.java).getDivisor()
+        val standardised = floor(score / divisor).toInt() * divisor
         // todo I do not like having to pass in the RavinPlugin bit here, also having a delayed initialisation is bad practice!
         if(mappedLootScores.isEmpty()) {
             mapLootTables(plugin)
         }
-        mappedLootScores[score]?.let {
-            return it.random()
+        mappedLootScores[standardised]?.let {
+            return it
         }
-        I.log(Level.WARNING, "Debug -> Could not find loot table for area $displayName for score $score - using first entry to compensate.")
+        I.log(Level.WARNING, "Debug -> Could not find loot table for area $displayName for score $standardised - using first entry to compensate.")
         // Todo keep in mind this may not actually be the first one.
-        return mappedLootScores.values().iterator().next().random()
+        return mappedLootScores.values().iterator().next()
     }
 
     private fun mapLootTables(plugin: RavinPlugin) {
@@ -94,12 +95,13 @@ abstract class Area(val displayName: String,
         val slippage = manager.getSlippage()
         manager.getScoreRanges().forEach {
             val collection = WeightedCollection<LootTable>()
+            val range = (it * (1.0 - slippage))..(it * (1.0 + slippage))
             for(type in lootTypes) {
-                if((it * (1.0 - slippage))..(it * (1.0 + slippage)).contains(type.first.getScore(plugin))) {
+                if(range.contains(type.first.getScore(plugin))) {
                     collection.add(it.first, it.second)
                 }
             }
-            mappedLootScores
+            mappedLootScores[it] = collection
         }
     }
 
