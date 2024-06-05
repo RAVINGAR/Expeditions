@@ -178,6 +178,11 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
             }
             return@getOrElse newInst
         }
+        val phase = inst.getPhase()
+        if(phase is IdlePhase) {
+            // we might not need the above check... as long as we can confirm that NOTHING else will change the phase
+            phase.next(inst)
+        }
         delay(5000 - System.currentTimeMillis() - startTime)
         requests.forEach {
             inst.participate(it.players)

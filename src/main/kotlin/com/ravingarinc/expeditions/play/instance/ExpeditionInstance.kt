@@ -254,7 +254,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
-    private fun join(collection: Collection<Player>) = plugin.launch {
+    private fun join(collection: Collection<Player>) {
         val loc = if(expedition.spawnLocations.isEmpty()) {
             findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks(), 0, 32)
         } else {
@@ -267,7 +267,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             locations.add(findSuitableLocation(world, loc.blockX, loc.blockZ, 8, handler.getOverhangingBlocks(), 1))
         }
         for(player in collection) {
-            val playerLoc = locations.poll() ?: throw IllegalStateException("Something went wrong getting player locations. Off-By-One Error?")
+            if(!player.isOnline) continue
+            val playerLoc = locations.poll()!!
             addPlayer(player, playerLoc)
             expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
         }
