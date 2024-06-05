@@ -8,8 +8,9 @@ import kotlin.experimental.ExperimentalTypeInference
 class LootTable @OptIn(ExperimentalTypeInference::class) constructor(val title: String, private val quantity: IntRange, @BuilderInference builderAction: MutableList<LootItem>.() -> Unit) :
     LootHolder {
     private val loots: WeightedCollection<LootItem> = WeightedCollection()
+    private var score: Int? = null
     init {
-        buildList(builderAction).forEach {
+        for(it in buildList(builderAction)) {
             loots.add(it, it.weight)
         }
     }
@@ -24,5 +25,15 @@ class LootTable @OptIn(ExperimentalTypeInference::class) constructor(val title: 
             }
         }
         return list
+    }
+
+    fun getScore(plugin: RavinPlugin) {
+        if(score != null) return score!!
+
+        var itemArray = Array<ItemStack?>(loots.size) { (i, it) ->
+            this[i] = it.generate(null)
+        }
+        score = plugin.getModule(QueueManager::class.java).calculateGearScore(itemArray)
+        return score!!
     }
 }

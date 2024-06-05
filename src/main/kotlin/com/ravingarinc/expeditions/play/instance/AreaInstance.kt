@@ -238,16 +238,18 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         }
     }
 
-    fun tickLoot(random: Random, world: World) {
+    fun tickLoot(random: Random, score: Int, world: World) {
         val chance = area.lootChance
         if(chance == 0.0) return
-        if(area.lootCollection.isEmpty()) return
+        if(area.lootTypes.isEmpty()) return
+        // todo store this as a variable, but instead should get a weighted collection of the loot tables
+        val tableGroup = area.getLootGroup(plugin, score)
 
         if(availableLootLocations.size >= limit) {
             val usingList = buildList {
                 for(loc in availableLootLocations) {
                     if(chance != 1.0 && random.nextDouble() > chance) continue
-                    this.add(Pair(loc, area.lootCollection.random()))
+                    this.add(Pair(loc, tableGroup.random()))
                 }
             }
             usingList.forEach {

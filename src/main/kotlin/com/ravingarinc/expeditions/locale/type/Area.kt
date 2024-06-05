@@ -16,7 +16,7 @@ abstract class Area(val displayName: String,
                     val endLoc: BlockVector,
                     val lootLimit: Double,
                     val lootChance: Double,
-                    lootTypes: List<Pair<LootTable, Double>>,
+                    val lootTypes: List<Pair<LootTable, Double>>,
                     val lootLocations: List<BlockVector>,
                     val mobSpawnChance: Double,
                     val maxMobs: Int,
@@ -40,6 +40,8 @@ abstract class Area(val displayName: String,
 
     val lootCollection: WeightedCollection<LootTable> = WeightedCollection()
     val mobCollection: WeightedCollection<Pair<MobType, IntRange>> = WeightedCollection()
+
+    val mappedLootScores: Map<Int, WeightedCollection<LootTable> = HashMap()
     init {
         lootTypes.forEach {
             lootCollection.add(it.first, it.second)
@@ -71,6 +73,36 @@ abstract class Area(val displayName: String,
 
     fun isInArea(x: Int, y: Int, z: Int) : Boolean {
         return xRange.contains(x) && yRange.contains(y) && zRange.contains(z)
+    }
+
+    fun getLootGroup(plugin: RavinPlugin, score: Int) : WeightedCollection<LootTable> {
+        val divisor = plugin.getModule(QueueManager::class.java).getDivisor()
+        val standardised = floor(score / divisor).toInt() * divisor
+        // todo I do not like having to pass in the RavinPlugin bit here, also having a delayed initialisation is bad practice!
+        if(mappedLootScores.isEmpty()) {
+            mapLootTables(plugin)
+        }
+        mappedLootScores[standardised]?.let {
+            return it
+        }
+        I.log(Level.WARNING, "Debug -> Could not find loot table for area $displayName for score $standardised - using first entry to compensate.")
+        // Todo keep in mind this may not actually be the first one.
+        return mappedLootScores.values().iterator().next()
+    }
+
+    private fun mapLootTables(plugin: RavinPlugin) {
+        val manager = plugin.getModule(QueueManager::class.java)
+        val slippage = manager.getSlippage()
+        manager.getScoreRanges().forEach {
+            val collection = WeightedCollection<LootTable>()
+            val range = (it * (1.0 - slippage))..(it * (1.0 + slippage))
+            for(type in lootTypes) {
+                if(range.contains(type.first.getScore(plugin))) {
+                    collection.add(it.first, it.second)
+                }
+            }
+            mappedLootScores[it] = collection
+        }
     }
 
     abstract fun isHidden() : Boolean

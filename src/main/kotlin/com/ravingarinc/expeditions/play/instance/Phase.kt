@@ -301,6 +301,7 @@ class RestorationPhase(expedition: Expedition) :
         world.isThundering = false
         world.setStorm(false)
         world.thunderDuration = 0
+        instance.score = 0
     }
 
     private fun queueJob(plugin: RavinPlugin, block: suspend CoroutineScope.() -> Unit) {

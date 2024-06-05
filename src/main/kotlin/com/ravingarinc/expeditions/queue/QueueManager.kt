@@ -102,11 +102,27 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
 
     private fun createBucketList() : List<Bucket> {
         return buildList {
-            val max = floor(maxScore / divisor).toInt()
-            for(i in 0 .. max) {
-                this.add(Bucket(floor(i * divisor).toInt()))
+            getScoreRanges().forEach {
+                this.add(Bucket(it))
             }
         }
+    }
+
+    fun getScoreRanges() : List<Int> {
+        val max = floor(maxScore / divisor).toInt()
+        return buildList {
+            for(i in 0 .. max) {
+                this.add(floor(i * divisor).toInt())
+            }
+        }
+    }
+
+    fun getDivisor(): Double {
+        return divisor
+    }
+
+    fun getSlippage() : Double {
+        return slippage
     }
 
     fun getRelativeGroups(rotation: String, score: Int) : Collection<MutableList<JoinRequest>> {
@@ -156,7 +172,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         return minimumPlayerPercent;
     }
 
-    suspend fun dequeueGroup(rotation: String, expedition: Expedition, requests: Collection<JoinRequest>) {
+    suspend fun dequeueGroup(rotation: String, score: Int, expedition: Expedition, requests: Collection<JoinRequest>) {
         requests.forEach { request -> request.players.forEach {
                 it.sendTitlePart(TitlePart.TITLE, Component.text("Expedition Found!").color(NamedTextColor.GOLD))
                 it.sendTitlePart(TitlePart.SUBTITLE, Component.text("Expedition to '${expedition.displayName}' will begin shortly...").color(NamedTextColor.YELLOW))
@@ -178,6 +194,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
             }
             return@getOrElse newInst
         }
+        inst.score = score
         val phase = inst.getPhase()
         if(phase is IdlePhase) {
             // we might not need the above check... as long as we can confirm that NOTHING else will change the phase
@@ -189,7 +206,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         }
     }
 
-    fun dequeuePlayer(player: Player) {
+    fun removePlayer(player: Player) {
         for(set in queues.values) {
             for(bucket in set) {
                 for(request in ArrayList(bucket.players)) {
@@ -226,6 +243,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     }
 
     fun calculateGearScore(inventory: Array<ItemStack?>) : Int {
+        if(inventory.isEmpty()) return 0
         val scores = ArrayList<Int>()
         for(item in inventory) {
             if(item == null) continue
@@ -235,8 +253,16 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         }
         val sorted = scores.sortedDescending()
         var total = 0
+        var average = 0
         for(i in 0 until maxItems) {
-            total += sorted[i]
+            if(i < sorted.size) {
+                total += sorted[i]
+            } else {
+                if(average == 0) {
+                    average = total / (i + 1)
+                }
+                total += average
+            }
         }
         return total
     }
@@ -249,7 +275,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val player = event.player
-        dequeuePlayer(player)
+        removePlayer(player)
     }
 }
 

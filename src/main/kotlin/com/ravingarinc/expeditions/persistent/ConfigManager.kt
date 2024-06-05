@@ -15,6 +15,7 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
     val data: ConfigFile = ConfigFile(plugin, "data.yml")
     val queue: ConfigFile = ConfigFile(plugin, "queue.yml")
     val gear: ConfigFile = ConfigFile(plugin, "gear.yml")
+    val loot: ConfigFile = ConfigFile(plugin, "loot.yml")
 
     private val mapConfigurations: MutableMap<String, ConfigurationSection> = Hashtable()
 
@@ -30,6 +31,13 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
                 mapConfigurations[f.nameWithoutExtension] = (YamlConfiguration.loadConfiguration(f))
             }
         }
+        val section = config.config.getConfigurationSection("loot-tables")
+        if(section != null) {
+            loot.config.set("loot-tables", section)
+            loot.save()
+            config.config.set("loot-tables", null)
+            config.save()
+        }
         data.reload()
     }
 
@@ -37,6 +45,7 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
         config.reload()
         queue.reload()
         gear.reload()
+        loot.reload()
         data.save()
         mapConfigurations.clear()
     }

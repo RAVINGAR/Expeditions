@@ -10,7 +10,8 @@ import java.io.InputStreamReader
 
 class ConfigFile(private val plugin: RavinPlugin, private val name: String) {
     private val file: File = File(plugin.dataFolder, name)
-    var config: FileConfiguration = YamlConfiguration.loadConfiguration(file)
+    val config: FileConfiguration get() = innerConfig
+    private var innerConfig: FileConfiguration = YamlConfiguration.loadConfiguration(file)
 
     init {
         load()
