@@ -24,15 +24,24 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.ItemStack
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.jvm.optionals.getOrElse
 import kotlin.math.floor
+import kotlin.math.min
 
 class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager::class.java, plugin, isRequired = false, ConfigManager::class.java, ExpeditionManager::class.java) {
     private val queues: MutableMap<Rotation, List<Bucket>> = HashMap()
     private val gearMap: MutableMap<String, Int> = HashMap()
 
-    private var divisor = 100.0
-    private var maxScore: Double = 1000.0
+    private val isQueued: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
+
+    companion object {
+        val minGroups = 5
+        val maxGroups = 15
+    }
+    @Deprecated("Divisor must be handled automagically as a scaling value based on player count")
+    private val divisor = 10.0
+    private var maxScore: Int = 100
     private var slippage: Double = 0.25
     private var maxWaitTime: Long = -1L
     private var maxItems = 9
@@ -46,20 +55,25 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         loadGear(manager.gear)
 
         ticker = QueueTicker(plugin)
+        ticker.start(20)
         super.suspendLoad()
 
         // TODO If a player equips new items that increase their gear score more than the slippage percentage then change
         //   bucket they're in!
     }
 
-    private fun loadQueue(file: ConfigFile) {
-        divisor = file.config.getDouble("gear.divisor", 10.0)
-        maxScore = file.config.getDouble("gear.maximum-score", 100.0)
-        maxItems = file.config.getInt("gear.max-items-to-consider", 9)
+    override suspend fun suspendCancel() {
+        ticker.cancel()
+        queues.values.forEach { list -> list.forEach { it.players.clear() } }
+        queues.clear()
+        gearMap.clear()
+        isQueued.clear()
+    }
 
+    private fun loadQueue(file: ConfigFile) {
         slippage = file.config.getPercentage("queue.max-slippage")
-        maxWaitTime = file.config.getDuration("queue.maximum-wait-time")?.times(50) ?: -1L
-        minimumPlayerPercent = file.config.getPercentage("queue.minimum-players")
+        maxWaitTime = file.config.getDuration("queue.max-wait-time")?.times(50) ?: -1L
+        minimumPlayerPercent = file.config.getPercentage("queue.min-players")
         val expeditions = plugin.getModule(ExpeditionManager::class.java)
         for(map in file.config.getMapList("rotations")) {
             val key = map["key"]?.toString()
@@ -81,15 +95,23 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
                     }
                 }
             }
-            queues[Rotation(key, foundMaps)] = createBucketList()
+            if(foundMaps.isEmpty()) {
+                warn("Could not load rotation '$key' as no valid maps could be found!")
+            } else {
+                queues[Rotation(key, foundMaps)] = createBucketList()
+            }
+
         }
     }
 
     private fun loadGear(file: ConfigFile) {
-        file.config.getStringList("gear").forEach {
-            val split = it.split(":".toRegex())
+        maxScore = file.config.getInt("gear.maximum-score", 100)
+        maxItems = file.config.getInt("gear.max-items-to-consider", 9)
+
+        file.config.getStringList("scores").forEach {
+            val split = it.split(":")
             val weight = split[split.size - 1]
-            val raw = it.substring(0, weight.length - 1)
+            val raw = it.substring(0, it.length - weight.length - 1)
             if(gearMap.containsKey(raw)) {
                 warn("Encountered duplicate item entry in gear.yml for item '$raw'!")
             } else {
@@ -137,20 +159,14 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         }
     }
 
-    override suspend fun suspendCancel() {
-        ticker.cancel()
-        queues.values.forEach { list -> list.forEach { it.players.clear() } }
-        queues.clear()
-        gearMap.clear()
+    fun getQueuedRequests() : Collection<JoinRequest> {
+        return buildList {
+            queues.values.forEach { list -> list.forEach { this.addAll(it.players) }}
+        }
     }
 
-
-    fun enqueuePlayer(rotation: String, player: Player, priority: Boolean = false) {
-        enqueueRequest(rotation, PlayerRequest(player), priority)
-    }
-
-    fun enqueueParty(rotation: String, party: Collection<Player>, priority: Boolean = false) {
-        enqueueRequest(rotation, PartyRequest(party), priority)
+    fun isRotation(rotation: String) : Boolean {
+        return getRotations().any { it.key.equals(rotation, true) }
     }
 
     fun enqueueRequest(rotation: String, request: JoinRequest, priority: Boolean) {
@@ -159,11 +175,15 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         val inventories = request.players.map { it.inventory.contents }
         plugin.launch(Dispatchers.IO) {
             val score = floor(inventories.map { calculateGearScore(it) }.average()).toInt()
+            //warn("Debug -> Enqueueing for player with score of $score")
             val bucket = buckets[getBucketIndex(score)]
             if(priority) {
                 bucket.players.add(0, request) // This actually isn't thread safe but as long as ONLY queueticker calls it we should be fine....
             } else {
                 bucket.players.add(request)
+            }
+            request.players.forEach {
+                isQueued.add(it.uniqueId)
             }
         }
     }
@@ -195,28 +215,24 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
             return@getOrElse newInst
         }
         inst.score = score
-        val phase = inst.getPhase()
-        if(phase is IdlePhase) {
-            // we might not need the above check... as long as we can confirm that NOTHING else will change the phase
-            phase.next(inst)
-        }
-        delay(5000 - System.currentTimeMillis() - startTime)
+        val delay = 10000 - (System.currentTimeMillis() - startTime)
+        delay(delay)
         requests.forEach {
             inst.participate(it.players)
         }
     }
 
     fun removePlayer(player: Player) {
-        for(set in queues.values) {
-            for(bucket in set) {
-                for(request in ArrayList(bucket.players)) {
-                    if(request.contains(player)) {
-                        bucket.players.remove(request)
-                        if(request is PartyRequest) request.remove(player)
-                        break
-                    }
-                }
+        for(set in queues.values) for(bucket in set) for(request in ArrayList(bucket.players)) {
+            if(!request.contains(player)) continue
+            if(request is PartyRequest) {
+                request.remove(player)
+                if(request.players.isEmpty()) bucket.players.remove(request)
+            } else {
+                bucket.players.remove(request)
             }
+            isQueued.remove(player.uniqueId)
+            break
         }
     }
 
@@ -248,8 +264,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         for(item in inventory) {
             if(item == null) continue
             if(item.type.isAir) continue
-            val type = ItemType.convertAsString(item)
-            gearMap[type]?.let { scores.add(it) }
+            getItemScore(item)?.let { scores.add(it) }
         }
         val sorted = scores.sortedDescending()
         var total = 0
@@ -264,11 +279,16 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
                 total += average
             }
         }
-        return total
+        return min(total, (maxScore * slippage).toInt())
+    }
+
+    fun getItemScore(item: ItemStack) : Int? {
+        val type = ItemType.convertAsString(item)
+        return gearMap[type]
     }
 
     fun getBucketIndex(score: Int) : Int {
-        return (score / maxScore * (maxScore / divisor)).toInt()
+        return ((score.toDouble() / maxScore.toDouble()) * (maxScore.toDouble() / divisor)).toInt()
     }
 
 
@@ -276,6 +296,8 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val player = event.player
         removePlayer(player)
+
+        // TODO There is nothing to handle if a player gets kicked out of a party whilst in an expedition!
     }
 }
 

@@ -242,8 +242,8 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         val chance = area.lootChance
         if(chance == 0.0) return
         if(area.lootTypes.isEmpty()) return
-        // todo store this as a variable, but instead should get a weighted collection of the loot tables
         val tableGroup = area.getLootGroup(plugin, score)
+        if(tableGroup.isEmpty()) return
 
         if(availableLootLocations.size >= limit) {
             val usingList = buildList {

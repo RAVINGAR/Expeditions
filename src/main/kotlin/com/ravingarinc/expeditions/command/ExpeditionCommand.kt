@@ -3,8 +3,15 @@ package com.ravingarinc.expeditions.command
 import com.ravingarinc.api.command.BaseCommand
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.ExpeditionManager
+import com.ravingarinc.expeditions.party.PartyManager
 import com.ravingarinc.expeditions.play.PlayHandler
 import com.ravingarinc.expeditions.play.instance.RemoveReason
+import com.ravingarinc.expeditions.queue.JoinRequest
+import com.ravingarinc.expeditions.queue.PartyRequest
+import com.ravingarinc.expeditions.queue.PlayerRequest
+import com.ravingarinc.expeditions.queue.QueueManager
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
 
@@ -12,6 +19,8 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
     init {
         val expeditions = plugin.getModule(ExpeditionManager::class.java)
         val handler = plugin.getModule(PlayHandler::class.java)
+        val queueManager = plugin.getModule(QueueManager::class.java)
+
         setFunction { sender, _ ->
             if(sender is Player) {
                 if(handler.hasJoinedExpedition(sender)) {
@@ -23,6 +32,35 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                 sender.sendMessage("${ChatColor.RED}This command can only be used by a player!")
             }
             return@setFunction true
+        }
+
+        addOption("queue", "expeditions.queue", "<rotation> - Queue for a random expedition within a rotation.", 2) { sender, args ->
+            if(sender !is Player) {
+                sender.sendMessage(Component.text("Only a player can use this command! For admin usages, please use /expeditions admin queue").color(NamedTextColor.RED))
+                return@addOption true
+            }
+            if(queueManager.isRotation(args[1])) {
+                tryQueuePlayer(sender, args[1])
+            } else {
+                sender.sendMessage(Component.text("Could not find a rotation called '${args[1]}'!").color(NamedTextColor.RED))
+            }
+            return@addOption true
+        }
+
+        addOption("dequeue", "expeditions.queue", "- Leave any expedition queues you are apart of.", 1) { sender, args ->
+            if(sender !is Player) {
+                sender.sendMessage(Component.text("Only a player can use this command! For admin usages, please use /expeditions admin dequeue").color(NamedTextColor.RED))
+                return@addOption true
+            }
+            val requests = queueManager.getQueuedRequests()
+            for(request in requests) {
+                if(!request.contains(sender)) continue
+                queueManager.removePlayer(sender)
+                sender.sendMessage(Component.text("You have been removed from the queue!").color(NamedTextColor.GREEN))
+                return@addOption true
+            }
+            sender.sendMessage(Component.text("You are not currently queued for any expeditions!").color(NamedTextColor.YELLOW))
+            return@addOption true
         }
 
         addOption("instance", "expeditions.admin", "- Admin command to manage instances", 1) { _, _ -> false}
@@ -145,5 +183,34 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
             }
 
         addHelpOption(ChatColor.AQUA, ChatColor.DARK_AQUA)
+    }
+
+    /**
+     * Try and queue the given player, including their party if they are in one and return the result as
+     * true if a success, or false if something went wrong.
+     */
+    private fun tryQueuePlayer(player: Player, rotation: String) : Boolean {
+        val queueManager = plugin.getModule(QueueManager::class.java)
+        val provider = plugin.getModule(PartyManager::class.java).getProvider()
+        var request: JoinRequest? = null
+        if(provider != null) with(provider) {
+            if(player.isInParty()) {
+                val partyLeaderUUID = player.findPartyLeader()!!
+                if(partyLeaderUUID == player.uniqueId) {
+                    player.sendMessage(
+                        Component.text("You cannot queue for any expeditions as you are in a party and " +
+                                "only the party leader can queue for expeditions!")
+                            .color(NamedTextColor.RED))
+                    return false
+                }
+                request = PartyRequest(partyLeaderUUID, player.getPartyMembers())
+            }
+        }
+        val finalRequest = request ?: PlayerRequest(player)
+        finalRequest.players.forEach {
+            it.sendMessage(Component.text("You have joined the expeditions queue for '$rotation'!").color(NamedTextColor.GRAY))
+        }
+        queueManager.enqueueRequest(rotation, finalRequest, false)
+        return true
     }
 }

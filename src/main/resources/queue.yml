@@ -1,11 +1,7 @@
-gear:
-  divisor: 10 # TODO Remove this option and make it automatically scale with the amount of players queuing
-  maximum-score: 100
-  max-items-to-consider: 9 # Up to x amount of other items will be considered
 queue:
-  minimum-players: 25% # How many minimum players represented as a percentage of an expedition's maximum player count.
-  maximum-slippage: 25%
-  maximum-wait-time: 5min # The maximum wait time to try and get matched with players of similar.
+  min-players: 25% # How many minimum players represented as a percentage of an expedition's maximum player count.
+  max-slippage: 25%
+  max-wait-time: 5min # The maximum wait time to try and get matched with players of similar.
 rotations:
   - key: 'generic'
     maps: ['Battlegrounds','Skyscraper']

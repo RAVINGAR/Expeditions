@@ -55,7 +55,7 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
     }
 
     private fun loadLootTables(manager: ConfigManager) {
-        manager.config.config.getConfigurationSection("loot-tables")?.let { section ->
+        manager.loot.config.getConfigurationSection("loot-tables")?.let { section ->
             for(key in section.getKeys(false)) {
                 section.getDropTable(key).let {
                     lootTables[key] = it

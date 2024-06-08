@@ -5,6 +5,7 @@ import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
+import com.ravingarinc.expeditions.api.atomic
 import com.ravingarinc.expeditions.api.roll
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
@@ -59,7 +60,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     private val availableSpawns: Queue<BlockVector> = ConcurrentLinkedQueue(expedition.spawnLocations.shuffled())
 
-    val score by atomic<Int>(0)
+    var score by atomic(0)
 
     init {
         val view = Bukkit.createMap(world)
@@ -197,7 +198,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun tickExpedition(random: Random, tickMobs: Boolean, tickLoot: Boolean, tickRandomMobs: Boolean) {
         areaInstances.forEach {
             if(tickMobs) it.tickMobs(random, this)
-            if(tickLoot) it.tickLoot(random, world)
+            if(tickLoot) it.tickLoot(random, score, world)
             it.tick(world)
             if(it.area is ExtractionZone) {
                 it.tickExtractions(this)

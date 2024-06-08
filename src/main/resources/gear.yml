@@ -1,5 +1,14 @@
 # Uses the same item format as other settings. The last part is the score the gear will give
+# When performing a gear calculation, the plugin will take the highest scored items in a players inventory up to a
+# total of `max-items-to-consider` and then add all those scores together.
+#
+# If a player has less than `max-items-to-consider` then the average of all previous items will be considered to make up
+# the total.
+
 gear:
+  maximum-score: 100
+  max-items-to-consider: 9 # Up to x amount of other items will be considered
+scores:
 - 'vanilla:wooden_sword:5'
 - 'vanilla:wooden_axe:5'
 - 'vanilla:stone_sword:7'
@@ -32,7 +41,7 @@ gear:
 - 'vanilla:diamond_chestplate:15'
 - 'vanilla:diamond_leggings:15'
 - 'vanilla:diamond_boots:15'
-- 'vanilla:netherite_helmet:5'
-- 'vanilla:netherite_chestplate:5'
-- 'vanilla:netherite_leggings:5'
-- 'vanilla:netherite_boots:5'
+- 'vanilla:netherite_helmet:20'
+- 'vanilla:netherite_chestplate:20'
+- 'vanilla:netherite_leggings:20'
+- 'vanilla:netherite_boots:20'

@@ -73,8 +73,8 @@ dependencies {
     library(kotlin("stdlib"))
     library("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0-Beta")
 
-    library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-api", "2.11.0")
-    library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-core", "2.11.0")
+    library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-api", "2.16.0")
+    library("com.github.shynixn.mccoroutine", "mccoroutine-bukkit-core", "2.16.0")
     library("com.google.guava:guava:18.0")
 
     implementation("com.github.RAVINGAR.RavinAPI:common:1.5.0")

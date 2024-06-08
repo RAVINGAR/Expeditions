@@ -28,7 +28,7 @@ class ConfigFile(private val plugin: RavinPlugin, private val name: String) {
     }
 
     fun reload() {
-        config = YamlConfiguration.loadConfiguration(file)
+        innerConfig = YamlConfiguration.loadConfiguration(file)
     }
 
     fun save() {

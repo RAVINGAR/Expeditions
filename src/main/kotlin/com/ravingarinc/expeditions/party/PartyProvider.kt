@@ -3,6 +3,7 @@ package com.ravingarinc.expeditions.party
 import com.alessiodp.parties.api.Parties
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import java.util.*
 
 interface PartyProvider {
 
@@ -11,6 +12,8 @@ interface PartyProvider {
     fun Player.isPartyLeader() : Boolean
 
     fun Player.getPartyMembers() : Collection<Player>
+
+    fun Player.findPartyLeader() : UUID?
 }
 
 class PartiesPluginProvider : PartyProvider {
@@ -21,10 +24,15 @@ class PartiesPluginProvider : PartyProvider {
     }
 
     override fun Player.isPartyLeader(): Boolean {
-        val partyPlayer = api.getPartyPlayer(this.uniqueId) ?: return false
-        val uuid = partyPlayer.partyId ?: return false
-        val party = api.getParty(uuid) ?: return false
-        return party.leader == this.uniqueId
+        val leaderUUID = findPartyLeader() ?: return false
+        return leaderUUID == this.uniqueId
+    }
+
+    override fun Player.findPartyLeader(): UUID? {
+        val partyPlayer = api.getPartyPlayer(this.uniqueId) ?: return null
+        val uuid = partyPlayer.partyId ?: return null
+        val party = api.getParty(uuid) ?: return null
+        return party.leader
     }
 
     override fun Player.getPartyMembers(): Collection<Player> {
