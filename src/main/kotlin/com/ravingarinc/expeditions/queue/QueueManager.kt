@@ -210,6 +210,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
                             .color(NamedTextColor.RED))
                         }
                         enqueueRequest(rotation, request, true)
+                        // TODO ADD THING HERE TO PREVENT JOINING AN EXPEDITION WHICH IS LESS THAN SECOND AWAY FROM STORM PHASE
                     }
                     throw IllegalStateException("Something went wrong forming expedition for group!")
                 }
