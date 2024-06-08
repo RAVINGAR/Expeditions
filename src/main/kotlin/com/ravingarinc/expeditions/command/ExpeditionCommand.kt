@@ -40,10 +40,11 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                 return@addOption true
             }
             if(queueManager.isRotation(args[1])) {
-                tryQueuePlayer(sender, args[1])
-            } else {
+                    tryQueuePlayer(sender, args[1])
+                } else {
                 sender.sendMessage(Component.text("Could not find a rotation called '${args[1]}'!").color(NamedTextColor.RED))
-            }
+                }
+            
             return@addOption true
         }
 
@@ -60,6 +61,7 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                 return@addOption true
             }
             sender.sendMessage(Component.text("You are not currently queued for any expeditions!").color(NamedTextColor.YELLOW))
+            
             return@addOption true
         }
 

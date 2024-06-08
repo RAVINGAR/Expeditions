@@ -33,8 +33,6 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     private val queues: MutableMap<Rotation, List<Bucket>> = HashMap()
     private val gearMap: MutableMap<String, Int> = HashMap()
 
-    private val isQueued: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
-
     companion object {
         val minGroups = 5
         val maxGroups = 15
@@ -67,7 +65,6 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         queues.values.forEach { list -> list.forEach { it.players.clear() } }
         queues.clear()
         gearMap.clear()
-        isQueued.clear()
     }
 
     private fun loadQueue(file: ConfigFile) {
@@ -182,9 +179,6 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
             } else {
                 bucket.players.add(request)
             }
-            request.players.forEach {
-                isQueued.add(it.uniqueId)
-            }
         }
     }
 
@@ -197,28 +191,32 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
                 it.sendTitlePart(TitlePart.TITLE, Component.text("Expedition Found!").color(NamedTextColor.GOLD))
                 it.sendTitlePart(TitlePart.SUBTITLE, Component.text("Expedition to '${expedition.displayName}' will begin shortly...").color(NamedTextColor.YELLOW))
         } }
+        delay(5000)
         val handler = plugin.getModule(PlayHandler::class.java)
         val startTime = System.currentTimeMillis()
-        val opt = handler.getInstances()[expedition.identifier]!!.stream().filter { it.getPhase() is IdlePhase }.findFirst()
-        val inst = opt.getOrElse {
-            val newInst = handler.createInstance(expedition)
-            if(newInst == null) {
-                requests.forEach { request ->
-                    request.players.forEach { it.sendMessage(Component
-                        .text("Sorry! Something went wrong joining the expedition. You have rejoined the queue with priority!")
-                        .color(NamedTextColor.RED))
+        requests.forEach { request ->
+            val opt = handler.getInstances()[expedition.identifier]!!.stream().filter { it ->
+                val phase = it.getPhase()
+                if(phase !is IdlePhase && phase !is PlayPhase) return false
+            
+                return it.getAmountOfPlayers() + request.players.size <= it.expedition.maxPlayers
+            }.findFirst()
+            val inst = opt.getOrElse {
+                val newInst = handler.createInstance(expedition)
+                if(newInst == null) {
+                    requests.forEach { request ->
+                        request.players.forEach { it.sendMessage(Component
+                            .text("Sorry! Something went wrong joining the expedition. You have rejoined the queue with priority!")
+                            .color(NamedTextColor.RED))
+                        }
+                        enqueueRequest(rotation, request, true)
                     }
-                    enqueueRequest(rotation, request, true)
+                    throw IllegalStateException("Something went wrong forming expedition for group!")
                 }
-                throw IllegalStateException("Something went wrong forming expedition for group!")
+                return@getOrElse newInst
             }
-            return@getOrElse newInst
-        }
-        inst.score = score
-        val delay = 10000 - (System.currentTimeMillis() - startTime)
-        delay(delay)
-        requests.forEach {
-            inst.participate(it.players)
+            inst.score = score
+            inst.participate(request.players)
         }
     }
 
@@ -231,7 +229,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
             } else {
                 bucket.players.remove(request)
             }
-            isQueued.remove(player.uniqueId)
+
             break
         }
     }
