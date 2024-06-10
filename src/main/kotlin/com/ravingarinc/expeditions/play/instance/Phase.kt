@@ -85,8 +85,14 @@ class IdlePhase(expedition: Expedition) :
         PlayPhase(expedition)
 }) {
     private val COMMAND_REGEX = Pattern.compile("(-?\\d+(?:.\\d+)?) (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:.\\d+)?)")
+    private var idleSince: Long = System.currentTimeMillis()
+
+    fun getIdleTime() : Long {
+        return idleSince
+    }
 
     override fun onStart(instance: ExpeditionInstance) {
+        idleSince = System.currentTimeMillis()
         instance.expedition.getAreas().forEach {
             if(it is ExtractionZone) {
                 if(Random.nextDouble() < it.chance) {
@@ -143,7 +149,6 @@ class IdlePhase(expedition: Expedition) :
     }
 
     override fun onEnd(instance: ExpeditionInstance) {
-
     }
 }
 

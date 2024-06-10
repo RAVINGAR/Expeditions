@@ -19,12 +19,15 @@ import com.ravingarinc.expeditions.play.item.ItemType
 import kotlinx.coroutines.delay
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.title.TitlePart
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryDragEvent
+import org.bukkit.event.player.PlayerAttemptPickupItemEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.ItemStack
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.jvm.optionals.getOrElse
 import kotlin.math.floor
 import kotlin.math.min
@@ -32,6 +35,8 @@ import kotlin.math.min
 class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager::class.java, plugin, isRequired = false, ConfigManager::class.java, ExpeditionManager::class.java) {
     private val queues: MutableMap<Rotation, List<Bucket>> = HashMap()
     private val gearMap: MutableMap<String, Int> = HashMap()
+
+    private val mappedRequests: MutableMap<UUID, JoinRequest> = ConcurrentHashMap()
 
     companion object {
         val minGroups = 5
@@ -68,6 +73,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         queues.values.forEach { list -> list.forEach { it.players.clear() } }
         queues.clear()
         gearMap.clear()
+        mappedRequests.clear()
     }
 
     private fun loadQueue(file: ConfigFile) {
@@ -140,12 +146,12 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         }
     }
 
-    fun getDivisor(): Double {
-        return divisor
+    fun queueForRemoval(inst: ExpeditionInstance) {
+        ticker.queueForRemoval(inst)
     }
 
-    fun getSlippage() : Double {
-        return slippage
+    fun getDivisor(): Double {
+        return divisor
     }
 
     fun getRelativeGroups(rotation: String, score: Int) : Collection<MutableList<JoinRequest>> {
@@ -171,13 +177,16 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     }
 
 
-    fun enqueueRequest(rotation: String, request: JoinRequest, priority: Boolean) {
-        val buckets = getBucketList(rotation) ?: throw IllegalArgumentException("Could not find rotation called '$rotation'!")
+    fun enqueueRequest(request: JoinRequest, priority: Boolean) {
+        val buckets = getBucketList(request.rotation) ?: throw IllegalArgumentException("Could not find rotation called '${request.rotation}'!")
         val bucket = buckets[getBucketIndex(request.score)]
         if(priority) {
             bucket.players.add(0, request) // This actually isn't thread safe but as long as ONLY queueticker calls it we should be fine....
         } else {
             bucket.players.add(request)
+        }
+        request.players.forEach {
+            mappedRequests[it.uniqueId] = request
         }
     }
 
@@ -185,40 +194,48 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         return minimumPlayerPercent;
     }
 
-    suspend fun dequeueGroup(rotation: String, score: Int, expedition: Expedition, requests: Collection<JoinRequest>) {
-        requests.forEach { request -> request.players.forEach {
-                it.sendTitlePart(TitlePart.TITLE, Component.text("Expedition Found!").color(NamedTextColor.GOLD))
-                it.sendTitlePart(TitlePart.SUBTITLE, Component.text("Expedition to '${expedition.displayName}' will begin shortly...").color(NamedTextColor.YELLOW))
-        } }
-        delay(5000)
+    @SyncOnly
+    suspend fun dequeueGroup(score: Int, expedition: Expedition, requests: Collection<JoinRequest>) {
+        val startTime = System.currentTimeMillis()
         val scoreRange = (score * (1.0 - slippage)).toInt() .. (score * (1.0 + slippage)).toInt()
-        requests.forEach { request ->
-            val inst = findValidInst(expedition.identifier, scoreRange, request.size()).getOrElse { handler.createInstance(expedition) }
-            if(inst == null) {
+        val totalSize = requests.sumOf { it.size() }
+        val inst = findValidInst(expedition.identifier, scoreRange, totalSize).getOrElse {
+            val nInst = handler.createInstance(expedition)
+            nInst?.let { handler.addInstance(it) }
+            delay(5000)
+            return@getOrElse nInst
+        }
+        if(inst == null) {
+            requests.forEach { request ->
                 request.players.forEach { it.sendMessage(Component
                     .text("Sorry! Something went wrong joining the expedition. You have rejoined the queue with priority!")
                     .color(NamedTextColor.RED))
                 }
-                enqueueRequest(rotation, request, true)
-                warn("Something went wrong forming new expedition for group!")
-            } else {
-                if(inst.score == -1) {
-                    inst.score = score
-                }
-                dequeueRequest(inst, request)
+                enqueueRequest(request, true)
             }
+            warn("Something went wrong forming new expedition for group!")
+        } else {
+            if(inst.score == -1) inst.score = score
+            val phase = inst.getPhase()
+            if(phase is IdlePhase) phase.next(inst)
+            delay(5000 - (System.currentTimeMillis() - startTime))
+            requests.forEach { request -> dequeueRequest(inst, request) }
         }
     }
 
-    @SyncOnly
-    fun findLowestPopInst(rotation: Rotation, score: Int, size: Int) : ExpeditionInstance? {
-        val scoreRange = (score * (1.0 - maxSlippage)).toInt() .. (score * (1.0 + maxSlippage)).toInt()
+    fun findExistingInst(rotation: Rotation, score: Int, size: Int, slippage: Double = this.slippage) : ExpeditionInstance? {
+        val scoreRange = (score * (1.0 - slippage)).toInt() .. (score * (1.0 + slippage)).toInt()
         var inst: ExpeditionInstance? = null
-
         for(key in rotation.set) {
             inst = findValidInst(key, scoreRange, size).orElse(null)
             if(inst != null) break
         }
+        return inst
+    }
+
+    @SyncOnly
+    suspend fun findLowestPopInst(rotation: Rotation, score: Int, size: Int) : ExpeditionInstance? {
+        var inst: ExpeditionInstance? = findExistingInst(rotation, score, size, maxSlippage)
         if(inst == null) {
             val expedition = plugin.getModule(ExpeditionManager::class.java).getMapByIdentifier(rotation.getNextMap())
             if(expedition == null) {
@@ -226,22 +243,34 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
                 return null
             }
             inst = handler.createInstance(expedition)
+            inst?.let { handler.addInstance(inst) }
+            delay(5000)
         }
-        if(inst == null) warn("Failed to find/create valid expedition instance for rotation '${rotation.key}' for unknown reason!")
+        if(inst == null) {
+            warn("Failed to find/create valid expedition instance for rotation '${rotation.key}' for unknown reason!")
+        } else {
+            if(inst.score == -1) inst.score = score
+            val phase = inst.getPhase()
+            if(phase is IdlePhase) { phase.next(inst) }
+        }
         return inst
     }
 
-    fun findValidInst(identifier: String, scoreRange: IntRange, playerSize: Int) : Optional<ExpeditionInstance> {
-        return handler.getInstances()[identifier]?.stream()?.filter {
+    private fun findValidInst(identifier: String, scoreRange: IntRange, playerSize: Int) : Optional<ExpeditionInstance> {
+        return handler.getInstances(identifier)?.stream()?.filter {
             val phase = it.getPhase()
             if(phase !is IdlePhase && phase !is PlayPhase) return@filter false
-            if(phase is PlayPhase && !scoreRange.contains(it.score)) return@filter false
-            if(phase.getTicksRemaining() < 200L) return@filter false
+            if(phase is PlayPhase) {
+                if(phase.getTicksRemaining() < 100L) return@filter false
+                if(it.score != -1 && !scoreRange.contains(it.score)) return@filter false
+            }
             return@filter it.getAmountOfPlayers() + playerSize <= it.expedition.maxPlayers
         }?.findFirst() ?: Optional.empty()
     }
 
+    @SyncOnly
     fun dequeueRequest(inst: ExpeditionInstance, request: JoinRequest) {
+        request.players.forEach { mappedRequests.remove(it.uniqueId) }
         inst.participate(request.players)
     }
 
@@ -254,13 +283,31 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
             } else {
                 bucket.players.remove(request)
             }
-
+            request.players.forEach { mappedRequests.remove(it.uniqueId) }
             break
         }
     }
 
+    /**
+     * This may not always be 100% accurate and should only be used by third parties for things such as placeholders!
+     */
+    fun getRequest(player: Player) : JoinRequest? {
+        return mappedRequests[player.uniqueId]
+    }
+
+    fun getQueuedAmount(rotation: String) : Int {
+        val entry = queues.entries.firstOrNull { it.key.key == rotation } ?: return 0
+        return entry.value.sumOf { b -> b.players.sumOf { it.size() } }
+    }
+
     fun getRotations() : Collection<Rotation> {
         return this.queues.keys
+    }
+
+    fun getRotationNames() : List<String> {
+        return buildList {
+            queues.keys.forEach { this.add(it.key) }
+        }
     }
 
     fun getIndexedPlayers(rotation: String) : List<Pair<Int,MutableList<JoinRequest>>> {
@@ -302,7 +349,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
                 total += average
             }
         }
-        return min(total, (maxScore * slippage).toInt())
+        return min(total, (maxScore * (1.0 + slippage)).toInt())
     }
 
     fun getItemScore(item: ItemStack) : Int? {
@@ -321,6 +368,20 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         removePlayer(player)
 
         // TODO There is nothing to handle if a player gets kicked out of a party whilst in an expedition!
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    fun onInventoryClick(event: InventoryClickEvent) {
+
+    }
+    @EventHandler(ignoreCancelled = true)
+    fun onInventoryDrag(event: InventoryDragEvent) {
+
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    fun onPlayerItemPickup(event: PlayerAttemptPickupItemEvent) {
+
     }
 }
 

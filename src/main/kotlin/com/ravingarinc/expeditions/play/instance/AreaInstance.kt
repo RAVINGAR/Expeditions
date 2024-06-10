@@ -15,14 +15,11 @@ import com.ravingarinc.expeditions.play.event.ExpeditionLootCrateEvent
 import kotlinx.coroutines.delay
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
-import org.bukkit.Sound
 import org.bukkit.World
 import org.bukkit.block.Block
 import org.bukkit.entity.Entity
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
-import org.bukkit.potion.PotionEffect
-import org.bukkit.potion.PotionEffectType
 import org.bukkit.util.BlockVector
 import org.bukkit.util.Vector
 import java.util.*
@@ -136,48 +133,12 @@ class AreaInstance(val plugin: RavinPlugin, val expedition: Expedition, val area
         npcLastFollowingTime = -1L
     }
 
-    fun tick(world: World) {
-        area.tick(world)
+    fun tick(instance: ExpeditionInstance) {
+        area.tick(instance, this)
         if(npcLastFollowingTime == -1L) return
         npc?.let {
             if(it.getFollowing() == null && System.currentTimeMillis() - npcLastFollowingTime > 60000) {
-                resetNPC(world)
-            }
-        }
-    }
-
-    fun tickExtractions(instance: ExpeditionInstance) {
-        val time = System.currentTimeMillis()
-        val copyMap = HashMap(inArea)
-        for((player, startTime) in copyMap) {
-            if(!inArea.contains(player)) continue
-
-            val diff = time - startTime
-            val progress = diff / (instance.expedition.extractionTime * 50.0)
-
-            if(progress >= 1.0) {
-                instance.plugin.launch {
-                    player.sendActionBar(Component.text("-- Extraction Complete --").color(NamedTextColor.GOLD))
-                    player.playSound(player, Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8F, 0.8F)
-                    player.addPotionEffect(PotionEffect(PotionEffectType.BLINDNESS, 20, 1, true))
-                    delay(60)
-                    instance.removePlayer(player, RemoveReason.EXTRACTION)
-                    player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)
-                }
-            } else {
-                player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 0.8F)
-                val builder = Component.text()
-                    .content("Extracting . . .")
-                    .color(NamedTextColor.GOLD)
-                    .append(Component.text(" | ").color(NamedTextColor.GRAY))
-                    .append(Component.text("[").color(NamedTextColor.GRAY));
-                for(i in 1..16) {
-                    builder.append(Component
-                        .text("|")
-                        .color(if(progress > (i / 16.0)) NamedTextColor.YELLOW else NamedTextColor.GRAY))
-                }
-                builder.append(Component.text("]").color(NamedTextColor.GRAY))
-                player.sendActionBar(builder.build())
+                resetNPC(instance.world)
             }
         }
     }

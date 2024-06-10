@@ -8,6 +8,7 @@ sealed interface JoinRequest {
     val joinTime: Long
     val players: Collection<Player>
     var score: Int
+    val rotation: String
 
     fun contains(player: Player) : Boolean {
         return players.contains(player)
@@ -18,7 +19,7 @@ sealed interface JoinRequest {
     }
 }
 
-class PlayerRequest(player: Player, score: Int) : JoinRequest {
+class PlayerRequest(override val rotation: String, player: Player, score: Int) : JoinRequest {
     override val joinTime = System.currentTimeMillis()
     override val players = listOf(player)
     override var score: Int by atomic(score)
@@ -28,7 +29,7 @@ class PlayerRequest(player: Player, score: Int) : JoinRequest {
     }
 }
 
-class PartyRequest(partyLeader: UUID, party: Collection<Player>, score: Int) : JoinRequest {
+class PartyRequest(override val rotation: String, partyLeader: UUID, party: Collection<Player>, score: Int) : JoinRequest {
     override val players: Collection<Player> get() = innerPlayers
     override val joinTime: Long = System.currentTimeMillis()
     override var score: Int by atomic(score)

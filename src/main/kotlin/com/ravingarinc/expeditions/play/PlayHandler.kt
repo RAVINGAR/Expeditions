@@ -6,6 +6,7 @@ import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
+import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.Ticker
 import com.ravingarinc.expeditions.api.formatMilliseconds
 import com.ravingarinc.expeditions.api.getDuration
@@ -73,12 +74,12 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         expeditions = plugin.getModule(ExpeditionManager::class.java)
         multiverse = plugin.getModule(MultiverseHandler::class.java)
 
-        ticker = PlayTicker(plugin, instances.values)
+        ticker = PlayTicker(plugin, this)
         capacityJob = CapacityTicker(plugin, this, tickInterval)
 
         for(type in expeditions.getMaps()) {
             val list = LinkedList<ExpeditionInstance>()
-            instances[type.identifier] = list
+            instances[type.identifier.lowercase()] = list
             for(i in 1..initialInstances) {
                 createInstance(type)?.let { list.add(it) }
             }
@@ -102,11 +103,12 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
 
                     }
                 }
+                capacityJob.start()
+                ticker.start()
             }
-        }, 200L)
+        },20L)
 
-        capacityJob.start(tickInterval)
-        ticker.start()
+
     }
 
     override suspend fun suspendCancel() {
@@ -125,6 +127,12 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         lockedState.setRelease(false)
     }
 
+    fun getAllInstances() : Collection<ExpeditionInstance> {
+        return buildList {
+            instances.values.forEach { list -> list.forEach { this.add(it) }}
+        }
+    }
+
     fun lockExpeditions(locked: Boolean) {
         this.lockedState.setRelease(locked)
         plugin.launch(plugin.minecraftDispatcher) {
@@ -140,8 +148,8 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         return overhangingBlocks
     }
 
-    fun getInstances(): Map<String,List<ExpeditionInstance>> {
-        return instances
+    fun getInstances(identifier: String) : Collection<ExpeditionInstance>? {
+        return instances[identifier.lowercase()]
     }
 
     fun addRespawn(cache: CachedPlayer) {
@@ -175,6 +183,10 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         manager.saveData()
     }
 
+    fun isLocked() : Boolean {
+        return lockedState.acquire
+    }
+
     fun tryJoinExpedition(identifier: String, player: Player) : Boolean {
         if(lockedState.acquire) return false
         val expedition = expeditions.getMapByIdentifier(identifier) ?: return false
@@ -197,7 +209,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                             return false
                         }
                     }
-                    val list = instances[identifier]!!
+                    val list = instances[identifier.lowercase()]!!
                     val randomList = ArrayList(list)
                     randomList.shuffle()
                     for(i in randomList) {
@@ -225,7 +237,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
      */
     fun joinExpedition(identifier: String, player: Player) : Boolean {
         if(lockedState.acquire) return false
-        val list = instances[identifier] ?: return false
+        val list = instances[identifier.lowercase()] ?: return false
         val randomList = ArrayList(list)
         randomList.shuffle()
         for(i in randomList) {
@@ -263,7 +275,7 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                 val phase = i.getPhase()
                 val joined = i.getJoinedPlayers().size
                 if(phase is IdlePhase) {
-                    if(joined == 0) { emptyMaps.add(i) }
+                    if(joined == 0 && phase.getIdleTime() + 300000 < System.currentTimeMillis()) { emptyMaps.add(i) }
                 } else if (phase is PlayPhase) {
                     total += joined
                     maxTotal += i.expedition.maxPlayers
@@ -276,7 +288,11 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                             createInstance(expedition)?.let { list.add(it) } }
                     }
                 }
-                emptyMaps.forEach { if(list.size > initialInstances && list.remove(it)) { destroyInstance(it) } }
+                /* TODO Empty maps should only be removed by queue ticker really...
+                emptyMaps.forEach { if(list.size > initialInstances && list.remove(it)) {
+                    destroyInstance(it)
+                    removeInstance(it)
+                } }*/
             }
         }
     }
@@ -297,17 +313,22 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
     }
 
     fun addInstance(instance: ExpeditionInstance) {
-        this.instances[instance.expedition.identifier]?.add(instance)
+        var list = this.instances[instance.expedition.identifier.lowercase()]
+        if(list == null) {
+            list = LinkedList()
+            this.instances[instance.expedition.identifier.lowercase()] = list
+        }
+        list.add(instance)
     }
 
     fun removeInstance(instance: ExpeditionInstance) {
-        this.instances[instance.expedition.identifier]?.remove(instance)
+        this.instances[instance.expedition.identifier.lowercase()]?.remove(instance)
     }
 
     fun createInstance(expedition: Expedition): ExpeditionInstance? {
         val instanceWorld = multiverse.cloneWorld(expedition.world) ?: return null
         val instance = ExpeditionInstance(plugin, expedition, instanceWorld)
-        plugin.launch { instance.start() }
+        instance.start()
         return instance
     }
 
@@ -319,6 +340,10 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         instance.getQuitPlayers().forEach { uuid -> addAbandon(uuid) }
         saveData()
         multiverse.deleteWorld(instance.world)
+        if(!instance.getTickLock().tryLock()) {
+            warn("Failed to lock the tick lock of destroyed instance! This may cause issues!")
+        }
+
     }
 }
 

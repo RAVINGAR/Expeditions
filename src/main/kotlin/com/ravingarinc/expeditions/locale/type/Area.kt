@@ -2,6 +2,8 @@ package com.ravingarinc.expeditions.locale.type
 
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.WeightedCollection
+import com.ravingarinc.expeditions.play.instance.AreaInstance
+import com.ravingarinc.expeditions.play.instance.ExpeditionInstance
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.MobType
 import com.ravingarinc.expeditions.queue.QueueManager
@@ -106,5 +108,5 @@ abstract class Area(val displayName: String,
 
     abstract fun isHidden() : Boolean
 
-    abstract fun tick(world: World)
+    abstract fun tick(expedition: ExpeditionInstance, area: AreaInstance)
 }

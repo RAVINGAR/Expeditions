@@ -12,7 +12,7 @@ import kotlin.system.measureTimeMillis
 
 abstract class Ticker(protected val plugin: RavinPlugin, private val period: Long, private val context: CoroutineContext = Dispatchers.IO) {
     protected val scope = CoroutineScope(plugin.minecraftDispatcher)
-    fun start(delay: Int = -1) {
+    fun start(delay: Int = 0) {
         if (!scope.isActive) {
             I.log(Level.WARNING, "Cannot start this ticker as it has already been used!")
         }

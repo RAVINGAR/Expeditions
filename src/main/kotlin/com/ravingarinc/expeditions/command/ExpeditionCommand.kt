@@ -37,18 +37,32 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
             return@setFunction true
         }
 
+        addOption("inspect", "expeditions.inspect", "- View your total gear score", 1) { sender, args ->
+            if(sender !is Player) {
+                sender.sendMessage(Component.text("Only a player can use this command!").color(NamedTextColor.RED))
+                return@addOption true
+            }
+            val score = queueManager.calculateGearScore(sender.inventory.contents)
+            sender.sendMessage(Component.text("Gear Score: $score").color(NamedTextColor.YELLOW))
+            return@addOption true
+        }
+
         addOption("queue", "expeditions.queue", "<rotation> - Queue for a random expedition within a rotation.", 2) { sender, args ->
             if(sender !is Player) {
                 sender.sendMessage(Component.text("Only a player can use this command! For admin usages, please use /expeditions admin queue").color(NamedTextColor.RED))
                 return@addOption true
             }
             if(queueManager.isRotation(args[1])) {
-                    tryQueuePlayer(sender, args[1])
-                } else {
+                tryQueuePlayer(sender, args[1])
+            } else {
                 sender.sendMessage(Component.text("Could not find a rotation called '${args[1]}'!").color(NamedTextColor.RED))
-                }
-            
+            }
             return@addOption true
+        }.buildTabCompletions { _, args ->
+            if(args.size == 2) {
+                return@buildTabCompletions queueManager.getRotationNames()
+            }
+            return@buildTabCompletions emptyList()
         }
 
         addOption("dequeue", "expeditions.queue", "- Leave any expedition queues you are apart of.", 1) { sender, args ->
@@ -74,7 +88,7 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                 if(type == null) {
                     sender.sendMessage("${ChatColor.RED}Unknown expedition type called '${args[2]}'!")
                 } else {
-                    val inst =handler.createInstance(type)
+                    val inst = handler.createInstance(type)
                     if(inst == null) {
                         sender.sendMessage("${ChatColor.RED}Something went wrong creating expedition!")
                         return@addOption true
@@ -90,7 +104,7 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                 return@buildTabCompletions emptyList<String>()
             }.parent
             .addOption("remove", null, "<type> - Removes an empty expedition instance.", 3) { sender, args ->
-                val instances = handler.getInstances()[args[2]]
+                val instances = handler.getInstances(args[2])
                 if(instances == null) {
                     sender.sendMessage("${ChatColor.RED}Unknown expedition type called '${args[2]}'!")
                 } else {
@@ -197,6 +211,12 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
     private fun tryQueuePlayer(player: Player, rotation: String) : Boolean {
         val queueManager = plugin.getModule(QueueManager::class.java)
         val provider = plugin.getModule(PartyManager::class.java).getProvider()
+
+        if(plugin.getModule(PlayHandler::class.java).isLocked()) {
+            player.sendMessage(Component.text("Expeditions are currently unavailable, please try again later!"))
+            return false
+        }
+
         var request: JoinRequest? = null
         if(provider != null) with(provider) {
             if(player.isInParty()) {
@@ -208,10 +228,10 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                             .color(NamedTextColor.RED))
                     return false
                 }
-                request = PartyRequest(partyLeaderUUID, player.getPartyMembers(), 0)
+                request = PartyRequest(rotation, partyLeaderUUID, player.getPartyMembers().filter { it.isOnline && !it.isDead }, 0)
             }
         }
-        val finalRequest = request ?: PlayerRequest(player, 0)
+        val finalRequest = request ?: PlayerRequest(rotation, player, 0)
         finalRequest.players.forEach {
             it.sendMessage(Component.text("You have joined the expeditions queue for '$rotation'!").color(NamedTextColor.GRAY))
         }
@@ -219,7 +239,7 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
         plugin.launch(Dispatchers.IO) {
             val score = floor(inventories.map { queueManager.calculateGearScore(it) }.average()).toInt()
             finalRequest.score = score
-            queueManager.enqueueRequest(rotation, finalRequest, false)
+            queueManager.enqueueRequest(finalRequest, false)
         }
         return true
     }

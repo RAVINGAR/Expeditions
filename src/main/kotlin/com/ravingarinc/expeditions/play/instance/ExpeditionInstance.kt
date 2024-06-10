@@ -16,7 +16,6 @@ import com.ravingarinc.expeditions.play.event.ExpeditionNPCExtractEvent
 import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.*
@@ -184,25 +183,15 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         quitPlayers.clear()
     }
 
-    suspend fun tick(random: Random) {
-        if(tickLock.isLocked) {
-            I.log(Level.WARNING, "Tick on ExpeditionInstance was locked whilst ticking! Server main tick must be behind!")
-        }
-        tickLock.withLock {
-            if(phase.isActive()) {
-                phase.tick(random, this)
-            }
-        }
+    fun getTickLock() : Mutex {
+        return tickLock
     }
 
     fun tickExpedition(random: Random, tickMobs: Boolean, tickLoot: Boolean, tickRandomMobs: Boolean) {
         areaInstances.forEach {
             if(tickMobs) it.tickMobs(random, this)
             if(tickLoot) it.tickLoot(random, score, world)
-            it.tick(world)
-            if(it.area is ExtractionZone) {
-                it.tickExtractions(this)
-            }
+            it.tick(this)
         }
         if(!tickRandomMobs) return
         joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
@@ -456,6 +445,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             bossBar.removePlayer(player)
             areaInstances.forEach { it.leaveArea(player, false) }
             warningMessageLog.remove(player.uniqueId)
+        }
+        if(joinedPlayers.isEmpty()) {
+            score = -1
         }
     }
 

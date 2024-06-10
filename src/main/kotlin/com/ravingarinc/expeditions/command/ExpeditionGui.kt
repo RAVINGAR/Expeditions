@@ -84,7 +84,7 @@ object ExpeditionGui {
                 if(it.permission != null && !gui.player.hasPermission(it.permission)) {
                     str += "\n${ChatColor.RED}<Locked>"
                 }
-                handler.getInstances()[it.identifier]?.let { list ->
+                handler.getInstances(it.identifier)?.let { list ->
                     str += "\n"
                     for((i, inst) in list.withIndex()) {
                         str += "\n${ChatColor.GRAY}#${i + 1} | ${inst.getPhaseName()} ${ChatColor.GRAY}| ${ChatColor.DARK_GRAY}${inst.getAmountOfPlayers()}/${it.maxPlayers}"
