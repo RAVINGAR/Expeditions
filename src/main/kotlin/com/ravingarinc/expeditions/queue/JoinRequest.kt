@@ -1,11 +1,13 @@
 package com.ravingarinc.expeditions.queue
 
+import com.ravingarinc.expeditions.api.atomic
 import org.bukkit.entity.Player
 import java.util.*
 
 sealed interface JoinRequest {
     val joinTime: Long
     val players: Collection<Player>
+    var score: Int
 
     fun contains(player: Player) : Boolean {
         return players.contains(player)
@@ -16,18 +18,20 @@ sealed interface JoinRequest {
     }
 }
 
-class PlayerRequest(player: Player) : JoinRequest {
+class PlayerRequest(player: Player, score: Int) : JoinRequest {
     override val joinTime = System.currentTimeMillis()
     override val players = listOf(player)
+    override var score: Int by atomic(score)
 
     override fun size(): Int {
         return 1
     }
 }
 
-class PartyRequest(partyLeader: UUID, party: Collection<Player>) : JoinRequest {
+class PartyRequest(partyLeader: UUID, party: Collection<Player>, score: Int) : JoinRequest {
     override val players: Collection<Player> get() = innerPlayers
     override val joinTime: Long = System.currentTimeMillis()
+    override var score: Int by atomic(score)
 
     val partyLeader: UUID get() = innerPartyLeader
     private var innerPartyLeader: UUID = partyLeader

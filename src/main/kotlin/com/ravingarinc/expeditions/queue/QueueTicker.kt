@@ -7,8 +7,9 @@ import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.Ticker
 import com.ravingarinc.expeditions.locale.ExpeditionManager
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.withContext
 
-class QueueTicker(plugin: RavinPlugin) : Ticker(plugin, 30000) {
+class QueueTicker(plugin: RavinPlugin, val maxWaitTime: Long) : Ticker(plugin, 30000) {
     private val queueManager = plugin.getModule(QueueManager::class.java)
     private val expeditions = plugin.getModule(ExpeditionManager::class.java)
     override suspend fun CoroutineScope.tick() {
@@ -18,7 +19,7 @@ class QueueTicker(plugin: RavinPlugin) : Ticker(plugin, 30000) {
 
             for(pair in indexed.sortedBy { pair -> pair.second.size }) {
                 val list = pair.second
-                val originalSize = list.size
+                val originalSize = list.sumOf { it.size() }
                 if(originalSize == 0) continue
                 val chosenMap = expeditions.getMapByIdentifier(rotation.getNextMap())
                 if(chosenMap == null) {
@@ -53,15 +54,28 @@ class QueueTicker(plugin: RavinPlugin) : Ticker(plugin, 30000) {
                 }
                 //I.log(Level.WARNING, "Debug -> Found a total of ${size} players for expedition which requires '${minimumPlayersRequired}' players!")
                 if(size < minimumPlayersRequired) {
-                    plugin.launch(plugin.minecraftDispatcher) {
-                        requests.forEach { request -> queueManager.enqueueRequest(rotation.key, request, true) }
+                    requests.forEach { request ->
+                        if(request.joinTime + maxWaitTime < System.currentTimeMillis()) {
+                            // If time is less the current time, then we have exceeded max wait time and must queue players
+                            val inst = withContext(plugin.minecraftDispatcher) {
+                                return@withContext queueManager.findLowestPopInst(rotation, request.score, request.size())
+                            }
+                            if(inst == null) {
+                                queueManager.enqueueRequest(rotation.key, request, true)
+                            } else {
+                                queueManager.dequeueRequest(inst, request)
+                            }
+                        } else {
+                            queueManager.enqueueRequest(rotation.key, request, true)
+                        }
                     }
                 } else {
                     plugin.launch(plugin.minecraftDispatcher) {
                         queueManager.dequeueGroup(rotation.key, pair.first, chosenMap, requests)
-                    }
+                    }.join()
                 }
             }
+            rotation.randomiseMap()
         }
     }
 }

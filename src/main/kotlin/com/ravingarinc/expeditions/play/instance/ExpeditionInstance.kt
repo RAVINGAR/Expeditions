@@ -60,7 +60,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     private val availableSpawns: Queue<BlockVector> = ConcurrentLinkedQueue(expedition.spawnLocations.shuffled())
 
-    var score by atomic(0)
+    var score by atomic(-1)
 
     init {
         val view = Bukkit.createMap(world)

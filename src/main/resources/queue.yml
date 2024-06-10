@@ -1,6 +1,7 @@
 queue:
   min-players: 25% # How many minimum players represented as a percentage of an expedition's maximum player count.
-  max-slippage: 25%
+  min-slippage: 25% # The allowable score slippage given in the range of (score x (1.0 - slippage) to (score x (1.0 + slippage)
+  max-slippage: 100% # If an initial expedition suiting the minimum slippage cannot be found, try using this slippage amount.
   max-wait-time: 5min # The maximum wait time to try and get matched with players of similar.
 rotations:
   - key: 'generic'

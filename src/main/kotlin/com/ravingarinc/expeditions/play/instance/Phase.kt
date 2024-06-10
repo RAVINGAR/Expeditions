@@ -45,6 +45,10 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
         return isActive.acquire
     }
 
+    fun getTicksRemaining() : Long {
+        return durationTicks - ticks
+    }
+
     /**
      * Tick method for every second (AKA 20 ticks) or rather
      */
@@ -301,7 +305,7 @@ class RestorationPhase(expedition: Expedition) :
         world.isThundering = false
         world.setStorm(false)
         world.thunderDuration = 0
-        instance.score = 0
+        instance.score = -1
     }
 
     private fun queueJob(plugin: RavinPlugin, block: suspend CoroutineScope.() -> Unit) {

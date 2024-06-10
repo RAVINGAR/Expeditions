@@ -1,5 +1,6 @@
 package com.ravingarinc.expeditions.command
 
+import com.github.shynixn.mccoroutine.bukkit.launch
 import com.ravingarinc.api.command.BaseCommand
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.locale.ExpeditionManager
@@ -10,10 +11,12 @@ import com.ravingarinc.expeditions.queue.JoinRequest
 import com.ravingarinc.expeditions.queue.PartyRequest
 import com.ravingarinc.expeditions.queue.PlayerRequest
 import com.ravingarinc.expeditions.queue.QueueManager
+import kotlinx.coroutines.Dispatchers
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
+import kotlin.math.floor
 
 class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions", null, "", 0, { _, _ -> true }) {
     init {
@@ -205,14 +208,19 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                             .color(NamedTextColor.RED))
                     return false
                 }
-                request = PartyRequest(partyLeaderUUID, player.getPartyMembers())
+                request = PartyRequest(partyLeaderUUID, player.getPartyMembers(), 0)
             }
         }
-        val finalRequest = request ?: PlayerRequest(player)
+        val finalRequest = request ?: PlayerRequest(player, 0)
         finalRequest.players.forEach {
             it.sendMessage(Component.text("You have joined the expeditions queue for '$rotation'!").color(NamedTextColor.GRAY))
         }
-        queueManager.enqueueRequest(rotation, finalRequest, false)
+        val inventories = finalRequest.players.map { it.inventory.contents }
+        plugin.launch(Dispatchers.IO) {
+            val score = floor(inventories.map { queueManager.calculateGearScore(it) }.average()).toInt()
+            finalRequest.score = score
+            queueManager.enqueueRequest(rotation, finalRequest, false)
+        }
         return true
     }
 }
