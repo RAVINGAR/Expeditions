@@ -1,15 +1,18 @@
 package com.ravingarinc.expeditions.play.item
 
+import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.WeightedCollection
+import com.ravingarinc.expeditions.queue.QueueManager
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import kotlin.experimental.ExperimentalTypeInference
+import kotlin.math.floor
 
-class LootTable @OptIn(ExperimentalTypeInference::class) constructor(val title: String, private val quantity: IntRange, @BuilderInference builderAction: MutableList<LootItem>.() -> Unit) :
+class LootTable @OptIn(ExperimentalTypeInference::class) constructor(val title: String, val scoreRange: IntRange, private val quantity: IntRange, @BuilderInference builderAction: MutableList<LootItem>.() -> Unit) :
     LootHolder {
     private val loots: WeightedCollection<LootItem> = WeightedCollection()
     init {
-        buildList(builderAction).forEach {
+        for(it in buildList(builderAction)) {
             loots.add(it, it.weight)
         }
     }
@@ -24,5 +27,28 @@ class LootTable @OptIn(ExperimentalTypeInference::class) constructor(val title: 
             }
         }
         return list
+    }
+
+
+    private fun calculateScore(plugin: RavinPlugin) : Int {
+        val manager = plugin.getModule(QueueManager::class.java)
+        var totalScore = 0.0
+        val iterator = loots.weightedIterator()
+        for(entry in iterator) {
+            val item = entry.first.getItem(null) ?: continue
+            if(item.type.isAir) continue
+            (manager.getItemScore(item) ?: 0).let { totalScore += it * entry.second }
+        }
+        totalScore /= loots.getTotalWeight()
+        return floor(totalScore).toInt()
+    }
+
+    companion object {
+        val EMPTY = LootTable("Nothing", 0..0,0..0) {}
+
+        val EMPTY_COLLECTION = WeightedCollection<LootTable>()
+        init {
+            EMPTY_COLLECTION.add(EMPTY, 1.0)
+        }
     }
 }

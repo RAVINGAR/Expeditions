@@ -5,6 +5,7 @@ import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
+import com.ravingarinc.expeditions.api.atomic
 import com.ravingarinc.expeditions.api.roll
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
@@ -15,7 +16,6 @@ import com.ravingarinc.expeditions.play.event.ExpeditionNPCExtractEvent
 import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.*
@@ -58,6 +58,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     private var lastSpawn: AtomicReference<BlockVector?> = AtomicReference(null)
 
     private val availableSpawns: Queue<BlockVector> = ConcurrentLinkedQueue(expedition.spawnLocations.shuffled())
+
+    var score by atomic(-1)
 
     init {
         val view = Bukkit.createMap(world)
@@ -181,25 +183,15 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         quitPlayers.clear()
     }
 
-    suspend fun tick(random: Random) {
-        if(tickLock.isLocked) {
-            I.log(Level.WARNING, "Tick on ExpeditionInstance was locked whilst ticking! Server main tick must be behind!")
-        }
-        tickLock.withLock {
-            if(phase.isActive()) {
-                phase.tick(random, this)
-            }
-        }
+    fun getTickLock() : Mutex {
+        return tickLock
     }
 
     fun tickExpedition(random: Random, tickMobs: Boolean, tickLoot: Boolean, tickRandomMobs: Boolean) {
         areaInstances.forEach {
             if(tickMobs) it.tickMobs(random, this)
-            if(tickLoot) it.tickLoot(random, world)
-            it.tick(world)
-            if(it.area is ExtractionZone) {
-                it.tickExtractions(this)
-            }
+            if(tickLoot) it.tickLoot(random, score, world)
+            it.tick(this)
         }
         if(!tickRandomMobs) return
         joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
@@ -245,19 +237,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         trackedMobs.clear()
     }
 
-    /**
-     * Try to join this player to this expedition instance. Returns true if successful, or false
-     * if not.
-     */
-    fun participate(player: Player) {
-        if(phase is IdlePhase) {
-            phase.next(this)
-            join(player)
-        } else if(phase is PlayPhase) {
-            join(player)
-        }
-    }
-
     fun participate(collection: Collection<Player>) {
         if(phase is IdlePhase) {
             phase.next(this)
@@ -267,7 +246,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         }
     }
 
-    private fun join(collection: Collection<Player>) = plugin.launch {
+    private fun join(collection: Collection<Player>) {
         val loc = if(expedition.spawnLocations.isEmpty()) {
             findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks(), 0, 32)
         } else {
@@ -280,24 +259,11 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             locations.add(findSuitableLocation(world, loc.blockX, loc.blockZ, 8, handler.getOverhangingBlocks(), 1))
         }
         for(player in collection) {
-            val playerLoc = locations.poll() ?: throw IllegalStateException("Something went wrong getting player locations. Off-By-One Error?")
+            if(!player.isOnline) continue
+            val playerLoc = locations.poll()!!
             addPlayer(player, playerLoc)
             expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
         }
-    }
-
-    /**
-     * Join the specific player, does not consider parties.
-     */
-    private fun join(player: Player) = plugin.launch {
-        val loc = if(expedition.spawnLocations.isEmpty()) {
-            findSuitableLocation(world, expedition.centreX, expedition.centreZ, expedition.radius - 8, handler.getOverhangingBlocks(), 0, 32)
-        } else {
-            getRandomLocation(world)
-        }
-        lastSpawn.setRelease(BlockVector(loc.blockX, loc.blockY, loc.blockZ))
-        addPlayer(player, loc)
-        expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
     }
 
     private fun getRandomLocation(world: World) : Location {
@@ -479,6 +445,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             bossBar.removePlayer(player)
             areaInstances.forEach { it.leaveArea(player, false) }
             warningMessageLog.remove(player.uniqueId)
+        }
+        if(joinedPlayers.isEmpty()) {
+            score = -1
         }
     }
 

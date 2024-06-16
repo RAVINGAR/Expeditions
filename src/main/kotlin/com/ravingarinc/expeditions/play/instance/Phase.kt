@@ -45,6 +45,10 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
         return isActive.acquire
     }
 
+    fun getTicksRemaining() : Long {
+        return durationTicks - ticks
+    }
+
     /**
      * Tick method for every second (AKA 20 ticks) or rather
      */
@@ -81,8 +85,14 @@ class IdlePhase(expedition: Expedition) :
         PlayPhase(expedition)
 }) {
     private val COMMAND_REGEX = Pattern.compile("(-?\\d+(?:.\\d+)?) (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:.\\d+)?)")
+    private var idleSince: Long = System.currentTimeMillis()
+
+    fun getIdleTime() : Long {
+        return idleSince
+    }
 
     override fun onStart(instance: ExpeditionInstance) {
+        idleSince = System.currentTimeMillis()
         instance.expedition.getAreas().forEach {
             if(it is ExtractionZone) {
                 if(Random.nextDouble() < it.chance) {
@@ -139,7 +149,6 @@ class IdlePhase(expedition: Expedition) :
     }
 
     override fun onEnd(instance: ExpeditionInstance) {
-
     }
 }
 
@@ -301,6 +310,7 @@ class RestorationPhase(expedition: Expedition) :
         world.isThundering = false
         world.setStorm(false)
         world.thunderDuration = 0
+        instance.score = -1
     }
 
     private fun queueJob(plugin: RavinPlugin, block: suspend CoroutineScope.() -> Unit) {

@@ -15,6 +15,7 @@ import com.ravingarinc.expeditions.locale.ExpeditionManager
 import com.ravingarinc.expeditions.party.PartyManager
 import com.ravingarinc.expeditions.persistent.ConfigManager
 import com.ravingarinc.expeditions.play.PlayHandler
+import com.ravingarinc.expeditions.queue.QueueManager
 import java.util.logging.Level
 
 class Expeditions : RavinPluginKotlin() {
@@ -43,6 +44,7 @@ class Expeditions : RavinPluginKotlin() {
         addModule(PlayHandler::class.java)
         addModule(NPCHandler::class.java)
         addModule(ExpeditionListener::class.java)
+        addModule(QueueManager::class.java)
         addModule(PlaceholderInjector::class.java)
         addModule(BetonQuestInjector::class.java)
     }

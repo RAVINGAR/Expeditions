@@ -1,15 +1,21 @@
 package com.ravingarinc.expeditions.locale.type
 
+import com.github.shynixn.mccoroutine.bukkit.launch
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.blockWithChunk
+import com.ravingarinc.expeditions.play.instance.AreaInstance
+import com.ravingarinc.expeditions.play.instance.ExpeditionInstance
+import com.ravingarinc.expeditions.play.instance.RemoveReason
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.MobType
+import kotlinx.coroutines.delay
+import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.ComponentLike
-import org.bukkit.Color
-import org.bukkit.Material
-import org.bukkit.Particle
-import org.bukkit.World
+import net.kyori.adventure.text.format.NamedTextColor
+import org.bukkit.*
 import org.bukkit.map.MapCursor
+import org.bukkit.potion.PotionEffect
+import org.bukkit.potion.PotionEffectType
 import org.bukkit.util.BlockVector
 
 class ExtractionZone(val chance: Double,
@@ -40,13 +46,14 @@ class ExtractionZone(val chance: Double,
                      npcUnfollowText: String,
                      cursorType: MapCursor.Type,
                      enterMessage: ComponentLike
-) : Area(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown, npcIdentifier, npcSpawnLoc, npcOnSpawn, npcOnExtract, npcFollowText, npcRefollowText, npcUnfollowText, cursorType, enterMessage) {
+) : PointOfInterest(displayName, startLoc, endLoc, lootLimit, lootChance, lootTypes, lootLocations, mobSpawnChance, maxMobs, mobs, mobLocations, bossType, bossLevel, bossSpawnChance, bossSpawnLocation, bossCooldown, npcIdentifier, npcSpawnLoc, npcOnSpawn, npcOnExtract, npcFollowText, npcRefollowText, npcUnfollowText, cursorType, enterMessage, false) {
 
     override val displayType: String = "Extraction Zone"
 
     private val particleData = Particle.DustTransition(Color.fromRGB(215,49,12), Color.fromRGB(255,179,39), 3F)
 
     override fun initialise(plugin: RavinPlugin, world: World) {
+        super.initialise(plugin, world)
         beaconLoc?.let {
             world.blockWithChunk(plugin, it.blockX shr 4, it.blockZ shr 4) { chunk ->
                 world.getBlockAt(it.blockX, it.blockY, it.blockZ).type = Material.BEACON
@@ -55,6 +62,7 @@ class ExtractionZone(val chance: Double,
     }
 
     override fun dispose(plugin: RavinPlugin, world: World) {
+        super.dispose(plugin, world)
         beaconLoc?.let {
             world.blockWithChunk(plugin, it.blockX shr 4, it.blockZ shr 4) { chunk ->
                 world.getBlockAt(it.blockX, it.blockY, it.blockZ).type = Material.STONE
@@ -62,7 +70,13 @@ class ExtractionZone(val chance: Double,
         }
     }
 
-    override fun tick(world: World) {
+    override fun tick(expedition: ExpeditionInstance, area: AreaInstance) {
+        super.tick(expedition, area)
+        tickEffects(expedition.world)
+        tickExtractions(expedition, area)
+    }
+
+    private fun tickEffects(world: World) {
         val startX = startLoc.x.toInt()
         val endX = endLoc.x.toInt()
         val startZ = startLoc.z.toInt()
@@ -72,6 +86,41 @@ class ExtractionZone(val chance: Double,
                 if(x == startX || x == endX || z == startZ || z == endZ) {
                     world.spawnParticle(Particle.REDSTONE, x.toDouble(), particleHeight, z.toDouble(), 2, 0.0, 0.05, 0.0, particleData)
                 }
+            }
+        }
+    }
+
+    private fun tickExtractions(expedition: ExpeditionInstance, area: AreaInstance) {
+        val time = System.currentTimeMillis()
+        val players = ArrayList(area.inArea.keys)
+        for(player in players) {
+            val startTime = area.inArea[player] ?: continue
+            val diff = time - startTime
+            val progress = diff / (expedition.expedition.extractionTime * 50.0)
+            if(progress >= 1.0) {
+                expedition.plugin.launch {
+                    player.sendActionBar(Component.text("-- Extraction Complete --").color(NamedTextColor.GOLD))
+                    player.playSound(player, Sound.ITEM_TRIDENT_RIPTIDE_2, 0.8F, 0.8F)
+                    player.addPotionEffect(PotionEffect(PotionEffectType.BLINDNESS, 20, 1, true))
+                    delay(60)
+                    expedition.removePlayer(player, RemoveReason.EXTRACTION)
+                    player.playSound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8F, 1.0F)
+                }
+            } else {
+                player.playSound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8F, 0.8F)
+                val builder = Component.text()
+                    .content("Extracting . . .")
+                    .color(NamedTextColor.GOLD)
+                    .append(Component.text(" | ").color(NamedTextColor.GRAY))
+                    .append(Component.text("[").color(NamedTextColor.GRAY));
+                for(i in 1..16) {
+                    builder.append(
+                        Component
+                        .text("|")
+                        .color(if(progress > (i / 16.0)) NamedTextColor.YELLOW else NamedTextColor.GRAY))
+                }
+                builder.append(Component.text("]").color(NamedTextColor.GRAY))
+                player.sendActionBar(builder.build())
             }
         }
     }

@@ -94,7 +94,8 @@ fun parseRange(string: String): IntRange {
 fun ConfigurationSection.getDropTable(path: String): LootTable {
     val range = getRange("$path.quantity")
     val title = getString("$path.title") ?: "Loot Crate"
-    return LootTable(title, range) {
+    val scoreRange = getRange("$path.score-range")
+    return LootTable(title, scoreRange, range) {
         getMapList("$path.loot").forEach { map ->
             val id = map["id"].toString()
             val r = parseRange(map["quantity"].toString())

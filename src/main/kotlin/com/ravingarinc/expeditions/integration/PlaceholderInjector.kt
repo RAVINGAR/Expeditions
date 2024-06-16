@@ -3,7 +3,9 @@ package com.ravingarinc.expeditions.integration
 import com.ravingarinc.api.module.ModuleLoadException
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModule
+import com.ravingarinc.expeditions.api.formatMilliseconds
 import com.ravingarinc.expeditions.play.PlayHandler
+import com.ravingarinc.expeditions.queue.QueueManager
 import me.clip.placeholderapi.expansion.PlaceholderExpansion
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
@@ -23,6 +25,7 @@ class PlaceholderInjector(plugin: RavinPlugin) : SuspendingModule(PlaceholderInj
 
 class ExpeditionsExpansion(val plugin: RavinPlugin) : PlaceholderExpansion() {
     val manager = plugin.getModule(PlayHandler::class.java)
+    val queue = plugin.getModule(QueueManager::class.java)
     private val placeholders: Map<String, (Player) -> String> = buildMap {
         this["time"] = {
             val exp = manager.getJoinedExpedition(it)
@@ -46,6 +49,25 @@ class ExpeditionsExpansion(val plugin: RavinPlugin) : PlaceholderExpansion() {
                 ""
             } else {
                 exp.getPhaseName()
+            }
+        }
+        this["queued_time"] = {
+            val request = queue.getRequest(it)
+            if(request == null) {
+                ""
+            } else {
+                (System.currentTimeMillis() - request.joinTime).formatMilliseconds()
+            }
+        }
+        this["queued_rotation"] = {
+            queue.getRequest(it)?.rotation ?: ""
+        }
+        this["queued_size"] = {
+            val request = queue.getRequest(it)
+            if(request == null) {
+                ""
+            } else {
+                "${(queue.getQueuedAmount(request.rotation))}"
             }
         }
     }

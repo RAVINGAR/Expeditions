@@ -2,12 +2,16 @@ package com.ravingarinc.expeditions.locale.type
 
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.expeditions.api.WeightedCollection
+import com.ravingarinc.expeditions.play.instance.AreaInstance
+import com.ravingarinc.expeditions.play.instance.ExpeditionInstance
 import com.ravingarinc.expeditions.play.item.LootTable
 import com.ravingarinc.expeditions.play.mob.MobType
+import com.ravingarinc.expeditions.queue.QueueManager
 import net.kyori.adventure.text.ComponentLike
 import org.bukkit.World
 import org.bukkit.map.MapCursor
 import org.bukkit.util.BlockVector
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -16,7 +20,7 @@ abstract class Area(val displayName: String,
                     val endLoc: BlockVector,
                     val lootLimit: Double,
                     val lootChance: Double,
-                    lootTypes: List<Pair<LootTable, Double>>,
+                    val lootTypes: List<Pair<LootTable, Double>>,
                     val lootLocations: List<BlockVector>,
                     val mobSpawnChance: Double,
                     val maxMobs: Int,
@@ -38,12 +42,10 @@ abstract class Area(val displayName: String,
                     val enterMessage: ComponentLike) {
     abstract val displayType: String
 
-    val lootCollection: WeightedCollection<LootTable> = WeightedCollection()
     val mobCollection: WeightedCollection<Pair<MobType, IntRange>> = WeightedCollection()
+
+    val mappedLootScores: MutableMap<Int, WeightedCollection<LootTable>> = HashMap()
     init {
-        lootTypes.forEach {
-            lootCollection.add(it.first, it.second)
-        }
         mobs.forEach {
             mobCollection.add(Pair(it.first, it.third), it.second)
         }
@@ -73,7 +75,38 @@ abstract class Area(val displayName: String,
         return xRange.contains(x) && yRange.contains(y) && zRange.contains(z)
     }
 
+    fun getLootGroup(plugin: RavinPlugin, score: Int) : WeightedCollection<LootTable> {
+        val divisor = plugin.getModule(QueueManager::class.java).getDivisor()
+        val standardised = (floor(score / divisor) * divisor).toInt()
+        // todo I do not like having to pass in the RavinPlugin bit here, also having a delayed initialisation is bad practice!
+        if(mappedLootScores.isEmpty()) {
+            mapLootTables(plugin)
+        }
+        mappedLootScores[standardised]?.let {
+            return it
+        }
+        //warn("Debug -> Could not find loot table for area $displayName for score $standardised - using empty loot table as placeholder!")
+        return LootTable.EMPTY_COLLECTION
+    }
+
+    private fun mapLootTables(plugin: RavinPlugin) {
+        val manager = plugin.getModule(QueueManager::class.java)
+        manager.getScoreRanges().forEach {
+            val collection = WeightedCollection<LootTable>()
+            //val range = floor(it * (1.0 - slippage)).toInt()..floor(it * (1.0 + slippage)).toInt()
+            for(type in lootTypes) {
+                if(type.first.scoreRange.contains(it)) {
+                    collection.add(type.first, type.second)
+                }
+            }
+            if(collection.isEmpty()) {
+                collection.add(LootTable.EMPTY, 1.0)
+            }
+            mappedLootScores[it] = collection
+        }
+    }
+
     abstract fun isHidden() : Boolean
 
-    abstract fun tick(world: World)
+    abstract fun tick(expedition: ExpeditionInstance, area: AreaInstance)
 }

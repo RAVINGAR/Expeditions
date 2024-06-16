@@ -27,6 +27,10 @@ class WeightedCollection<E> : Collection<E> {
         }
     }
 
+    fun getTotalWeight() : Double {
+        return accumulatedWeight
+    }
+
     override fun containsAll(elements: Collection<E>): Boolean {
         throw UnsupportedOperationException()
     }
@@ -67,6 +71,21 @@ class WeightedCollection<E> : Collection<E> {
             }
         }
         throw IllegalStateException("WeightedCollection was empty!")
+    }
+
+    fun weightedIterator() : Iterator<Pair<E, Double>> {
+        return object : Iterator<Pair<E, Double>> {
+            private var i = 0
+
+            override fun hasNext(): Boolean {
+                return i < orderedEntries.size
+            }
+
+            override fun next(): Pair<E, Double> {
+                val entry = orderedEntries[i++]
+                return Pair(entry.value, entry.originWeight)
+            }
+        }
     }
 
     private class Entry<E>(var index: Int, var accumulatedWeight: Double, var originWeight: Double, val value: E)

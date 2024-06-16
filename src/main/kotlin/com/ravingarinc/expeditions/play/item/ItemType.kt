@@ -7,6 +7,7 @@ import io.lumine.mythic.bukkit.adapters.BukkitItemStack
 import io.lumine.mythic.lib.api.item.NBTItem
 import net.Indyuce.mmoitems.MMOItems
 import net.Indyuce.mmoitems.api.player.PlayerData
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -20,6 +21,40 @@ sealed interface ItemType {
     fun isSameAs(item: ItemStack): Boolean
 
     fun getId(): String
+
+
+
+    companion object {
+        fun convert(item: ItemStack) : ItemType {
+            if(Bukkit.getServer().pluginManager.isPluginEnabled("MMOItems")) {
+                val nbtItem = NBTItem.get(item)
+                if(nbtItem.hasType()) {
+                    return MMOItemType(nbtItem.type, nbtItem.getString("MMOITEMS_ITEM_ID"))
+                }
+            }
+            if(Bukkit.getServer().pluginManager.isPluginEnabled("MythicCrucible")) {
+                MythicBukkit.inst().itemManager.getMythicTypeFromItem(item)?.let {
+                    return CrucibleItemType(it)
+                }
+            }
+            return VanillaItemType(item.type)
+        }
+
+        fun convertAsString(item: ItemStack) : String {
+            if(Bukkit.getServer().pluginManager.isPluginEnabled("MMOItems")) {
+                val nbtItem = NBTItem.get(item)
+                if(nbtItem.hasType()) {
+                    return "mmoitems:${nbtItem.type}:${nbtItem.getString("MMOITEMS_ITEM_ID")}"
+                }
+            }
+            if(Bukkit.getServer().pluginManager.isPluginEnabled("MythicCrucible")) {
+                MythicBukkit.inst().itemManager.getMythicTypeFromItem(item)?.let {
+                    return "crucible:$it"
+                }
+            }
+            return "vanilla:${item.type.name}"
+        }
+    }
 }
 
 class MMOItemType(private val type: String, private val identifier: String) : ItemType {
@@ -57,6 +92,10 @@ class MMOItemType(private val type: String, private val identifier: String) : It
         }
         return (nbtItem.type == type && nbtItem.getString("MMOITEMS_ITEM_ID").equals(identifier, true))
     }
+
+    override fun toString(): String {
+        return "mmoitems:$type:$identifier"
+    }
 }
 
 class CrucibleItemType(private val identifier: String) : ItemType {
@@ -77,6 +116,10 @@ class CrucibleItemType(private val identifier: String) : ItemType {
     override fun getId(): String {
         return identifier
     }
+
+    override fun toString(): String {
+        return "crucible:$identifier"
+    }
 }
 
 class VanillaItemType(private val material: Material) : ItemType {
@@ -93,5 +136,9 @@ class VanillaItemType(private val material: Material) : ItemType {
 
     override fun getId(): String {
         return material.name.lowercase(Locale.getDefault())
+    }
+
+    override fun toString(): String {
+        return "vanilla:${material.name}"
     }
 }

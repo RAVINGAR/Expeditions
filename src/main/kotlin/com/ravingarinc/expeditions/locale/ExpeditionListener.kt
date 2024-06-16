@@ -83,9 +83,9 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
         val player = event.player
         movementCooldown[player.uniqueId] = System.currentTimeMillis()
         lastLocation[player.uniqueId] = player.location.toVector()
-        handler.getInstances().values.forEach { list -> list.forEach {
+        handler.getAllInstances().forEach {
             if(it.onJoinEvent(player)) return
-        }}
+        }
         // If player was not previously joined in any event. Check if they abandoned!
         plugin.launch {
             delay(5.ticks)
@@ -123,9 +123,9 @@ class ExpeditionListener(plugin: RavinPlugin) : SuspendingModuleListener(Expedit
     @EventHandler
     fun onEntityDeath(event: EntityDeathEvent) {
         if(!handler.isExpeditionWorld(event.entity.world)) return
-        handler.getInstances().values.forEach { list -> list.forEach {
+        handler.getAllInstances().forEach {
             if(it.onDeathEvent(event)) return
-        } }
+        }
     }
 
     @EventHandler

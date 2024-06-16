@@ -38,7 +38,7 @@ class LootableChest(private val loot: LootTable, val instance: AreaInstance, pri
         world.playSound(loc, Sound.ITEM_SHIELD_BLOCK, SoundCategory.BLOCKS, 0.7F, 0.5F)
         world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.BLOCKS, 0.7F, 0.9F)
 
-        val inventory = Bukkit.createInventory(player, InventoryType.CHEST, Component.text("Loot Crate"))
+        val inventory = Bukkit.createInventory(player, InventoryType.CHEST, Component.text(loot.title))
         val takenSlots : Set<Int> = HashSet()
         if(results.size > 27) {
             results = results.subList(0, 27)

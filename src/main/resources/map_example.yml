@@ -9,24 +9,24 @@ map:
     - '&7Fight your way'
     - '&7through a war torn'
     - '&7battlegrounds.'
-  centre: 0,0 # Centre of the map
+  centre: 570,-331 # Centre of the map
   radius: 125 # Radius from the centre of the map to where the world border is placed
   max-players: 8
   # This is the amount of mobs that are attempted to be spawned FOR EACH
   # POI or Extraction Zone when this map is ticked.
-  mob-spawn-amount: 5
+  mob-spawn-amount: 4
   # The duration of the calm-phase of the event
-  calm-duration: 30m
+  calm-duration: 10m
   # The duration of the storm phase. After this phase is over any remaining players will be killed
-  storm-duration: 15m
+  storm-duration: 5m
   # During an event, the interval of how regularly a POI is 'ticked' (see map_example.yml)
-  mob-spawn-interval: 5min
+  mob-spawn-interval: 2min
   # When a map has entered the final storm stage, the mob-spawn-interval is divided by this number.
   # A value of 2 would effectively double the chance of a mob spawning
   mob-spawn-modifier: 2
   # How regularly a map is ticked for loot to respawn. For each area, the loot-chance is rolled
   # for each loot location.
-  loot-respawn-interval: 5min
+  loot-respawn-interval: 2min
   # When a map enters the final storm stage, the loot-respawn-interval is divided by this number.
   # A value of 2 would effectively double the chance of a loot chest spawning
   loot-respawn-modifier: 2
@@ -61,11 +61,11 @@ map:
   highest-y: 324
   # These commands are executed when an expedition is created. The placeholder {world} is replaced with the world name
   on-create-commands:
-    - 'spawn vfx {world}'
+    - 'say The world for expedition {world}, has been created'
 points-of-interest:
   - name: 'Ancient Ruins' # Unique Display name of the POI
-    start-location: 25,40,70 # The x,y,z coordinate of one corner of this area
-    end-location: 80,90,-40 # The x,y,z coordinate of the second corner. These two values form a bounding box for this area
+    start-location: 497,70,-402 # The x,y,z coordinate of one corner of this area
+    end-location: 391,153,-490 # The x,y,z coordinate of the second corner. These two values form a bounding box for this area
     cursor-type: mansion # The type of cursor to use on the map, see https://hub.spigotmc.org/javadocs/spigot/org/bukkit/map/MapCursor.Type.html
     enter-message: '&6&l{name}&r&7| &eRuins' # The message that is sent to the action bar when a player enters an area.
     hidden: false # Setting hidden to true means that the POI will not show up on the map. (This is useful for sub-pois)
@@ -75,10 +75,14 @@ points-of-interest:
     loot-chest-limit: 0.5
     loot-chance: 25% # Chance for each loot location as to whether a loot chest will be placed there
     loot-types:
-    - common_crate,5.0 # The identifier of the loot table to use, followed by the weight
+    - common_crate,14.0 # The identifier of the loot table to use, followed by the weight
+    - rare_crate,9.0
+    - mythic_crate,5.0
+    - legendary_crate,1.0
     loot-locations: # Possible locations to spawn the loot (these coordinates can actually be outside the boundary)
-    - 27,62,40
-    - 30,64,-20
+    - 441,85,-442
+    - 421,85,-457
+    - 426,85,-442
     # When this POI is ticked, for each amount of mobs, this is the chance that a mob is spawned
     mob-spawn-chance: 25%
     # The maximum amount of mobs that can exist at one time for this given area
@@ -87,16 +91,18 @@ points-of-interest:
     - 'mythic:ancient_skeleton,1.0,3' # Mythic Format; mythic:<identifier>,<weight>,<level-range>
     - 'vanilla:skeleton,5' # Vanilla Format; vanilla:<identifier>,<weight>
     mob-locations: # Possible locations to spawn the mobs (these coordinates can actually be outside the boundary)
-    - 28,62,39
-    - 17,62,25
-    boss: 'mythic:ancient_king' # The identifier for the boss
+    - 464,85,-476
+    - 457,85,-481
+    - 438,85,-449
+    - 435,91,-480
+    boss: 'mythic:SkeletonKing' # The identifier for the boss
     boss-level: 10 # If boss is a mythic mob, set it's level.
     boss-spawn-chance: 5% # Every time this area is ticked, this chance is rolled for the boss spawn. Only 1 boss will be spawned at a time
-    boss-spawn-location: 60,70,45 # Location for where the boss should be spawned
+    boss-spawn-location: 413,106,-452 # Location for where the boss should be spawned
     boss-cooldown: 120s # After a boss is defeated, how long is the cooldown between spawns in seconds.
     # The identifier of the NPC. This will be used for the 'on-extract' commands
     npc-identifier: "Lost Architect"
-    npc-spawn-location: 70,80,30
+    npc-spawn-location: 412,106,-452
     # Various text options to play. Leave empty if you do not wish for the NPC to say anything.
     npc-follow-text: "&aBrave adventurer, thank you for saving me! I will follow you to escape!"
     npc-refollow-text: "You're back! I will go where you go."
@@ -104,21 +110,21 @@ points-of-interest:
     # For things such as setting skin or other attributes. The placeholder {id} will be replaced with the NPC's ID
     # These commands will be executed in the order specified. A npc is automatically selected before these commands.
     npc-on-spawn-commands:
-      - 'npc skin --url https://minesk.in/bf1847df17d54e4991daedbeb1b3b0f8'
+    - 'npc skin --url https://minesk.in/bf1847df17d54e4991daedbeb1b3b0f8'
     # Commands that will be executed when a player extracts with given NPC's
     # NPCs are automatically removed when they are extracted.
     # {id} - Replaced with the NPC's id
     # {npc} - Replaced with the npc's identifier/name as specified in npc-identifier
     # {player} - Replaced with the player that extracts with the NPC.
     npc-on-extract-commands:
-      - 'hideouts register npc {id} {player}'
+    - 'say NPC Extracted {id} {player}'
  # Extraction zones can share the same features as a POI :)
  # Players can only use the command /extract if they are in an extraction zone. Im recommending a
  # command, simply because that allows you freedom to do whatever. (AKA could rig a button to make the player execute that command)
 extraction-zones:
   - name: 'Extraction Zone #1' # Display name for the zone
-    start-location: 25,40,70 # The x,y,z coordinate of one corner of this area
-    end-location: 50,90,-40 # The x,y,z coordinate of the second corner. These two values form a bounding box for this area
+    start-location: 666,60,-341 # The x,y,z coordinate of one corner of this area
+    end-location: 679,71,-330 # The x,y,z coordinate of the second corner. These two values form a bounding box for this area
     chance: 100% # Chance for this extraction zone to be placed
-    beacon-loc: 26,60,80 # Coordinates for where the beacon is placed if this zone is chosen
-    particle-height: 60.5 # The y-coordinate that the particles will spawn on
+    beacon-loc: 672,59,-337 # Coordinates for where the beacon is placed if this zone is chosen
+    particle-height: 61.5 # The y-coordinate that the particles will spawn on
