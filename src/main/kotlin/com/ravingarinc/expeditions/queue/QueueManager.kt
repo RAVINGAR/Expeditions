@@ -79,6 +79,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         queues.clear()
         gearMap.clear()
         mappedRequests.clear()
+        lastMessage.clear()
     }
 
     private fun loadQueue(file: ConfigFile) {
