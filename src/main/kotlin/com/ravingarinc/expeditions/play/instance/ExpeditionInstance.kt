@@ -7,6 +7,7 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.atomic
 import com.ravingarinc.expeditions.api.roll
+import com.ravingarinc.expeditions.integration.models.ModelManager
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
@@ -28,8 +29,11 @@ import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.MapMeta
 import org.bukkit.map.MapView
+import org.bukkit.potion.PotionEffect
+import org.bukkit.potion.PotionEffectType
 import org.bukkit.util.BlockVector
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
@@ -58,6 +62,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     private var lastSpawn: AtomicReference<BlockVector?> = AtomicReference(null)
 
     private val availableSpawns: Queue<BlockVector> = ConcurrentLinkedQueue(expedition.spawnLocations.shuffled())
+
+    private val fallingPlayers: MutableSet<Player> = ConcurrentHashMap.newKeySet()
 
     var score by atomic(-1)
 
@@ -196,14 +202,22 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         if(!tickRandomMobs) return
         joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
             val loc = player.location
-            for(i in 0 until expedition.randomSpawnsAmount) {
-                if(!expedition.randomSpawnChance.roll()) continue
-                val mobLoc = findSuitableLocation(world, loc.blockX, loc.blockZ, 32, handler.getOverhangingBlocks(), 24)
-                if(getMobSpawns(mobLoc.blockX, mobLoc.blockZ) > expedition.maxMobsPerChunk) continue
-                val mob = expedition.randomMobCollection.random()
-                mob.first.spawn(mob.second.random(), BlockVector(mobLoc.blockX, mobLoc.blockY, mobLoc.blockZ), world)?.let {
-                    incrementMobSpawns(it.uniqueId, mobLoc.blockX, mobLoc.blockZ)
+            if(!fallingPlayers.contains(player)) {
+                for(i in 0 until expedition.randomSpawnsAmount) {
+                    if(!expedition.randomSpawnChance.roll()) continue
+                    val mobLoc = findSuitableLocation(world, loc.blockX, loc.blockZ, 32, handler.getOverhangingBlocks(), 24)
+                    if(getMobSpawns(mobLoc.blockX, mobLoc.blockZ) > expedition.maxMobsPerChunk) continue
+                    val mob = expedition.randomMobCollection.random()
+                    mob.first.spawn(mob.second.random(), BlockVector(mobLoc.blockX, mobLoc.blockY, mobLoc.blockZ), world)?.let {
+                        incrementMobSpawns(it.uniqueId, mobLoc.blockX, mobLoc.blockZ)
+                    }
                 }
+            }
+        }
+        ArrayList(fallingPlayers).forEach {
+            val material = it.world.getBlockAt(it.location.subtract(0.0, 1.0, 0.0)).type
+            if(!material.isEmpty && material.isCollidable) {
+                removeFallingEffects(it)
             }
         }
     }
@@ -237,6 +251,26 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         trackedMobs.clear()
     }
 
+    private fun addFallingEffects(player: Player) {
+        fallingPlayers.add(player)
+        player.addPotionEffect(PotionEffect(PotionEffectType.SLOW_FALLING, Int.MAX_VALUE, 0, true, false, false))
+        val models = plugin.getModule(ModelManager::class.java)
+        if(!models.isLoaded) return
+        models.attachParachuteModel(player)
+        player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
+    }
+
+    fun removeFallingEffects(player: Player) {
+        if(!fallingPlayers.remove(player)) return
+        player.removePotionEffect(PotionEffectType.SLOW_FALLING)
+        val models = plugin.getModule(ModelManager::class.java)
+        if(!models.isLoaded) return
+        models.detachModel(player)
+        player.world.spawnParticle(Particle.CLOUD, player.location, 30, 1.0, 1.0, 1.0, 1.0)
+        player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
+        player.playSound(player.location, Sound.ITEM_TRIDENT_RIPTIDE_1, 0.4F, 0.6F)
+    }
+
     fun participate(collection: Collection<Player>) {
         if(phase is IdlePhase) {
             phase.next(this)
@@ -261,7 +295,14 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         for(player in collection) {
             if(!player.isOnline) continue
             val playerLoc = locations.poll()!!
-            addPlayer(player, playerLoc)
+            val projectedLoc: Location
+            if(expedition.parachuteYOffset != -1) {
+                addFallingEffects(player)
+                projectedLoc = playerLoc.clone().add(0.0, expedition.parachuteYOffset.toDouble(), 0.0)
+            } else {
+                projectedLoc = playerLoc
+            }
+            addPlayer(player, projectedLoc)
             expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
         }
     }
@@ -391,6 +432,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                 delay(60.ticks)
                 if(player.isOnline) {
                     addPlayer(player, location)
+                } else {
+                    removeFallingEffects(player)
                 }
             }
             return
@@ -399,7 +442,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         bossBar.addPlayer(player)
         onMoveEvent(player)
         handler.addJoinedExpedition(player, this)
-
         giveMap(player)
     }
 
@@ -408,6 +450,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
      */
     fun removePlayer(player: Player, reason: RemoveReason) {
         joinedPlayers.remove(player.uniqueId)?.let { cache ->
+            removeFallingEffects(player)
             when(reason) {
                 RemoveReason.QUIT -> {
                     npcFollowers.remove(player)?.stopFollowing(null)

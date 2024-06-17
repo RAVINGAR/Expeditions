@@ -16,6 +16,7 @@ import java.awt.Color
 class Expedition(val identifier: String,
                  description: List<String>,
                  val displayName: String,
+                 val parachuteYOffset: Int,
                  val permission: String?,
                  val lockedMessage: String,
                  val world: World,

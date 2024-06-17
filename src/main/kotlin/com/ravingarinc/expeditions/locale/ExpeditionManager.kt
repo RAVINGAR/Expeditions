@@ -123,6 +123,7 @@ class ExpeditionManager(plugin: RavinPlugin) : SuspendingModule(ExpeditionManage
                 name,
                 it.getStringList("map.description"),
                 it.getString("map.name") ?: name,
+                it.getInt("parachute-y-offset", -1),
                 if(permission != null && permission.isEmpty()) null else permission,
                 ChatColor.translateAlternateColorCodes('&',it.getString("map.locked-message") ?: ""),
                 world,

@@ -55,6 +55,12 @@ repositories {
         }
     }
 
+    maven("https://mvn.lumine.io/repository/maven-public/") {
+        content {
+            includeGroup("com.ticxo.modelengine")
+        }
+    }
+
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://oss.sonatype.org/content/groups/public/")
@@ -95,6 +101,7 @@ dependencies {
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.2")
+    compileOnly("com.ticxo.modelengine:api:R3.1.8")
 
     compileOnly("org.betonquest:betonquest:2.0.0")
 

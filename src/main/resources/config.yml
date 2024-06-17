@@ -34,3 +34,5 @@ general:
   # The allowed commands whilst in an expedition unless you have the permission expeditions.admin.bypass
   allowed-commands:
     - party
+parachute:
+  model-id: 'parachute'
