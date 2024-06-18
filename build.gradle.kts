@@ -101,7 +101,7 @@ dependencies {
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.2")
-    compileOnly("com.ticxo.modelengine:api:R3.1.8")
+    compileOnly("com.ticxo.modelengine:ModelEngine:R4.0.4")
 
     compileOnly("org.betonquest:betonquest:2.0.0")
 

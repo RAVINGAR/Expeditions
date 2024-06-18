@@ -8,8 +8,8 @@ import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.persistent.ConfigManager
 import com.ticxo.modelengine.api.ModelEngineAPI
 import net.kyori.adventure.text.Component
+import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.Entity
-import org.bukkit.entity.Marker
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitRunnable
 import java.util.concurrent.ConcurrentHashMap
@@ -51,10 +51,14 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
             I.log(Level.WARNING, "Cannot attach model to player ${player.name} which already has a model attached!");
             return
         }
-        val entity = player.world.spawn(player.eyeLocation, Marker::class.java) {
+        val entity = player.world.spawn(player.eyeLocation, ArmorStand::class.java) {
             it.customName(Component.text("expeditions_parachute"))
             it.isCustomNameVisible = false
             it.isInvulnerable = true
+            it.isInvisible = true
+            it.isMarker = true
+            it.setCanMove(true)
+            it.setCanTick(false)
         }
         player.addPassenger(entity)
         val model = ModelEngineAPI.createActiveModel(modelId)
@@ -68,8 +72,7 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
             return
         }
         modeledEntity.addModel(model, false)
-        modeledEntity.rangeManager.renderDistance = 48
-        player.world.players.forEach { modeledEntity.rangeManager.updatePlayer(it) }
+        attachedEntities[player] = entity
     }
 
     fun detachModel(player: Player) {

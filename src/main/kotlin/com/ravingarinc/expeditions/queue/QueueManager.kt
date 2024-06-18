@@ -390,7 +390,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     fun onInventoryDrag(event: InventoryDragEvent) {
         val player = event.whoClicked as Player
         if(getRequest(player) == null) return
-        if(event.inventory != player.inventory) {
+        if(event.inventory == event.view.topInventory) {
             event.isCancelled = true
             notifyDeny(player, "You cannot manipulate that inventory whilst queueing for an expedition!")
             return

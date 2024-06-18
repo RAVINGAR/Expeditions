@@ -25,6 +25,7 @@ import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
 import org.bukkit.entity.Player
 import org.bukkit.event.entity.EntityDeathEvent
+import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.MapMeta
@@ -199,6 +200,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             if(tickLoot) it.tickLoot(random, score, world)
             it.tick(this)
         }
+        ArrayList(fallingPlayers).forEach {
+            val material = it.world.getBlockAt(it.location.subtract(0.0, 2.0, 0.0)).type
+            if(!material.isEmpty && material.isCollidable) {
+                removeFallingEffects(it)
+            }
+        }
         if(!tickRandomMobs) return
         joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
             val loc = player.location
@@ -212,12 +219,6 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                         incrementMobSpawns(it.uniqueId, mobLoc.blockX, mobLoc.blockZ)
                     }
                 }
-            }
-        }
-        ArrayList(fallingPlayers).forEach {
-            val material = it.world.getBlockAt(it.location.subtract(0.0, 1.0, 0.0)).type
-            if(!material.isEmpty && material.isCollidable) {
-                removeFallingEffects(it)
             }
         }
     }
@@ -252,23 +253,25 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     }
 
     private fun addFallingEffects(player: Player) {
-        fallingPlayers.add(player)
-        player.addPotionEffect(PotionEffect(PotionEffectType.SLOW_FALLING, Int.MAX_VALUE, 0, true, false, false))
+        if(!fallingPlayers.add(player)) return
+        player.addPotionEffect(PotionEffect(PotionEffectType.SLOW_FALLING, 1000000, 0, true, false, false))
         val models = plugin.getModule(ModelManager::class.java)
-        if(!models.isLoaded) return
-        models.attachParachuteModel(player)
-        player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
+        if(models.isLoaded) {
+            models.attachParachuteModel(player)
+            player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
+        }
     }
 
     fun removeFallingEffects(player: Player) {
         if(!fallingPlayers.remove(player)) return
         player.removePotionEffect(PotionEffectType.SLOW_FALLING)
         val models = plugin.getModule(ModelManager::class.java)
-        if(!models.isLoaded) return
-        models.detachModel(player)
-        player.world.spawnParticle(Particle.CLOUD, player.location, 30, 1.0, 1.0, 1.0, 1.0)
-        player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
-        player.playSound(player.location, Sound.ITEM_TRIDENT_RIPTIDE_1, 0.4F, 0.6F)
+        if(models.isLoaded) {
+            models.detachModel(player)
+            player.world.spawnParticle(Particle.CLOUD, player.location, 15, 1.0, 1.0, 1.0, 0.2)
+            player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
+            player.playSound(player.location, Sound.ITEM_TRIDENT_RIPTIDE_1, 0.4F, 0.6F)
+        }
     }
 
     fun participate(collection: Collection<Player>) {
@@ -295,14 +298,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         for(player in collection) {
             if(!player.isOnline) continue
             val playerLoc = locations.poll()!!
-            val projectedLoc: Location
-            if(expedition.parachuteYOffset != -1) {
-                addFallingEffects(player)
-                projectedLoc = playerLoc.clone().add(0.0, expedition.parachuteYOffset.toDouble(), 0.0)
+            val projectedLoc = if(expedition.parachuteYOffset != -1) {
+                playerLoc.clone().add(0.0, expedition.parachuteYOffset.toDouble(), 0.0)
             } else {
-                projectedLoc = playerLoc
+                playerLoc
             }
-            addPlayer(player, projectedLoc)
+            addPlayer(player, projectedLoc, expedition.parachuteYOffset != -1)
             expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
         }
     }
@@ -423,20 +424,21 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
      * Called when a player is added to this expedition. This is either through re-joining or
      * a new join
      */
-    fun addPlayer(player: Player, location: Location) {
+    fun addPlayer(player: Player, location: Location, shouldAddFallingEffects: Boolean = false) {
         val uuid = player.uniqueId
         val previousLocale = player.location
-        if(!player.teleport(location)) {
+        if(!player.teleport(location, PlayerTeleportEvent.TeleportCause.PLUGIN)) {
             I.log(Level.WARNING, "Could not teleport '${player.name}' for unknown reason! Something is cancelling this teleportation! Trying again in 60 ticks...")
             plugin.launch {
                 delay(60.ticks)
                 if(player.isOnline) {
                     addPlayer(player, location)
-                } else {
-                    removeFallingEffects(player)
                 }
             }
             return
+        }
+        if(shouldAddFallingEffects) {
+            addFallingEffects(player)
         }
         joinedPlayers[uuid] = CachedPlayer(player, previousLocale)
         bossBar.addPlayer(player)
