@@ -56,16 +56,17 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
         if(!isActive()) {
             return
         }
-        if(durationTicks != -1L && ticks >= durationTicks) {
+        if(ticks % 20L == 0L && durationTicks != -1L && ticks >= durationTicks) {
             next(instance)
             return
         }
         onTick(random, instance)
-        ticks += 20L
+        ticks += 5L
     }
 
     open fun onTick(random: Random, instance: ExpeditionInstance) {
         instance.tickExpedition(random,
+            ticks % 20L == 0L,
             mobInterval != -1L && ticks % max(mobInterval, 1L) == 0L,
             lootInterval != -1L && ticks % max(lootInterval, 1L) == 0L,
             randomMobInterval != -1L && ticks % max(randomMobInterval, 1L) == 0L)

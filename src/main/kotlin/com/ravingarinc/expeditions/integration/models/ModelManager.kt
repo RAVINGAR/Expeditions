@@ -33,8 +33,9 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
                 val iterator = attachedEntities.iterator()
                 while(iterator.hasNext()) {
                     val entry = iterator.next()
-                    val eye = entry.key.eyeLocation
-                    entry.value.setRotation(eye.yaw, eye.pitch) // todo if this doesnt work then try an armorstand instead of a marker, if that doesnt work then rotate the model engine model itself
+                    val player = entry.key
+                    val eye = player.eyeLocation
+                    entry.value.setRotation(eye.yaw, eye.pitch)
                 }
             }
         }
@@ -71,7 +72,7 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
             warn("Could not create ModelEngine model for unknown reason!")
             return
         }
-        modeledEntity.addModel(model, false)
+        modeledEntity.addModel(model, true)
         attachedEntities[player] = entity
     }
 

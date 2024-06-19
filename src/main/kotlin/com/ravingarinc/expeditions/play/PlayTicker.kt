@@ -10,7 +10,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-class PlayTicker(plugin: RavinPlugin, private val handler: PlayHandler) : Ticker(plugin, 20.ticks) {
+class PlayTicker(plugin: RavinPlugin, private val handler: PlayHandler) : Ticker(plugin, 5.ticks) {
     private val random = Random.Default
     override suspend fun CoroutineScope.tick() {
         for(inst in handler.getAllInstances()) {
