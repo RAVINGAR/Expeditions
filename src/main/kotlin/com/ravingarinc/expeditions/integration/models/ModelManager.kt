@@ -1,33 +1,24 @@
 package com.ravingarinc.expeditions.integration.models
 
 import com.ravingarinc.api.I
-import com.ravingarinc.api.module.ModuleLoadException
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModuleListener
-import com.ravingarinc.api.module.warn
-import com.ravingarinc.expeditions.persistent.ConfigManager
-import com.ticxo.modelengine.api.ModelEngineAPI
 import net.kyori.adventure.text.Component
+import org.bukkit.Material
 import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
+import org.bukkit.inventory.ItemStack
 import org.bukkit.scheduler.BukkitRunnable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 
 class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager::class.java, plugin, isRequired = false) {
-    private var parachuteModel: String = ""
 
     private val attachedEntities: MutableMap<Player, Entity> = ConcurrentHashMap()
     private var runnable: BukkitRunnable? = null
 
     override suspend fun suspendLoad() {
-        if(plugin.server.pluginManager.getPlugin("ModelEngine") == null) {
-            throw ModuleLoadException(this, ModuleLoadException.Reason.PLUGIN_DEPEND, IllegalStateException("ModelEngine is required for this module!"))
-        }
-
-        parachuteModel = plugin.getModule(ConfigManager::class.java).config.config.getString("parachute.model-id") ?: ""
-        if(parachuteModel.isEmpty()) return
         val newRunnable = object : BukkitRunnable() {
             override fun run() {
                 val iterator = attachedEntities.iterator()
@@ -43,11 +34,7 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
         runnable = newRunnable
     }
 
-    fun attachParachuteModel(player: Player) {
-        attachModel(player, parachuteModel)
-    }
-
-    fun attachModel(player: Player, modelId: String) {
+    fun attachModel(player: Player) {
         if(attachedEntities.containsKey(player)) {
             I.log(Level.WARNING, "Cannot attach model to player ${player.name} which already has a model attached!");
             return
@@ -60,27 +47,25 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
             it.isMarker = true
             it.setCanMove(true)
             it.setCanTick(false)
+            it.isMarker = true
+
+            val item = ItemStack(Material.CHEST, 1)
+            val meta = item.itemMeta!!
+            meta.setCustomModelData(69)
+            item.setItemMeta(meta)
+            it.equipment.helmet = item
         }
         player.addPassenger(entity)
-        val model = ModelEngineAPI.createActiveModel(modelId)
-        if (model == null) {
-            warn("Could not spawn ModelEngine model as no model with the id '${modelId}' could be found!")
-            return
-        }
-        val modeledEntity = ModelEngineAPI.createModeledEntity(entity)
-        if (modeledEntity == null) {
-            warn("Could not create ModelEngine model for unknown reason!")
-            return
-        }
-        modeledEntity.addModel(model, true)
         attachedEntities[player] = entity
     }
 
     fun detachModel(player: Player) {
         val entity = attachedEntities.remove(player) ?: return
-        val modeledEntity = ModelEngineAPI.getModeledEntity(entity.uniqueId)
-        modeledEntity.destroy()
         entity.remove()
+    }
+
+    fun hasModel(player: Player) : Boolean {
+        return attachedEntities.containsKey(player)
     }
 
     override suspend fun suspendCancel() {

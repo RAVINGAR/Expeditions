@@ -3,6 +3,7 @@ package com.ravingarinc.expeditions.command
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.ravingarinc.api.command.BaseCommand
 import com.ravingarinc.api.module.RavinPlugin
+import com.ravingarinc.expeditions.integration.models.ModelManager
 import com.ravingarinc.expeditions.locale.ExpeditionManager
 import com.ravingarinc.expeditions.party.PartyManager
 import com.ravingarinc.expeditions.play.PlayHandler
@@ -204,6 +205,17 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                     return@buildTabCompletions listOf("on", "off")
                 }
                 return@buildTabCompletions emptyList<String>()
+            }.parent.addOption("modeltest", "expeditions.admin", "- Toggle the custom model", 1) { sender, args ->
+                if(sender !is Player) {
+                    return@addOption false
+                }
+                val models = plugin.getModule(ModelManager::class.java)
+                if(models.hasModel(sender)) {
+                    models.detachModel(sender)
+                } else {
+                    models.attachModel(sender)
+                }
+                return@addOption true
             }
 
         addHelpOption(ChatColor.AQUA, ChatColor.DARK_AQUA)

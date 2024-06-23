@@ -196,26 +196,31 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     }
 
     fun tickExpedition(random: Random, tickFull: Boolean, tickMobs: Boolean, tickLoot: Boolean, tickRandomMobs: Boolean) {
-        ArrayList(fallingPlayers.entries).forEach {
+        for(it in fallingPlayers.entries) {
             val player = it.key
             val loc = player.location
             val vector = Vector(loc.x, loc.y, loc.z)
+            if(it.value.isZero) {
+                it.setValue(vector)
+                continue
+            }
             if(tickFull) {
                 val material = player.world.getBlockAt(loc.blockX, loc.blockY - 2, loc.blockZ).type
                 if(!material.isAir && (material.isCollidable || material.isSolid)) {
                     removeFallingEffects(player)
                 } else {
-                    val dV = vector.subtract(it.value).normalize().multiply(0.75)
+                    val dV = vector.subtract(it.value).normalize().multiply(0.5)
                     val velocity = Vector(dV.x, player.velocity.y, dV.z)
                     player.velocity = velocity
                     it.setValue(loc.toVector())
                 }
             } else {
-                val dV = vector.subtract(it.value).normalize().multiply(0.75)
-                val velocity = Vector(dV.x, player.velocity.y, dV.z)
+                val dV = vector.subtract(it.value).normalize().multiply(0.5)
+                val velocity = Vector(dV.x, -0.1, dV.z)
                 player.velocity = velocity
                 it.setValue(loc.toVector())
             }
+
         }
         if(tickFull) {
             areaInstances.forEach {
@@ -273,11 +278,11 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     private fun addFallingEffects(player: Player) {
         if(fallingPlayers.containsKey(player)) return
-        fallingPlayers[player] = player.location.toVector()
+        fallingPlayers[player] = Vector(0,0,0)
         player.addPotionEffect(PotionEffect(PotionEffectType.SLOW_FALLING, 1000000, 0, true, false, false))
         val models = plugin.getModule(ModelManager::class.java)
         if(models.isLoaded) {
-            models.attachParachuteModel(player)
+            models.attachModel(player)
             player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
         }
     }
@@ -452,7 +457,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             plugin.launch {
                 delay(60.ticks)
                 if(player.isOnline) {
-                    addPlayer(player, location)
+                    addPlayer(player, location, shouldAddFallingEffects)
                 }
             }
             return
