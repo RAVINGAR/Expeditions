@@ -205,18 +205,18 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
                 continue
             }
             if(tickFull) {
-                val material = player.world.getBlockAt(loc.blockX, loc.blockY - 2, loc.blockZ).type
+                val material = player.world.getBlockAt(loc.blockX, loc.blockY - 1, loc.blockZ).type
                 if(!material.isAir && (material.isCollidable || material.isSolid)) {
                     removeFallingEffects(player)
                 } else {
                     val dV = vector.subtract(it.value).normalize().multiply(0.5)
-                    val velocity = Vector(dV.x, player.velocity.y, dV.z)
+                    val velocity = Vector(dV.x, -0.15, dV.z)
                     player.velocity = velocity
                     it.setValue(loc.toVector())
                 }
             } else {
                 val dV = vector.subtract(it.value).normalize().multiply(0.5)
-                val velocity = Vector(dV.x, -0.1, dV.z)
+                val velocity = Vector(dV.x, -0.15, dV.z)
                 player.velocity = velocity
                 it.setValue(loc.toVector())
             }
