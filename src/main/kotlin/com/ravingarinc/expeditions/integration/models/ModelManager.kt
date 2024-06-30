@@ -33,12 +33,12 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
 
                     val existingVelocity = player.velocity
                     if(existingVelocity.isZero) continue
-                    val dir = existingVelocity.add(loc.direction.multiply(0.8))
+                    val dir = existingVelocity.clone().add(loc.direction.multiply(0.8))
                     val absX = abs(dir.x)
                     val absZ = abs(dir.z)
                     val xFactor = dir.x / absX
                     val zFactor = dir.z / absZ
-                    val velocity = Vector(xFactor * min(absX, 1.0) * 0.6, -0.15, zFactor * min(absZ, 1.0) * 0.6)
+                    val velocity = Vector(xFactor * min(absX, 1.0) * 0.6, existingVelocity.y, zFactor * min(absZ, 1.0) * 0.6)
                     player.velocity = velocity
 
                 }

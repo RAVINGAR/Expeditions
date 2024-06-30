@@ -386,10 +386,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             val newZ = location.blockZ
             for (dX in -2 until 2) {
                 for (dZ in -2 until 2) {
-                    if (!world.getBlockAt(Location(world, newX.toDouble(), newY.toDouble(), newZ.toDouble())).type.isAir) {
-                        isValid = false
-                        break
-                    }
+                    val blockType =world.getBlockAt(Location(world, newX.toDouble(), newY.toDouble(), newZ.toDouble())).type
+                    if(blockType.isAir) continue
+                    if(blockType.isBlock && !blockType.isCollidable) continue
+
+                    isValid = false
+                    break
                 }
             }
             if (isValid) {
