@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.random.Random
 
 sealed class Phase(val name: String, private val mobInterval: Long, private val randomMobInterval: Long, private val lootInterval: Long, val durationTicks: Long, private val nextPhase: () -> Phase) {
@@ -61,12 +62,11 @@ sealed class Phase(val name: String, private val mobInterval: Long, private val 
             return
         }
         onTick(random, instance)
-        ticks += 5L
+        ticks += 20L
     }
 
     open fun onTick(random: Random, instance: ExpeditionInstance) {
         instance.tickExpedition(random,
-            ticks % 20L == 0L,
             mobInterval != -1L && ticks % max(mobInterval, 1L) == 0L,
             lootInterval != -1L && ticks % max(lootInterval, 1L) == 0L,
             randomMobInterval != -1L && ticks % max(randomMobInterval, 1L) == 0L)
@@ -167,7 +167,7 @@ class PlayPhase(expedition: Expedition) :
 
     override fun onTick(random: Random, instance: ExpeditionInstance) {
         super.onTick(random, instance)
-        instance.bossBar.progress = 1.0 - (ticks / totalTime.toDouble())
+        instance.bossBar.progress = max(min(1.0, 1.0 - (ticks / totalTime.toDouble())), 0.0)
         if(!rainStarted && this.durationTicks - ticks <= 200) {
             val world = instance.world
             val duration = instance.expedition.stormPhaseDuration.toInt() + 200

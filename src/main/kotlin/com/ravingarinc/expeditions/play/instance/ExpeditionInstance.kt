@@ -33,7 +33,6 @@ import org.bukkit.map.MapView
 import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
 import org.bukkit.util.BlockVector
-import org.bukkit.util.Vector
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -65,7 +64,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
 
     private val availableSpawns: Queue<BlockVector> = ConcurrentLinkedQueue(expedition.spawnLocations.shuffled())
 
-    private val fallingPlayers: MutableMap<Player, Vector> = ConcurrentHashMap()
+    private val fallingPlayers: MutableSet<Player> = ConcurrentHashMap.newKeySet()
 
     var score by atomic(-1)
 
@@ -195,56 +194,34 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         return tickLock
     }
 
-    fun tickExpedition(random: Random, tickFull: Boolean, tickMobs: Boolean, tickLoot: Boolean, tickRandomMobs: Boolean) {
-        for(it in fallingPlayers.entries) {
-            val player = it.key
+    fun tickExpedition(random: Random, tickMobs: Boolean, tickLoot: Boolean, tickRandomMobs: Boolean) {
+        for(player in fallingPlayers) {
             val loc = player.location
-            val vector = Vector(loc.x, loc.y, loc.z)
-            if(it.value.isZero) {
-                it.setValue(vector)
-                continue
+            val material = player.world.getBlockAt(loc.blockX, loc.blockY - 1, loc.blockZ).type
+            if(!material.isAir && (material.isCollidable || material.isSolid)) {
+                removeFallingEffects(player)
             }
-            if(tickFull) {
-                val material = player.world.getBlockAt(loc.blockX, loc.blockY - 1, loc.blockZ).type
-                if(!material.isAir && (material.isCollidable || material.isSolid)) {
-                    removeFallingEffects(player)
-                } else {
-                    val dV = vector.subtract(it.value).normalize().multiply(0.5)
-                    val velocity = Vector(dV.x, -0.15, dV.z)
-                    player.velocity = velocity
-                    it.setValue(loc.toVector())
-                }
-            } else {
-                val dV = vector.subtract(it.value).normalize().multiply(0.5)
-                val velocity = Vector(dV.x, -0.15, dV.z)
-                player.velocity = velocity
-                it.setValue(loc.toVector())
-            }
-
         }
-        if(tickFull) {
-            areaInstances.forEach {
-                if(tickMobs) it.tickMobs(random, this)
-                if(tickLoot) it.tickLoot(random, score, world)
-                it.tick(this)
-            }
-            if(!tickRandomMobs) return
-            joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
-                val loc = player.location
-                if(!fallingPlayers.contains(player)) {
-                    for(i in 0 until expedition.randomSpawnsAmount) {
-                        if(!expedition.randomSpawnChance.roll()) continue
-                        val mobLoc = findSuitableLocation(world, loc.blockX, loc.blockZ, 32, handler.getOverhangingBlocks(), 24)
-                        if(getMobSpawns(mobLoc.blockX, mobLoc.blockZ) > expedition.maxMobsPerChunk) continue
-                        val mob = expedition.randomMobCollection.random()
-                        mob.first.spawn(mob.second.random(), BlockVector(mobLoc.blockX, mobLoc.blockY, mobLoc.blockZ), world)?.let {
-                            incrementMobSpawns(it.uniqueId, mobLoc.blockX, mobLoc.blockZ)
-                        }
+        areaInstances.forEach {
+            if(tickMobs) it.tickMobs(random, this)
+            if(tickLoot) it.tickLoot(random, score, world)
+            it.tick(this)
+        }
+        if(!tickRandomMobs) return
+        joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
+            val loc = player.location
+            if(!fallingPlayers.contains(player)) {
+                for(i in 0 until expedition.randomSpawnsAmount) {
+                    if(!expedition.randomSpawnChance.roll()) continue
+                    val mobLoc = findSuitableLocation(world, loc.blockX, loc.blockZ, 32, handler.getOverhangingBlocks(), 24)
+                    if(getMobSpawns(mobLoc.blockX, mobLoc.blockZ) > expedition.maxMobsPerChunk) continue
+                    val mob = expedition.randomMobCollection.random()
+                    mob.first.spawn(mob.second.random(), BlockVector(mobLoc.blockX, mobLoc.blockY, mobLoc.blockZ), world)?.let {
+                        incrementMobSpawns(it.uniqueId, mobLoc.blockX, mobLoc.blockZ)
                     }
                 }
             }
         }
-
     }
 
     fun breakBlock(block: Block, material: Material) {
@@ -277,8 +254,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     }
 
     private fun addFallingEffects(player: Player) {
-        if(fallingPlayers.containsKey(player)) return
-        fallingPlayers[player] = Vector(0,0,0)
+        if(fallingPlayers.contains(player)) return
+        fallingPlayers.add(player)
         player.addPotionEffect(PotionEffect(PotionEffectType.SLOW_FALLING, 1000000, 0, true, false, false))
         val models = plugin.getModule(ModelManager::class.java)
         if(models.isLoaded) {
@@ -288,7 +265,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     }
 
     fun removeFallingEffects(player: Player) {
-        if(fallingPlayers.remove(player) == null) return
+        if(!fallingPlayers.remove(player)) return
         player.removePotionEffect(PotionEffectType.SLOW_FALLING)
         val models = plugin.getModule(ModelManager::class.java)
         if(models.isLoaded) {
@@ -439,7 +416,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         val uuid = player.uniqueId
         quitPlayers.remove(uuid)?.let {
             handler.removeAbandon(player)
-            addPlayer(player, it.previousLocale)
+            addPlayer(player, it.previousLocale, it.wasParachuting)
             return true
         }
         return false
@@ -465,7 +442,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         if(shouldAddFallingEffects) {
             addFallingEffects(player)
         }
-        joinedPlayers[uuid] = CachedPlayer(player, previousLocale)
+        joinedPlayers[uuid] = CachedPlayer(player, previousLocale, shouldAddFallingEffects)
         bossBar.addPlayer(player)
         onMoveEvent(player)
         handler.addJoinedExpedition(player, this)
@@ -527,7 +504,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun onQuitEvent(player: Player) {
         val uuid = player.uniqueId
         joinedPlayers[uuid]?.let {
-            quitPlayers[uuid] = CachedPlayer(player, player.location)
+            quitPlayers[uuid] = CachedPlayer(player, player.location, fallingPlayers.contains(player))
             player.teleport(it.previousLocale)
             removePlayer(player, RemoveReason.QUIT)
         }
@@ -653,7 +630,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         return phase.name
     }
 }
-data class CachedPlayer(val player: OfflinePlayer, val previousLocale: Location)
+data class CachedPlayer(val player: OfflinePlayer, val previousLocale: Location, val wasParachuting: Boolean)
 
 enum class RemoveReason {
     DEATH, QUIT, EXTRACTION

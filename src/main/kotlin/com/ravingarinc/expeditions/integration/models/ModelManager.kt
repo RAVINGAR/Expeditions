@@ -10,8 +10,11 @@ import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.scheduler.BukkitRunnable
+import org.bukkit.util.Vector
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
+import kotlin.math.abs
+import kotlin.math.min
 
 class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager::class.java, plugin, isRequired = false) {
 
@@ -25,8 +28,19 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
                 while(iterator.hasNext()) {
                     val entry = iterator.next()
                     val player = entry.key
-                    val eye = player.eyeLocation
-                    entry.value.setRotation(eye.yaw, eye.pitch)
+                    val loc = player.location
+                    entry.value.setRotation(loc.yaw, loc.pitch)
+
+                    val existingVelocity = player.velocity
+                    if(existingVelocity.isZero) continue
+                    val dir = existingVelocity.add(loc.direction.multiply(0.8))
+                    val absX = abs(dir.x)
+                    val absZ = abs(dir.z)
+                    val xFactor = dir.x / absX
+                    val zFactor = dir.z / absZ
+                    val velocity = Vector(xFactor * min(absX, 1.0) * 0.6, -0.15, zFactor * min(absZ, 1.0) * 0.6)
+                    player.velocity = velocity
+
                 }
             }
         }
@@ -72,6 +86,8 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
         runnable?.cancel()
         runnable = null
         ArrayList(attachedEntities.keys).forEach { detachModel(it) }
+
+        attachedEntities.clear()
     }
 
 }

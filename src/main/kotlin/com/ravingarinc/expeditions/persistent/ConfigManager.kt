@@ -78,7 +78,7 @@ class ConfigManager(plugin: RavinPlugin) : SuspendingModule(ConfigManager::class
             val z = loc[3].toDoubleOrNull() ?: continue
 
             val player = plugin.server.getOfflinePlayer(uuid)
-            collection.add(CachedPlayer(player, Location(world, x, y, z)))
+            collection.add(CachedPlayer(player, Location(world, x, y, z), false))
         }
         return collection
     }
