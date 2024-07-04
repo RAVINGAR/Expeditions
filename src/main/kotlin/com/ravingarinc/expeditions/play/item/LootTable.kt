@@ -11,6 +11,7 @@ import kotlin.math.floor
 class LootTable @OptIn(ExperimentalTypeInference::class) constructor(val title: String, val scoreRange: IntRange, private val quantity: IntRange, @BuilderInference builderAction: MutableList<LootItem>.() -> Unit) :
     LootHolder {
     private val loots: WeightedCollection<LootItem> = WeightedCollection()
+    private var singleCollection: WeightedCollection<LootTable>? = null
     init {
         for(it in buildList(builderAction)) {
             loots.add(it, it.weight)
@@ -41,6 +42,16 @@ class LootTable @OptIn(ExperimentalTypeInference::class) constructor(val title: 
         }
         totalScore /= loots.getTotalWeight()
         return floor(totalScore).toInt()
+    }
+
+    fun asSingleCollection() : WeightedCollection<LootTable> {
+        if(singleCollection == null) {
+            WeightedCollection<LootTable>().let {
+                it.add(this, 1.0)
+                singleCollection = it
+            }
+        }
+        return singleCollection!!
     }
 
     companion object {

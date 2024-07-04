@@ -11,6 +11,7 @@ map:
     - '&7battlegrounds.'
   centre: 570,-331 # Centre of the map
   radius: 125 # Radius from the centre of the map to where the world border is placed
+  parachute-y-offset: 32 # If this option is specified, then players will be spawned at the specified value. Set to -1 to disable.
   max-players: 8
   # This is the amount of mobs that are attempted to be spawned FOR EACH
   # POI or Extraction Zone when this map is ticked.

@@ -7,6 +7,7 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.atomic
 import com.ravingarinc.expeditions.api.roll
+import com.ravingarinc.expeditions.integration.models.ModelManager
 import com.ravingarinc.expeditions.locale.type.Expedition
 import com.ravingarinc.expeditions.locale.type.ExtractionZone
 import com.ravingarinc.expeditions.play.PlayHandler
@@ -16,6 +17,8 @@ import com.ravingarinc.expeditions.play.event.ExpeditionNPCExtractEvent
 import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
+import net.kyori.adventure.key.Key
+import net.kyori.adventure.sound.SoundStop
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.*
@@ -24,12 +27,16 @@ import org.bukkit.boss.BarColor
 import org.bukkit.boss.BarStyle
 import org.bukkit.entity.Player
 import org.bukkit.event.entity.EntityDeathEvent
+import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.MapMeta
 import org.bukkit.map.MapView
+import org.bukkit.potion.PotionEffect
+import org.bukkit.potion.PotionEffectType
 import org.bukkit.util.BlockVector
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
@@ -58,6 +65,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     private var lastSpawn: AtomicReference<BlockVector?> = AtomicReference(null)
 
     private val availableSpawns: Queue<BlockVector> = ConcurrentLinkedQueue(expedition.spawnLocations.shuffled())
+
+    private val fallingPlayers: MutableSet<Player> = ConcurrentHashMap.newKeySet()
 
     var score by atomic(-1)
 
@@ -188,6 +197,13 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     }
 
     fun tickExpedition(random: Random, tickMobs: Boolean, tickLoot: Boolean, tickRandomMobs: Boolean) {
+        for(player in fallingPlayers) {
+            val loc = player.location
+            val material = player.world.getBlockAt(loc.blockX, loc.blockY - 1, loc.blockZ).type
+            if(!material.isAir && (material.isCollidable || material.isSolid)) {
+                removeFallingEffects(player)
+            }
+        }
         areaInstances.forEach {
             if(tickMobs) it.tickMobs(random, this)
             if(tickLoot) it.tickLoot(random, score, world)
@@ -196,13 +212,15 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         if(!tickRandomMobs) return
         joinedPlayers.values.mapNotNull { it.player.player }.forEach { player ->
             val loc = player.location
-            for(i in 0 until expedition.randomSpawnsAmount) {
-                if(!expedition.randomSpawnChance.roll()) continue
-                val mobLoc = findSuitableLocation(world, loc.blockX, loc.blockZ, 32, handler.getOverhangingBlocks(), 24)
-                if(getMobSpawns(mobLoc.blockX, mobLoc.blockZ) > expedition.maxMobsPerChunk) continue
-                val mob = expedition.randomMobCollection.random()
-                mob.first.spawn(mob.second.random(), BlockVector(mobLoc.blockX, mobLoc.blockY, mobLoc.blockZ), world)?.let {
-                    incrementMobSpawns(it.uniqueId, mobLoc.blockX, mobLoc.blockZ)
+            if(!fallingPlayers.contains(player)) {
+                for(i in 0 until expedition.randomSpawnsAmount) {
+                    if(!expedition.randomSpawnChance.roll()) continue
+                    val mobLoc = findSuitableLocation(world, loc.blockX, loc.blockZ, 32, handler.getOverhangingBlocks(), 24)
+                    if(getMobSpawns(mobLoc.blockX, mobLoc.blockZ) > expedition.maxMobsPerChunk) continue
+                    val mob = expedition.randomMobCollection.random()
+                    mob.first.spawn(mob.second.random(), BlockVector(mobLoc.blockX, mobLoc.blockY, mobLoc.blockZ), world)?.let {
+                        incrementMobSpawns(it.uniqueId, mobLoc.blockX, mobLoc.blockZ)
+                    }
                 }
             }
         }
@@ -237,6 +255,32 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         trackedMobs.clear()
     }
 
+    private fun addFallingEffects(player: Player) {
+        if(fallingPlayers.contains(player)) return
+        fallingPlayers.add(player)
+        player.addPotionEffect(PotionEffect(PotionEffectType.SLOW_FALLING, 1000000, 0, true, false, false))
+        val models = plugin.getModule(ModelManager::class.java)
+        if(models.isLoaded) {
+            models.attachModel(player)
+            player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
+            player.playSound(player.location, Sound.ITEM_TRIDENT_RIPTIDE_1, 0.4F, 0.6F)
+            player.playSound(net.kyori.adventure.sound.Sound.sound(Key.key("item.elytra.flying"), net.kyori.adventure.sound.Sound.Source.PLAYER, 0.5F, 1.0F), net.kyori.adventure.sound.Sound.Emitter.self())
+        }
+    }
+
+    fun removeFallingEffects(player: Player) {
+        if(!fallingPlayers.remove(player)) return
+        player.removePotionEffect(PotionEffectType.SLOW_FALLING)
+        val models = plugin.getModule(ModelManager::class.java)
+        if(models.isLoaded) {
+            models.detachModel(player)
+            player.world.spawnParticle(Particle.CLOUD, player.location, 15, 1.0, 1.0, 1.0, 0.2)
+            player.stopSound(SoundStop.named(Key.key("item.elytra.flying")))
+            player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
+            player.playSound(player.location, Sound.ENTITY_COW_STEP, 0.6F, 0.5F)
+        }
+    }
+
     fun participate(collection: Collection<Player>) {
         if(phase is IdlePhase) {
             phase.next(this)
@@ -261,7 +305,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         for(player in collection) {
             if(!player.isOnline) continue
             val playerLoc = locations.poll()!!
-            addPlayer(player, playerLoc)
+            val projectedLoc = if(expedition.parachuteYOffset != -1) {
+                playerLoc.clone().add(0.0, expedition.parachuteYOffset.toDouble(), 0.0)
+            } else {
+                playerLoc
+            }
+            addPlayer(player, projectedLoc, expedition.parachuteYOffset != -1)
             expedition.onJoinCommands.forEach { plugin.server.dispatchCommand(plugin.server.consoleSender, it.replace("@player", player.name)) }
         }
     }
@@ -342,10 +391,12 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
             val newZ = location.blockZ
             for (dX in -2 until 2) {
                 for (dZ in -2 until 2) {
-                    if (!world.getBlockAt(Location(world, newX.toDouble(), newY.toDouble(), newZ.toDouble())).type.isAir) {
-                        isValid = false
-                        break
-                    }
+                    val blockType =world.getBlockAt(Location(world, newX.toDouble(), newY.toDouble(), newZ.toDouble())).type
+                    if(blockType.isAir) continue
+                    if(blockType.isBlock && !blockType.isCollidable) continue
+
+                    isValid = false
+                    break
                 }
             }
             if (isValid) {
@@ -372,7 +423,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         val uuid = player.uniqueId
         quitPlayers.remove(uuid)?.let {
             handler.removeAbandon(player)
-            addPlayer(player, it.previousLocale)
+            addPlayer(player, it.previousLocale, it.wasParachuting)
             return true
         }
         return false
@@ -382,24 +433,26 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
      * Called when a player is added to this expedition. This is either through re-joining or
      * a new join
      */
-    fun addPlayer(player: Player, location: Location) {
+    fun addPlayer(player: Player, location: Location, shouldAddFallingEffects: Boolean = false) {
         val uuid = player.uniqueId
         val previousLocale = player.location
-        if(!player.teleport(location)) {
+        if(!player.teleport(location, PlayerTeleportEvent.TeleportCause.PLUGIN)) {
             I.log(Level.WARNING, "Could not teleport '${player.name}' for unknown reason! Something is cancelling this teleportation! Trying again in 60 ticks...")
             plugin.launch {
                 delay(60.ticks)
                 if(player.isOnline) {
-                    addPlayer(player, location)
+                    addPlayer(player, location, shouldAddFallingEffects)
                 }
             }
             return
         }
-        joinedPlayers[uuid] = CachedPlayer(player, previousLocale)
+        if(shouldAddFallingEffects) {
+            addFallingEffects(player)
+        }
+        joinedPlayers[uuid] = CachedPlayer(player, previousLocale, shouldAddFallingEffects)
         bossBar.addPlayer(player)
         onMoveEvent(player)
         handler.addJoinedExpedition(player, this)
-
         giveMap(player)
     }
 
@@ -408,6 +461,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
      */
     fun removePlayer(player: Player, reason: RemoveReason) {
         joinedPlayers.remove(player.uniqueId)?.let { cache ->
+            removeFallingEffects(player)
             when(reason) {
                 RemoveReason.QUIT -> {
                     npcFollowers.remove(player)?.stopFollowing(null)
@@ -457,7 +511,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     fun onQuitEvent(player: Player) {
         val uuid = player.uniqueId
         joinedPlayers[uuid]?.let {
-            quitPlayers[uuid] = CachedPlayer(player, player.location)
+            quitPlayers[uuid] = CachedPlayer(player, player.location, fallingPlayers.contains(player))
             player.teleport(it.previousLocale)
             removePlayer(player, RemoveReason.QUIT)
         }
@@ -583,7 +637,7 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         return phase.name
     }
 }
-data class CachedPlayer(val player: OfflinePlayer, val previousLocale: Location)
+data class CachedPlayer(val player: OfflinePlayer, val previousLocale: Location, val wasParachuting: Boolean)
 
 enum class RemoveReason {
     DEATH, QUIT, EXTRACTION

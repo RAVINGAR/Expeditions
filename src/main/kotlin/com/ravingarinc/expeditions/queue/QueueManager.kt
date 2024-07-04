@@ -21,6 +21,8 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.inventory.ClickType
+import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.player.PlayerAttemptPickupItemEvent
@@ -38,9 +40,15 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
 
     private val mappedRequests: MutableMap<UUID, JoinRequest> = ConcurrentHashMap()
 
+    private val lastMessage: MutableMap<UUID, Long> = HashMap()
+
     companion object {
         val minGroups = 5
         val maxGroups = 15
+
+        val legalInventoryActions = setOf(InventoryAction.PLACE_ALL, InventoryAction.PLACE_SOME, InventoryAction.PLACE_ONE, InventoryAction.PICKUP_ALL, InventoryAction.PICKUP_HALF, InventoryAction.PICKUP_ONE, InventoryAction.PICKUP_SOME)
+
+        val illegalInventoryClicks = setOf(ClickType.NUMBER_KEY, ClickType.DROP, ClickType.CONTROL_DROP)
     }
     @Deprecated("Divisor must be handled automagically as a scaling value based on player count")
     private val divisor = 10.0
@@ -63,9 +71,6 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         ticker = QueueTicker(plugin, maxWaitTime)
         ticker.start(20)
         super.suspendLoad()
-
-        // TODO If a player equips new items that increase their gear score more than the slippage percentage then change
-        //   bucket they're in!
     }
 
     override suspend fun suspendCancel() {
@@ -74,6 +79,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         queues.clear()
         gearMap.clear()
         mappedRequests.clear()
+        lastMessage.clear()
     }
 
     private fun loadQueue(file: ConfigFile) {
@@ -366,23 +372,48 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val player = event.player
         removePlayer(player)
-
+        lastMessage.remove(player.uniqueId)
         // TODO There is nothing to handle if a player gets kicked out of a party whilst in an expedition!
     }
 
     @EventHandler(ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
-
+        val player = event.whoClicked as Player
+        if(getRequest(player) == null) return
+        if(event.clickedInventory == player.inventory && legalInventoryActions.contains(event.action) && !illegalInventoryClicks.contains(event.click)) {
+            return
+        }
+        event.isCancelled = true
+        notifyDeny(player, "You cannot manipulate that inventory whilst queueing for an expedition!")
     }
     @EventHandler(ignoreCancelled = true)
     fun onInventoryDrag(event: InventoryDragEvent) {
-
+        val player = event.whoClicked as Player
+        if(getRequest(player) == null) return
+        if(event.inventory == event.view.topInventory) {
+            event.isCancelled = true
+            notifyDeny(player, "You cannot manipulate that inventory whilst queueing for an expedition!")
+            return
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
     fun onPlayerItemPickup(event: PlayerAttemptPickupItemEvent) {
-
+        if(getRequest(event.player) == null) return
+        event.isCancelled = true
+        notifyDeny(event.player, "You cannot pick-up new items whilst queueing for an expedition!")
     }
+
+    fun notifyDeny(player: Player, message: String) {
+        val uuid = player.uniqueId
+        val currentTime = System.currentTimeMillis()
+        val lastTime = lastMessage[uuid] ?: currentTime
+        if(currentTime - lastTime > 2000 || !lastMessage.containsKey(uuid)) {
+            player.sendMessage(Component.text(message).color(NamedTextColor.RED))
+            lastMessage[uuid] = currentTime
+        }
+    }
+
 }
 
 private class Bucket(val score: Int) {

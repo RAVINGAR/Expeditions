@@ -9,6 +9,7 @@ import com.ravingarinc.expeditions.integration.MultiverseHandler
 import com.ravingarinc.expeditions.integration.MythicListener
 import com.ravingarinc.expeditions.integration.NPCHandler
 import com.ravingarinc.expeditions.integration.PlaceholderInjector
+import com.ravingarinc.expeditions.integration.models.ModelManager
 import com.ravingarinc.expeditions.integration.quests.BetonQuestInjector
 import com.ravingarinc.expeditions.locale.ExpeditionListener
 import com.ravingarinc.expeditions.locale.ExpeditionManager
@@ -47,6 +48,7 @@ class Expeditions : RavinPluginKotlin() {
         addModule(QueueManager::class.java)
         addModule(PlaceholderInjector::class.java)
         addModule(BetonQuestInjector::class.java)
+        addModule(ModelManager::class.java)
     }
 
     override fun loadCommands() {

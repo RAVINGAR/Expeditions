@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "com.ravingarinc.expeditions"
-version = "1.7.8"
+version = "1.8.0"
 
 repositories {
     gradlePluginPortal()
@@ -55,6 +55,12 @@ repositories {
         }
     }
 
+    maven("https://mvn.lumine.io/repository/maven-public/") {
+        content {
+            includeGroup("com.ticxo.modelengine")
+        }
+    }
+
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven("https://oss.sonatype.org/content/groups/public/")
@@ -90,11 +96,13 @@ dependencies {
 
     paperweight.paperDevBundle("1.19.4-R0.1-SNAPSHOT")
 
+    compileOnly("net.kyori:adventure-api:4.13.1")
     //compileOnly("io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT")
     compileOnly("io.lumine:Mythic-Dist:5.1.0-SNAPSHOT")
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
     compileOnly("net.Indyuce:MMOItems-API:6.9.2-SNAPSHOT")
     compileOnly("me.clip:placeholderapi:2.11.2")
+    compileOnly("com.ticxo.modelengine:ModelEngine:R4.0.4")
 
     compileOnly("org.betonquest:betonquest:2.0.0")
 

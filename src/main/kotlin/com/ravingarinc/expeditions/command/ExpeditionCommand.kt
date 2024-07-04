@@ -3,6 +3,7 @@ package com.ravingarinc.expeditions.command
 import com.github.shynixn.mccoroutine.bukkit.launch
 import com.ravingarinc.api.command.BaseCommand
 import com.ravingarinc.api.module.RavinPlugin
+import com.ravingarinc.expeditions.integration.models.ModelManager
 import com.ravingarinc.expeditions.locale.ExpeditionManager
 import com.ravingarinc.expeditions.party.PartyManager
 import com.ravingarinc.expeditions.play.PlayHandler
@@ -24,7 +25,10 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
         val handler = plugin.getModule(PlayHandler::class.java)
         val queueManager = plugin.getModule(QueueManager::class.java)
 
-        setFunction { sender, _ ->
+        setFunction { sender, args ->
+            if(args.size > 1) {
+                sender.sendMessage(Component.text("Unknown command! Type /expeditions ? to view available commands").color(NamedTextColor.GRAY))
+            }
             if(sender is Player) {
                 if(handler.hasJoinedExpedition(sender)) {
                     sender.sendMessage("${ChatColor.RED}You cannot view other expeditions whilst in an expedition!")
@@ -35,6 +39,13 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                 sender.sendMessage("${ChatColor.RED}This command can only be used by a player!")
             }
             return@setFunction true
+        }
+
+        addOption("reload", "expeditions.admin", "- Reloads the plugin", 1) { sender, _ ->
+            sender.sendMessage("${ChatColor.YELLOW}Attempting to reload Expeditions... this may take a while.")
+            plugin.reload()
+            sender.sendMessage("${ChatColor.GREEN}Successfully reloaded Expeditions!")
+            return@addOption true
         }
 
         addOption("inspect", "expeditions.inspect", "- View your total gear score", 1) { sender, args ->
@@ -172,11 +183,6 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                     }
                 }
                 return@addOption true
-            }.parent.addOption("reload", "expeditions.admin", "- Reloads the plugin", 2) { sender, _ ->
-                sender.sendMessage("${ChatColor.YELLOW}Attempting to reload Expeditions... this may take a while.")
-                plugin.reload()
-                sender.sendMessage("${ChatColor.GREEN}Successfully reloaded Expeditions!")
-            return@addOption true
             }.parent.addOption("lock", "expeditions.admin", "<on|off> - Set if joining expeditions should be locked", 2) { sender, args ->
                 val intendedState : String = (if(args.size > 2) args[2] else if(handler.areExpeditionsLocked()) "off" else "on").lowercase()
                 val state = when(intendedState) {
@@ -199,6 +205,17 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                     return@buildTabCompletions listOf("on", "off")
                 }
                 return@buildTabCompletions emptyList<String>()
+            }.parent.addOption("modeltest", "expeditions.admin", "- Toggle the custom model", 1) { sender, args ->
+                if(sender !is Player) {
+                    return@addOption false
+                }
+                val models = plugin.getModule(ModelManager::class.java)
+                if(models.hasModel(sender)) {
+                    models.detachModel(sender)
+                } else {
+                    models.attachModel(sender)
+                }
+                return@addOption true
             }
 
         addHelpOption(ChatColor.AQUA, ChatColor.DARK_AQUA)
