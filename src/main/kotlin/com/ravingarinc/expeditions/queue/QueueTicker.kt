@@ -1,10 +1,12 @@
 package com.ravingarinc.expeditions.queue
 
 import com.github.shynixn.mccoroutine.bukkit.minecraftDispatcher
+import com.github.shynixn.mccoroutine.bukkit.ticks
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.Ticker
+import com.ravingarinc.expeditions.api.formatMilliseconds
 import com.ravingarinc.expeditions.locale.ExpeditionManager
 import com.ravingarinc.expeditions.play.PlayHandler
 import com.ravingarinc.expeditions.play.instance.ExpeditionInstance
@@ -19,15 +21,38 @@ import net.kyori.adventure.title.TitlePart
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 
-class QueueTicker(plugin: RavinPlugin, val maxWaitTime: Long) : Ticker(plugin, 10000) {
+class QueueTicker(plugin: RavinPlugin, val maxWaitTime: Long) : Ticker(plugin, 20.ticks) {
     private val queueManager = plugin.getModule(QueueManager::class.java)
     private val expeditions = plugin.getModule(ExpeditionManager::class.java)
     private val handler = plugin.getModule(PlayHandler::class.java)
     private val syncLock = Mutex(false)
 
     private val toRemove: MutableSet<ExpeditionInstance> = ConcurrentHashMap.newKeySet()
+
+    private var ticks = 0L
     override suspend fun CoroutineScope.tick() {
         //I.log(Level.WARNING, "Debug -> Starting tick cycle for queue ticker")
+        for(rotation in queueManager.getRotations()) {
+            val indexed = queueManager.getIndexedPlayers(rotation.key)
+            asSync {
+                indexed.forEach { it.second.forEach { request ->
+                    val component = Component.text()
+                        .append(Component.text("Queued ↔ ").color(NamedTextColor.GRAY))
+                        .append(Component.text(rotation.key.uppercase()).color(NamedTextColor.GOLD))
+                        .append(Component.text(" | ").color(NamedTextColor.GRAY))
+                        .append(Component.text("Position ↔ ").color(NamedTextColor.GRAY))
+                        .append(Component.text("1 / ${request.players.size}").color(NamedTextColor.YELLOW))
+                        .append(Component.text(" | ").color(NamedTextColor.GRAY))
+                        .append(Component.text("Time  ↔ ").color(NamedTextColor.GRAY))
+                        .append(Component.text((System.currentTimeMillis() - request.joinTime).formatMilliseconds()).color(NamedTextColor.YELLOW)).build()
+                    request.players.forEach { player -> player.sendActionBar(component) }
+                } }
+            }
+        }
+
+        ticks += 20L
+
+        if(ticks % 100L != 0L) return
         for(rotation in queueManager.getRotations()) {
             val indexed = queueManager.getIndexedPlayers(rotation.key)
 
@@ -112,11 +137,18 @@ class QueueTicker(plugin: RavinPlugin, val maxWaitTime: Long) : Ticker(plugin, 1
     }
 
     private fun sendTitle(request: JoinRequest, displayName: String) {
+        val mainTitle = Component.text("Expedition Found!").color(NamedTextColor.GOLD)
+        val subTitle = Component.text("'${displayName}' will begin shortly...").color(NamedTextColor.YELLOW)
+        val bar = Component.text()
+            .append(Component.text("Queued ↔ ").color(NamedTextColor.GRAY))
+            .append(Component.text(request.rotation.uppercase()).color(NamedTextColor.GOLD))
+            .append(Component.text(" | ").color(NamedTextColor.GRAY))
+            .append(Component.text("Expedition Found ↔ ").color(NamedTextColor.GRAY))
+            .append(Component.text(displayName).color(NamedTextColor.GREEN)).build()
         request.players.forEach {
-            it.sendTitlePart(TitlePart.TITLE, Component.text("Expedition Found!").color(NamedTextColor.GOLD))
-            it.sendTitlePart(
-                TitlePart.SUBTITLE, Component.text("'${displayName}' will begin shortly...").color(
-                    NamedTextColor.YELLOW))
+            it.sendTitlePart(TitlePart.TITLE, mainTitle)
+            it.sendTitlePart(TitlePart.SUBTITLE, subTitle)
+            it.sendActionBar(bar)
         }
     }
 

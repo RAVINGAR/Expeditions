@@ -15,6 +15,7 @@ import com.ravingarinc.expeditions.play.event.ExpeditionExtractEvent
 import com.ravingarinc.expeditions.play.event.ExpeditionKillEntityEvent
 import com.ravingarinc.expeditions.play.event.ExpeditionNPCExtractEvent
 import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
+import com.ravingarinc.expeditions.queue.QueueManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import net.kyori.adventure.key.Key
@@ -282,7 +283,10 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
     }
 
     fun participate(collection: Collection<Player>) {
+        assert(collection.isNotEmpty()) { "Cannot participate empty collection of players!" }
         if(phase is IdlePhase) {
+            // failsafe in case that score isnt set yet (this should only happen when force joining a player via command or gui)
+            if(score == -1) score = plugin.getModule(QueueManager::class.java).calculateGearScore(collection.first().inventory.contents)
             phase.next(this)
             join(collection)
         } else if(phase is PlayPhase) {

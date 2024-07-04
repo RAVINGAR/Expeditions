@@ -1,6 +1,7 @@
 package com.ravingarinc.expeditions.locale.type
 
 import com.ravingarinc.api.module.RavinPlugin
+import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.WeightedCollection
 import com.ravingarinc.expeditions.play.instance.AreaInstance
 import com.ravingarinc.expeditions.play.instance.ExpeditionInstance
@@ -87,7 +88,7 @@ abstract class Area(val displayName: String,
         mappedLootScores[standardised]?.let {
             return it
         }
-        //warn("Could not find loot table for area $displayName for score $standardised - using empty loot table / lowest score loot table as placeholder!")
+        warn("Could not find loot table for area $displayName for score $standardised - using empty loot table / lowest score loot table as placeholder!")
         return lowestScoreLoot.asSingleCollection()
     }
 
@@ -104,7 +105,7 @@ abstract class Area(val displayName: String,
             //val range = floor(it * (1.0 - slippage)).toInt()..floor(it * (1.0 + slippage)).toInt()
             for(type in lootTypes) {
                 if(type.first.scoreRange.contains(it)) {
-                    //warn("Debug -> Adding loot table ${type.first.title} to group for score $it")
+                    warn("Debug -> Adding loot table ${type.first.title} to group for score $it")
                     collection.add(type.first, type.second)
                 }
             }

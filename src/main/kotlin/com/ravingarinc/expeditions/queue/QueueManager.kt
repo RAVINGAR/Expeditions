@@ -196,6 +196,15 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         }
     }
 
+    fun isQueued(player: Player) : Boolean {
+        val requests = getQueuedRequests()
+        for (request in requests) {
+            if(!request.contains(player)) continue
+            return true
+        }
+        return false
+    }
+
     fun getMinimumPLayers() : Double {
         return minimumPlayerPercent;
     }
@@ -221,7 +230,6 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
             }
             warn("Something went wrong forming new expedition for group!")
         } else {
-            if(inst.score == -1) inst.score = score
             val phase = inst.getPhase()
             if(phase is IdlePhase) phase.next(inst)
             delay(5000 - (System.currentTimeMillis() - startTime))
@@ -255,7 +263,6 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
         if(inst == null) {
             warn("Failed to find/create valid expedition instance for rotation '${rotation.key}' for unknown reason!")
         } else {
-            if(inst.score == -1) inst.score = score
             val phase = inst.getPhase()
             if(phase is IdlePhase) { phase.next(inst) }
         }
@@ -276,6 +283,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
 
     @SyncOnly
     fun dequeueRequest(inst: ExpeditionInstance, request: JoinRequest) {
+        if(inst.score == -1) inst.score = request.score
         request.players.forEach { mappedRequests.remove(it.uniqueId) }
         inst.participate(request.players)
     }

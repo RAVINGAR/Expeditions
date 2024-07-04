@@ -63,7 +63,9 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                 sender.sendMessage(Component.text("Only a player can use this command! For admin usages, please use /expeditions admin queue").color(NamedTextColor.RED))
                 return@addOption true
             }
-            if(queueManager.isRotation(args[1])) {
+            if(queueManager.isQueued(sender)) {
+                sender.sendMessage(Component.text("You are already queued for an expedition! If you wish to dequeue, use /expeditions dequeue.").color(NamedTextColor.RED))
+            } else if(queueManager.isRotation(args[1])) {
                 tryQueuePlayer(sender, args[1])
             } else {
                 sender.sendMessage(Component.text("Could not find a rotation called '${args[1]}'!").color(NamedTextColor.RED))

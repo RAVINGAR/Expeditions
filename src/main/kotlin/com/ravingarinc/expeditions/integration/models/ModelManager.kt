@@ -42,9 +42,10 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
                     val absZ = abs(dir.z)
                     val xFactor = dir.x / absX
                     val zFactor = dir.z / absZ
-                    val velocity = Vector(xFactor * min(absX, 1.0) * 0.75, -0.15, zFactor * min(absZ, 1.0) * 0.75)
-                    player.velocity = velocity
-
+                    val velocity = Vector(xFactor * min(absX, 1.0) * 0.75, if(player.isSneaking) -0.25 else -0.15, zFactor * min(absZ, 1.0) * 0.75)
+                    if(velocity.x.isFinite() && velocity.y.isFinite() && velocity.z.isFinite()) {
+                        player.velocity = velocity
+                    }
                     if(ticks % 160L == 0L) {
                         ticks = 0L
                         player.playSound(Sound.sound(Key.key("item.elytra.flying"), Sound.Source.PLAYER, 0.5F, 1.0F), Sound.Emitter.self())
