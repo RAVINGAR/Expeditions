@@ -105,7 +105,6 @@ abstract class Area(val displayName: String,
             //val range = floor(it * (1.0 - slippage)).toInt()..floor(it * (1.0 + slippage)).toInt()
             for(type in lootTypes) {
                 if(type.first.scoreRange.contains(it)) {
-                    warn("Debug -> Adding loot table ${type.first.title} to group for score $it")
                     collection.add(type.first, type.second)
                 }
             }
