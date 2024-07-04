@@ -17,6 +17,8 @@ import com.ravingarinc.expeditions.play.event.ExpeditionNPCExtractEvent
 import com.ravingarinc.expeditions.play.render.ExpeditionRenderer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
+import net.kyori.adventure.key.Key
+import net.kyori.adventure.sound.SoundStop
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.*
@@ -261,6 +263,8 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         if(models.isLoaded) {
             models.attachModel(player)
             player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
+            player.playSound(player.location, Sound.ITEM_TRIDENT_RIPTIDE_1, 0.4F, 0.6F)
+            player.playSound(net.kyori.adventure.sound.Sound.sound(Key.key("item.elytra.flying"), net.kyori.adventure.sound.Sound.Source.PLAYER, 0.5F, 1.0F), net.kyori.adventure.sound.Sound.Emitter.self())
         }
     }
 
@@ -271,8 +275,9 @@ class ExpeditionInstance(val plugin: RavinPlugin, val expedition: Expedition, va
         if(models.isLoaded) {
             models.detachModel(player)
             player.world.spawnParticle(Particle.CLOUD, player.location, 15, 1.0, 1.0, 1.0, 0.2)
+            player.stopSound(SoundStop.named(Key.key("item.elytra.flying")))
             player.playSound(player.location, Sound.ITEM_ARMOR_EQUIP_LEATHER, 0.8F, 0.3F)
-            player.playSound(player.location, Sound.ITEM_TRIDENT_RIPTIDE_1, 0.4F, 0.6F)
+            player.playSound(player.location, Sound.ENTITY_COW_STEP, 0.6F, 0.5F)
         }
     }
 

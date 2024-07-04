@@ -3,6 +3,8 @@ package com.ravingarinc.expeditions.integration.models
 import com.ravingarinc.api.I
 import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.SuspendingModuleListener
+import net.kyori.adventure.key.Key
+import net.kyori.adventure.sound.Sound
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.ArmorStand
@@ -23,6 +25,8 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
 
     override suspend fun suspendLoad() {
         val newRunnable = object : BukkitRunnable() {
+            var ticks = 0L
+
             override fun run() {
                 val iterator = attachedEntities.iterator()
                 while(iterator.hasNext()) {
@@ -33,15 +37,21 @@ class ModelManager(plugin: RavinPlugin) : SuspendingModuleListener(ModelManager:
 
                     val existingVelocity = player.velocity
                     if(existingVelocity.isZero) continue
-                    val dir = existingVelocity.clone().add(loc.direction.multiply(0.8))
+                    val dir = existingVelocity.clone().add(loc.direction.multiply(0.75))
                     val absX = abs(dir.x)
                     val absZ = abs(dir.z)
                     val xFactor = dir.x / absX
                     val zFactor = dir.z / absZ
-                    val velocity = Vector(xFactor * min(absX, 1.0) * 0.6, existingVelocity.y, zFactor * min(absZ, 1.0) * 0.6)
+                    val velocity = Vector(xFactor * min(absX, 1.0) * 0.75, -0.15, zFactor * min(absZ, 1.0) * 0.75)
                     player.velocity = velocity
 
+                    if(ticks % 160L == 0L) {
+                        ticks = 0L
+                        player.playSound(Sound.sound(Key.key("item.elytra.flying"), Sound.Source.PLAYER, 0.5F, 1.0F), Sound.Emitter.self())
+                    }
                 }
+
+                ticks += 5L
             }
         }
         newRunnable.runTaskTimer(plugin, 20L, 5L)

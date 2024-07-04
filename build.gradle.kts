@@ -96,6 +96,7 @@ dependencies {
 
     paperweight.paperDevBundle("1.19.4-R0.1-SNAPSHOT")
 
+    compileOnly("net.kyori:adventure-api:4.13.1")
     //compileOnly("io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT")
     compileOnly("io.lumine:Mythic-Dist:5.1.0-SNAPSHOT")
     compileOnly("io.lumine:MythicLib-dist:1.5.2-SNAPSHOT")
