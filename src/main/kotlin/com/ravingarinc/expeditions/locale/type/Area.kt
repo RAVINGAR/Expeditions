@@ -87,15 +87,16 @@ abstract class Area(val displayName: String,
         mappedLootScores[standardised]?.let {
             return it
         }
-        warn("Could not find loot table for area $displayName for score $standardised - using empty loot table / lowest score loot table as placeholder!")
-        return lowestScoreLoot
+        //warn("Could not find loot table for area $displayName for score $standardised - using empty loot table / lowest score loot table as placeholder!")
+        return lowestScoreLoot.asSingleCollection()
     }
 
     private fun mapLootTables(plugin: RavinPlugin) {
         val manager = plugin.getModule(QueueManager::class.java)
+        lowestScoreLoot = LootTable.EMPTY
         for(type in lootTypes) {
-            if(lowestScoreLoot == LootTable.EMPTY || type.first.scoreRange.lower < type.scoreRange.lower) {
-                lowestScoreLoot = type
+            if(lowestScoreLoot == LootTable.EMPTY || type.first.scoreRange.first < lowestScoreLoot.scoreRange.first) {
+                lowestScoreLoot = type.first
             }
         }
         manager.getScoreRanges().forEach {
@@ -103,6 +104,7 @@ abstract class Area(val displayName: String,
             //val range = floor(it * (1.0 - slippage)).toInt()..floor(it * (1.0 + slippage)).toInt()
             for(type in lootTypes) {
                 if(type.first.scoreRange.contains(it)) {
+                    //warn("Debug -> Adding loot table ${type.first.title} to group for score $it")
                     collection.add(type.first, type.second)
                 }
             }
