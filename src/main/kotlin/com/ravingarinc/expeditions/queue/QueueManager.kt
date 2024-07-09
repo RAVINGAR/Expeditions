@@ -185,7 +185,7 @@ class QueueManager(plugin: RavinPlugin) : SuspendingModuleListener(QueueManager:
 
     fun enqueueRequest(request: JoinRequest, priority: Boolean) {
         val buckets = getBucketList(request.rotation) ?: throw IllegalArgumentException("Could not find rotation called '${request.rotation}'!")
-        val bucket = buckets[getBucketIndex(request.score)]
+        val bucket = buckets[min(getBucketIndex(request.score), buckets.size)]
         if(priority) {
             bucket.players.add(0, request) // This actually isn't thread safe but as long as ONLY queueticker calls it we should be fine....
         } else {
