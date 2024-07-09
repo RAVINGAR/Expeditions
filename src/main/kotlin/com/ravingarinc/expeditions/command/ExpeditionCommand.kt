@@ -140,6 +140,28 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
             }
 
         addOption("admin", "expeditions.admin", "- Admin command for Expeditions", 1) { _, _ -> false }
+            .addOption("queue", null, "<rotation> <player> - Force a player to join a queue.", 3) { sender, args ->
+                val player = plugin.server.getPlayer(args[3])
+                if(player == null) {
+                    sender.sendMessage("${ChatColor.RED}Could not find player!")
+                    return@addOption true
+                }
+                if(queueManager.isQueued(sender)) {
+                    sender.sendMessage(Component.text("You are already queued for an expedition! If you wish to dequeue, use /expeditions dequeue.").color(NamedTextColor.RED))
+                } else if(queueManager.isRotation(args[2])) {
+                    tryQueuePlayer(sender, args[2])
+                } else {
+                    sender.sendMessage(Component.text("Could not find a rotation called '${args[2]}'!").color(NamedTextColor.RED))
+                }
+                return@addOption true
+            }.buildTabCompletions { _, args ->
+                if(args.size == 3) {
+                    return@buildTabCompletions queueManager.getRotationNames()
+                } else if (args.size == 4) {
+                    return@buildTabCompletions null
+                }
+                return@buildTabCompletions emptyList()
+            }.parent
             .addOption("join", null, "<player> <expedition> - Force join an expedition", 3) { sender, args ->
                 val player = sender as? Player ?: if (args.size > 2) plugin.server.getPlayer(args[2]) else null
                 if(player == null) {
