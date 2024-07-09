@@ -55,6 +55,9 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
 
     private lateinit var capacityJob: CapacityTicker
 
+    private var schedulerEnabled = false
+    private var timeScheduler: BukkitRunnable? = null
+
     override suspend fun suspendLoad() {
         manager = plugin.getModule(ConfigManager::class.java)
         parties = plugin.getModule(PartyManager::class.java)
@@ -108,10 +111,36 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
             }
         },20L)
 
-
+        val scheduledTimes = ArrayList<Pair<Int, Int>>()
+        var schedulerDuration = 0L
+        manager.config.consume("automation") {
+            schedulerEnabled = it.getBoolean("enabled")
+            if(!schedulerEnabled) return@consume
+            schedulerDuration = it.getDuration("duration")
+            for(line in it.getStringList("scheduled")) {
+                if(line.size != 4) {
+                    warn("Invalid time value of '$line'! Please use the format HHMM.")
+                    continue
+                }
+                val hour = line.substring(0, 2).toIntOrNull()
+                val minute = line.substring(2).toIntOrNull()
+                if(hour == null || minute == null) {
+                    warn("Could not parse '$line' as a valid time. Please use the format HHMM.")
+                    continue
+                }
+                scheduledTimes.add(Pair(hour, minute))
+            }
+        }
+        if(schedulerEnabled) {
+            lockedState.setRelease(true)
+            timeScheduler = TimeScheduler(this, scheduledTimes, schedulerDuration)
+            timeScheduler!!.runTaskTimerAsynchronously(plugin, 10 + (60 - LocalDateTime.now().getSecond()) * 20L, 1200L)
+        }
     }
 
     override suspend fun suspendCancel() {
+        timeScheduler?.cancel()
+        timeScheduler = null
         ExpeditionGui.dispose()
         lockedState.setRelease(true)
         ticker.cancel()
