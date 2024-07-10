@@ -28,6 +28,8 @@ import org.bukkit.ChatColor
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.entity.Player
+import org.bukkit.scheduler.BukkitRunnable
+import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -116,9 +118,9 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
         manager.config.consume("automation") {
             schedulerEnabled = it.getBoolean("enabled")
             if(!schedulerEnabled) return@consume
-            schedulerDuration = it.getDuration("duration")
+            schedulerDuration = it.getDuration("duration") ?: 0L
             for(line in it.getStringList("scheduled")) {
-                if(line.size != 4) {
+                if(line.length != 4) {
                     warn("Invalid time value of '$line'! Please use the format HHMM.")
                     continue
                 }
@@ -131,10 +133,10 @@ class PlayHandler(plugin: RavinPlugin) : SuspendingModule(PlayHandler::class.jav
                 scheduledTimes.add(Pair(hour, minute))
             }
         }
-        if(schedulerEnabled) {
+        if(schedulerEnabled && schedulerDuration != 0L) {
             lockedState.setRelease(true)
             timeScheduler = TimeScheduler(this, scheduledTimes, schedulerDuration)
-            timeScheduler!!.runTaskTimerAsynchronously(plugin, 10 + (60 - LocalDateTime.now().getSecond()) * 20L, 1200L)
+            timeScheduler!!.runTaskTimerAsynchronously(plugin, 10 + (60 - LocalDateTime.now().second) * 20L, 1200L)
         }
     }
 

@@ -18,6 +18,7 @@ import kotlinx.coroutines.sync.Mutex
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.title.TitlePart
+import org.bukkit.Sound
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 
@@ -149,6 +150,7 @@ class QueueTicker(plugin: RavinPlugin, val maxWaitTime: Long) : Ticker(plugin, 2
             it.sendTitlePart(TitlePart.TITLE, mainTitle)
             it.sendTitlePart(TitlePart.SUBTITLE, subTitle)
             it.sendActionBar(bar)
+            it.playSound(it, Sound.ENTITY_PLAYER_LEVELUP, 0.8F, 0.5F)
         }
     }
 

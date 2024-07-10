@@ -146,10 +146,10 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                     sender.sendMessage("${ChatColor.RED}Could not find player!")
                     return@addOption true
                 }
-                if(queueManager.isQueued(sender)) {
-                    sender.sendMessage(Component.text("You are already queued for an expedition! If you wish to dequeue, use /expeditions dequeue.").color(NamedTextColor.RED))
+                if(queueManager.isQueued(player)) {
+                    sender.sendMessage(Component.text("Player is already queued for an expedition!").color(NamedTextColor.RED))
                 } else if(queueManager.isRotation(args[2])) {
-                    tryQueuePlayer(sender, args[2])
+                    tryQueuePlayer(player, args[2])
                 } else {
                     sender.sendMessage(Component.text("Could not find a rotation called '${args[2]}'!").color(NamedTextColor.RED))
                 }
@@ -162,6 +162,23 @@ class ExpeditionCommand(plugin: RavinPlugin) : BaseCommand(plugin, "expeditions"
                 }
                 return@buildTabCompletions emptyList()
             }.parent
+            .addOption("dequeue", null, "<player> - Force dequeue a player", 2) { sender, args ->
+                val player = plugin.server.getPlayer(args[2])
+                if(player == null) {
+                    sender.sendMessage("${ChatColor.RED}Could not find player!")
+                    return@addOption true
+                }
+                val requests = queueManager.getQueuedRequests()
+                for(request in requests) {
+                    if(!request.contains(player)) continue
+                    queueManager.removePlayer(player)
+                    sender.sendMessage(Component.text("You have been removed from the queue!").color(NamedTextColor.GREEN))
+                    return@addOption true
+                }
+                sender.sendMessage(Component.text("You are not currently queued for any expeditions!").color(NamedTextColor.YELLOW))
+
+                return@addOption true
+            }
             .addOption("join", null, "<player> <expedition> - Force join an expedition", 3) { sender, args ->
                 val player = sender as? Player ?: if (args.size > 2) plugin.server.getPlayer(args[2]) else null
                 if(player == null) {
