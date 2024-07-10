@@ -35,9 +35,9 @@ general:
   allowed-commands:
     - party
 automation:
-  enabled: false # When enabled, expeditions will open for the specified duration every x amount of time.
+  enabled: false
   scheduled-times: [0800, 1200, 1500, 2000] # The scheduled times for expeditions to open. Please make sure these don't overlap!
   duration: 1h # The duration that expeditions are open for after the scheduled time.
 
   # Keep in mind that if a player is in queue for an expedition after the duration ends, this will merely prevent new players
-  # from joining the queue and it will not kick out the players currently in queue
+  # from joining the queue, it will not kick out the players currently in queue
