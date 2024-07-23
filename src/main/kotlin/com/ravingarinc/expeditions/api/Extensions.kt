@@ -5,20 +5,14 @@ import com.ravingarinc.api.module.RavinPlugin
 import com.ravingarinc.api.module.severe
 import com.ravingarinc.api.module.warn
 import com.ravingarinc.expeditions.api.Extensions.timeTypes
-import com.ravingarinc.expeditions.play.item.*
-import com.ravingarinc.expeditions.play.mob.MobType
-import com.ravingarinc.expeditions.play.mob.MythicMobType
-import com.ravingarinc.expeditions.play.mob.VanillaMobType
 import kotlinx.coroutines.future.await
 import org.bukkit.*
 import org.bukkit.configuration.ConfigurationSection
-import org.bukkit.entity.EntityType
 import org.bukkit.map.MapCursor
 import org.bukkit.util.BlockVector
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import java.util.*
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.TimeUnit
 
@@ -91,21 +85,7 @@ fun parseRange(string: String): IntRange {
     return IntRange(0, 0)
 }
 
-fun ConfigurationSection.getDropTable(path: String): LootTable {
-    val range = getRange("$path.quantity")
-    val title = getString("$path.title") ?: "Loot Crate"
-    val scoreRange = getRange("$path.score-range")
-    return LootTable(title, scoreRange, range) {
-        getMapList("$path.loot").forEach { map ->
-            val id = map["id"].toString()
-            val r = parseRange(map["quantity"].toString())
-            val weight = (map["weight"].toString()).toDoubleOrNull() ?: 0.0
-            parseItem(id)?.let {
-                this@LootTable.add(LootItem(it, r, weight))
-            }
-        }
-    }
-}
+
 
 fun parseCursor(cursorName: String?, default: MapCursor.Type) : MapCursor.Type {
     if(cursorName == null) return default
@@ -229,137 +209,7 @@ private class TimeFormat(val suffixes: Array<String>, val formatter: (Long) -> L
     }
 }
 
-fun ConfigurationSection.getMob(path: String) : Triple<MobType, Double, IntRange>? {
-    val string = getString(path)
-    if (string == null) {
-        warn("Could not find option at path '$path' in section '${this.name}'")
-        return null
-    }
-    return parseMob(string)
-}
 
-fun parseMob(string: String) : Triple<MobType, Double, IntRange>? {
-    if(string == "null") return null
-    val split = string.split(":".toRegex(), limit = 2)
-    if(split.size < 2) {
-        warn("Incorrect syntax for mob type '$string'. Please use the format <type>:<identifier>!")
-        return null
-    }
-    if(split[0].equals("mythic", true) || split[0].equals("mythicmobs", true) || split[0].equals("mm", true)) {
-        if(!Bukkit.getServer().pluginManager.isPluginEnabled("MythicMobs")) {
-            warn("Could not get parse mythic mob type as MythicMobs is not enabled!")
-            return null
-        }
-        val subSplit = split[1].split(",".toRegex(), limit = 3)
-        val id = subSplit[0]
-        val weight = subSplit[1].toDoubleOrNull()
-        val range = if(subSplit.size > 2) parseRange(subSplit[2]) else IntRange(1, 1)
-        if(weight == null) {
-            warn("Could not parse weight for mob string '$string'! Please specify a valid number!")
-            return null
-        }
-        return Triple(MythicMobType(id), weight, range)
-    } else if (split[0].equals("vanilla", true) || split[0].equals("v", true)) {
-        val subSplit = split[1].split(",".toRegex(), limit = 2)
-        val id = subSplit[0]
-        val weight = subSplit[1].toDoubleOrNull()
-        if(weight == null) {
-            warn("Could not parse weight for mob string '$string'! Please specify a valid number!")
-            return null
-        }
-        var entity : EntityType? = null
-        for(type in EntityType.values()) {
-            if(type.name.equals(id, true)) {
-                entity = type
-            }
-        }
-        if(entity == null) {
-            warn("Could not find vanilla entity type called '${id}' in string '${string}'")
-            return null
-        }
-        return Triple(VanillaMobType(entity), weight, IntRange(0, 0))
-    } else {
-        warn("Unknown mob type '${split[0]}' found for string $string! Please use 'mythic' or 'vanilla'")
-    }
-    return null
-}
-
-fun ConfigurationSection.getMobType(path: String) : MobType? {
-    val string = getString(path)
-    if (string == null) {
-        warn("Could not find option at path '$path' in section '${this.name}'")
-        return null
-    }
-    return parseMobType(string)
-}
-
-fun parseMobType(string: String) : MobType? {
-    val split = string.split(":".toRegex(), limit = 2)
-    if(split[0].equals("mythic", true) || split[0].equals("mythicmobs", true) || split[0].equals("mm", true)) {
-        if(!Bukkit.getServer().pluginManager.isPluginEnabled("MythicMobs")) {
-            warn("Could not get parse mythic mob type as MythicMobs is not enabled!")
-            return null
-        }
-        return MythicMobType(split[1])
-    } else if (split[0].equals("vanilla", true) || split[0].equals("v", true)) {
-        val id = split[1]
-        var entity : EntityType? = null
-        for(type in EntityType.values()) {
-            if(type.name.equals(id, true)) {
-                entity = type
-            }
-        }
-        if(entity == null) {
-            warn("Could not find vanilla entity type called '${id}' in string '${string}'")
-            return null
-        }
-        return VanillaMobType(entity)
-    } else {
-        warn("Unknown mob type '${split[0]}' found for string $string! Please use 'mythic' or 'vanilla'")
-    }
-    return null
-}
-
-fun ConfigurationSection.getItem(path: String): ItemType? {
-    val string = getString(path)
-    if (string == null) {
-        warn("Could not find option at path '$path' in section '${this.name}'")
-        return null
-    }
-    return parseItem(string)
-}
-
-fun parseItem(string: String): ItemType? {
-    val split = string.lowercase(Locale.getDefault()).split(":".toRegex(), limit = 3)
-    if (split[0] == "mmoitem" || split[0] == "mmoitems") {
-        if(!Bukkit.getServer().pluginManager.isPluginEnabled("MMOItems")) {
-            warn("Could not load MMOItem '$string' as MMOItems is not enabled!")
-            return null
-        }
-        if (split.size == 3) {
-            return MMOItemType(split[1].uppercase(), split[2].uppercase())
-        } else {
-            warn("Could not parse $string as an MMOItem as this requires both a type and identifier. Such as 'mmoitem:type:identifier'")
-        }
-    } else if (split[0] == "vanilla") {
-        val material = Material.matchMaterial(split[1])
-        if (material == null) {
-            warn("Could not find vanilla material ${split[1]} as it does not exist! Please use a valid material.")
-        } else {
-            return VanillaItemType(material)
-        }
-    } else if(split[0] == "crucible") {
-        if(!Bukkit.getServer().pluginManager.isPluginEnabled("MythicCrucible")) {
-            warn("Could not load crucible '$string' as MythicCrucible is not enabled!")
-            return null
-        }
-        val identifier = split[1]
-        return CrucibleItemType(identifier)
-    } else {
-        warn("Unknown item type '${split[0]}' found for string $string! Please use 'mmoitem' or 'vanilla'")
-    }
-    return null
-}
 
 fun RavinPlugin.copyResource(parent: File, sourcePath: String, destPath: String) {
     this.getResource(sourcePath)?.let {
@@ -410,52 +260,6 @@ fun parseMaterial(string: String): Material? {
     }
     return material
 }
-/*
-fun ItemStack.getMMOIdentifier(): String {
-    return NBTItem.get(this).getString("MMOITEMS_ITEM_ID") ?: ""
-}
-
-fun ItemStack.takeDurability(player: Player, amount: Int = 1) {
-    val nbt = NBTItem.get(this)
-    if (nbt.hasType()) {
-        val durability = DurabilityItem(player, nbt)
-        if (durability.isValid) {
-            durability.decreaseDurability(amount)
-            return
-        }
-    }
-    val meta = this.itemMeta
-    if (meta is Damageable) {
-        meta.damage = meta.damage + amount
-        this.itemMeta = meta
-    }
-}*/
-
-/*
-@Deprecated("This chunk is not guaranteed to load correctly")
-fun World.withChunk(location: Location, withChunk: (Chunk) -> Unit) {
-    withChunk(location.blockX shr 4, location.blockZ shr 4, withChunk)
-}
-
-/**
- * Attempts to load a chunk if it is not already loaded, only executing the given function once the chunk
- * is loaded. This operation uses getChunkAtAsync, meaning the chunk may not be loaded immediately.
- */
-@Deprecated("This chunk is not guaranteed to load correctly")
-fun World.withChunk(chunkX: Int, chunkZ: Int, withChunk: (Chunk) -> Unit) {
-    if(this.isChunkLoaded(chunkX, chunkZ)) {
-        withChunk.invoke(this.getChunkAt(chunkX, chunkZ))
-    } else {
-        val future = this.getChunkAtAsync(chunkX, chunkZ)
-        future.whenComplete { chunk, throwable ->
-            if(chunk == null) {
-                I.log(Level.WARNING, "Encountered error loading chunk!", throwable)
-                return@whenComplete
-            }
-            withChunk.invoke(chunk)
-        }
-    }
-}*/
 
 fun World.blockWithChunk(plugin: RavinPlugin, location: Location, withChunk: (Chunk) -> Unit) {
     return blockWithChunk(plugin, location.blockX shr 4, location.blockZ shr 4, withChunk)
